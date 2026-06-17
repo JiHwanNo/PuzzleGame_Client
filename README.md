@@ -25,6 +25,10 @@ Unity 6000.0.38f1 (URP) 기반의 확장 가능한 퍼즐 배틀 게임 프레�
 
 `SharedScene(상주)` → `TitleScene` → `LoadingScene` → `LobbyScene` → `GameScene`
 
+## 문서
+
+상세 문서는 [`docs/`](docs/README.md) 폴더 참고. 작업 영역별 200자 요약 + 링크로 정리되어 있습니다.
+
 ## 향후 계획
 
 - [ ] 적(Enemy) AI 및 배틀 연동

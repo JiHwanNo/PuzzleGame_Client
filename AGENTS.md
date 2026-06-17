@@ -1,13 +1,13 @@
 # PuzleBattleGame - Codex 작업 가이드라인
 
 Unity 6000.0.38f1 (URP) 기반 퍼즐 배틀 게임 프레임워크.
-작업을 시작할 때는 먼저 `MAP.md`에서 대상 영역의 참고 문서를 확인한다.
+작업을 시작할 때는 먼저 `docs/MAP.md`에서 대상 영역의 참고 문서를 확인한다.
 
 ---
 
 ## Codex 작업 원칙
 
-- 작업 전 `MAP.md`와 변경 대상 영역 문서를 읽고, 기존 구조와 패턴을 우선 따른다.
+- 작업 전 `docs/MAP.md`와 변경 대상 영역 문서를 읽고, 기존 구조와 패턴을 우선 따른다.
 - 사용자 변경사항을 되돌리지 않는다. 작업 중 발견한 unrelated 변경은 그대로 둔다.
 - `.meta`, 자동 생성 파일(`*Generated.cs`), 외부 DLL(`Plugins/*.dll`)은 요청 없이는 수정하지 않는다.
 - 구현 후 가능한 범위에서 Unity 컴파일/테스트 또는 관련 정적 확인을 수행하고, 실행하지 못한 검증은 보고한다.
@@ -56,7 +56,7 @@ if (condition)
 ## 아키텍처 개요
 
 MVC 엄격 분리, 데이터 기반 생성, 결정론적 리플레이, 인터페이스 기반 확장.
-상세는 `ARCHITECTURE.md` 참고.
+상세는 `docs/ARCHITECTURE.md` 참고.
 
 ---
 
@@ -78,11 +78,11 @@ MVC 엄격 분리, 데이터 기반 생성, 결정론적 리플레이, 인터페
 - 사례: `FetchActions()` 정렬 시 Fall/CreateAndFall 순서 뒤바뀜 → `ExecuteBatchMovement` 루프 분리로 해결.
 
 ### 뷰 액션 처리 순서
-- `ExecuteBatchMovement`는 Move/Fall → CreateAndFall 순서 분리 필수. 상세: `INGAME.md` "ExecuteBatchMovement 처리 순서 규칙".
+- `ExecuteBatchMovement`는 Move/Fall → CreateAndFall 순서 분리 필수. 상세: `docs/INGAME.md` "ExecuteBatchMovement 처리 순서 규칙".
 
 ### 결정론 (Model 레이어)
 - `UnityEngine.Random` / `System.Random` / `Time.deltaTime` / `DateTime.Now` / Dictionary 순회 의존 금지.
-- 랜덤은 `PuzzleRandom`(시드 주입), 시간은 논리 프레임. 상세: `ARCHITECTURE.md` §5.
+- 랜덤은 `PuzzleRandom`(시드 주입), 시간은 논리 프레임. 상세: `docs/ARCHITECTURE.md` §5.
 
 ### 최적화 체크리스트
 - LINQ 제거 시: 정렬 안정성, 지연 평가(Lazy Evaluation) 차이 확인.
@@ -109,13 +109,13 @@ MVC 엄격 분리, 데이터 기반 생성, 결정론적 리플레이, 인터페
 
 | 작업 | 문서 |
 |------|------|
-| **문서 네비게이션** | **`MAP.md`** |
-| **커밋 전 코드 리뷰** | **`CONVENTIONS.md`** |
-| 아키텍처/게임 흐름/폴더 구조 | `ARCHITECTURE.md` |
-| 인게임 퍼즐 (보드, 블럭, 매칭, 뷰, 애니메이션, 리플레이) | `INGAME.md` |
-| 데이터/설정 (JSON, GameSpec, 추가 방법, ReplayData) | `DATA.md` |
-| UI/팝업/탭 (도메인 시스템, UIButton) | `UI.md` |
-| 씬/매니저/인프라 (씬 전환, AssetManager, Pool) | `SCENE.md` |
-| 서버 통신/API/공유 DTO/네트워크 레이어 | `SERVER.md` |
-| 변경 이력 | `CHANGELOG.md` |
+| **문서 네비게이션** | **`docs/MAP.md`** |
+| **커밋 전 코드 리뷰** | **`docs/CONVENTIONS.md`** |
+| 아키텍처/게임 흐름/폴더 구조 | `docs/ARCHITECTURE.md` |
+| 인게임 퍼즐 (보드, 블럭, 매칭, 뷰, 애니메이션, 리플레이) | `docs/INGAME.md` |
+| 데이터/설정 (JSON, GameSpec, 추가 방법, ReplayData) | `docs/DATA.md` |
+| UI/팝업/탭 (도메인 시스템, UIButton) | `docs/UI.md` |
+| 씬/매니저/인프라 (씬 전환, AssetManager, Pool) | `docs/SCENE.md` |
+| 서버 통신/API/공유 DTO/네트워크 레이어 | `docs/SERVER.md` |
+| 변경 이력 | `docs/CHANGELOG.md` |
 
