@@ -8,24 +8,13 @@
 
 | 문서 | 내용 | 언제 읽을까? |
 |------|------|-------------|
-| `AGENTS.md` | Codex 작업 원칙, 코딩 규칙, 주의사항(Known Pitfalls), 작업별 참고 링크 | 항상 (기본 규칙) |
-| `AGENT_TEAM.md` | 단독 진행/팀 에이전트 구성 기준과 역할 | 작업 규모 판단 또는 에이전트 협업 시 |
-| `AGENT_ARCHITECT.md` | 아키텍처 에이전트 역할과 주의사항 | 설계 에이전트 구성 시 |
-| `AGENT_CODING.md` | 코딩 에이전트 역할과 주의사항 | 구현 에이전트 구성 시 |
-| `AGENT_REVIEW.md` | 리뷰 에이전트 역할과 점검 항목 | 리뷰 에이전트 구성 시 |
-| `AGENT_CONVENTION.md` | 코딩 컨벤션 에이전트 역할과 점검 항목 | 컨벤션 에이전트 구성 시 |
-| `AGENT_IMAGE_PROMPT.md` | 이미지 생성 전용 프롬프트 에이전트 역할과 산출 형식 | 이미지 에셋 프롬프트 작성 시 |
-| `CLAUDE.md` | Claude Code 호환용 기존 가이드 | Claude Code 사용 시 |
+| `../AGENTS.md` | Codex 작업 원칙, 코딩 규칙, 주의사항(Known Pitfalls), 작업별 참고 링크 | 항상 (기본 규칙) |
+| `../CLAUDE.md` | Claude Code 호환용 기존 가이드 | Claude Code 사용 시 |
 | `ARCHITECTURE.md` | MVC, 데이터 흐름, 리플레이, 게임 흐름, 폴더 구조 | 아키텍처 이해 시 |
-| `ARCHITECTURE_FLOW.md` | 메인 대전/사이드 콘텐츠 게임 흐름 상세 | 게임 흐름 상세 확인 시 |
 | `CONVENTIONS.md` | 코드 리뷰 체크리스트, 위반 예시, 수정 가이드 | 커밋 전 리뷰 시 필독 |
 | `INGAME.md` | 게임 루프, 보드 상태, 블럭, 매칭, 뷰 동기화, 애니메이션, 리플레이 | 인게임 퍼즐 작업 시 |
-| `INGAME_REPLAY.md` | 리플레이 기록/재생 흐름 상세 | 리플레이 작업 시 |
 | `DATA.md` | JSON 구조, GameSpec, Rule/Stage/Replay 데이터, 추가 방법 | 데이터/설정 작업 시 |
-| `DATA_SCHEMA.md` | GameSpec/ReplayData 상세 스키마 | 데이터 필드 상세 확인 시 |
-| `STAGE_MAP_TOOL.md` | 스테이지 맵 툴 재작업 상태와 다음 작업 | 맵툴 작업 재개 시 |
 | `UI.md` | 도메인 시스템, 팝업/탭 생명주기, UIButton, 추가 방법 | UI 작업 시 |
-| `UI_SIDE_STAGE.md` | 사이드 스테이지 팝업 진입 흐름 | 사이드 스테이지 UI 작업 시 |
 | `SCENE.md` | 씬 전환, SharedScene, 매니저, AssetManager, PoolManager | 인프라 작업 시 |
 | `SERVER.md` | 서버 통신, 공유 DLL, 네트워크 레이어, API 연동 | 서버 API 작업 시 |
 | `CHANGELOG.md` | 전체 변경 이력 | 이전 작업 맥락 파악 시 |
@@ -36,12 +25,12 @@
 
 | 상황 | 읽을 곳 |
 |------|---------|
-| 정렬 변경 후 버그 | `AGENTS.md` → "주의사항 - 정렬 안정성" |
+| 정렬 변경 후 버그 | `../AGENTS.md` → "주의사항 - 정렬 안정성" |
 | 뷰 블럭 미씽/소실 | `INGAME.md` → "ExecuteBatchMovement 처리 순서 규칙" |
-| LINQ 제거 최적화 | `AGENTS.md` → "주의사항 - 최적화 체크리스트" |
-| 씬 전환 후 에셋 미씽 | `AGENTS.md` → "주의사항 - Pool/Addressable 생명주기" |
-| struct null 비교 에러 | `AGENTS.md` → "주의사항 - 데이터 타입" |
-| Model에서 Debug.Log 사용 | `AGENTS.md` → "주의사항 - Model 레이어 로깅" |
+| LINQ 제거 최적화 | `../AGENTS.md` → "주의사항 - 최적화 체크리스트" |
+| 씬 전환 후 에셋 미씽 | `../AGENTS.md` → "주의사항 - Pool/Addressable 생명주기" |
+| struct null 비교 에러 | `../AGENTS.md` → "주의사항 - 데이터 타입" |
+| Model에서 Debug.Log 사용 | `../AGENTS.md` → "주의사항 - Model 레이어 로깅" |
 | 데이터 타입 확인 | `DATA.md` → "데이터 타입 주의" |
 
 ---
@@ -53,7 +42,6 @@
 | 새 퍼즐 모드 추가 | `INGAME.md` → `DATA.md` |
 | 새 블럭 타입 추가 | `INGAME.md` → `DATA.md` |
 | 새 스테이지 추가 | `DATA.md` |
-| 스테이지 맵 툴 재작업 | `STAGE_MAP_TOOL.md` → `DATA.md` |
 | 매칭/점수 밸런싱 | `INGAME.md` → `DATA.md` |
 | 애니메이션 수정 | `INGAME.md` |
 | 보드 좌표/레이아웃 | `INGAME.md` |
@@ -77,11 +65,13 @@
 3. `PuzzleGameController.Start()` PuzzleType별 분기 추가
 4. Rule JSON 생성 + Addressable 등록 → 상세: `INGAME.md`, `DATA.md`
 
-### 새 블럭 능력 추가
-1. 능력 인터페이스 추가 또는 기존 인터페이스 구현 (`ITouchableBlock` 등)
-2. `BaseBlock` 상속 클래스 작성 (`PuzzleCore/Module/Block/`)
-3. `PuzzleBlockFactory.Create()` 조합 분기 추가
-4. Rule JSON의 `blocks[]`에 BlockData 추가 → 상세: `INGAME.md`, `DATA.md`
+### 새 블럭/기믹 추가 (기믹 컴포지션)
+- 일반 색 블럭: Rule JSON `blocks[]`에 BlockData 추가만으로 동작 (코드 변경 불필요)
+- 새 행동(기믹)이 필요한 경우:
+  1. `GimmickBase` 상속 기믹 클래스 작성 (`PuzzleCore/Module/Gimmick/`)
+  2. `PuzzleDefine.cs`의 `GimmickType` enum 값 추가
+  3. `GimmickFactory.Create()`에 `GimmickType → 기믹` 생성 분기 추가
+  4. Rule JSON BlockData에 `gimmickIds`(문자열 목록) + 필요한 `inputType` 추가 → 상세: `INGAME.md`, `DATA.md`
 
 ### 새 매니저 추가
 1. `02_Scripts/Manager/`에 MonoBehaviour 싱글톤 작성
@@ -101,7 +91,8 @@
 |------|------|----------|
 | Model (순수 C#) | `02_Scripts/PuzzleCore/Module/` | `GameSpec.cs`, `PuzzleDefine.cs`, `IPuzzleBoard.cs` |
 | Model - 보드 | `02_Scripts/PuzzleCore/Module/Board/` | `ThreeMatchPuzzleBoard.cs`, `LinkPuzzleBoard.cs`, `TapMatchPuzzleBoard.cs` |
-| Model - 블럭 | `02_Scripts/PuzzleCore/Module/Block/` | `BaseBlock.cs`, `NormalBlock.cs`, `BombBlock.cs`, `PuzzleBlockFactory.cs` |
+| Model - 블럭 | `02_Scripts/PuzzleCore/Module/Block/` | `Block.cs` (단일 블럭, `IGimmickHost`), `PuzzleBlockFactory.cs` |
+| Model - 기믹 | `02_Scripts/PuzzleCore/Module/Gimmick/` | `IGimmick.cs` (IGimmick/IGimmickHost/GimmickBase), `BombGimmick.cs`, `GimmickFactory.cs`, `GimmickUtil.cs` |
 | View | `02_Scripts/PuzzleCore/View/` | `PuzzleBoardView.cs`, `PuzzleBlockView.cs`, `PuzzleCellView.cs` |
 | Controller | `02_Scripts/PuzzleCore/Controller/` | `PuzzleGameController.cs`, `ReplayController.cs` |
 | Manager | `02_Scripts/Manager/` | `Main.cs`, `AssetManager.cs`, `PoolManager.cs`, `DomainManager.cs`, `NetworkManager.cs`, `UserDataManager.cs` |

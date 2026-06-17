@@ -91,7 +91,7 @@ namespace Puzzle.Core
             // 1. 첫 번째 선택
             if (_linkPath.Count == 0)
             {
-                if (targetCell.Block is ILinkableBlock)
+                if (targetCell.Block.GetInputType().HasFlag(InputType.Link))
                 {
                     _linkPath.Add(input);
                     targetCell.Block.SetState(BlockState.Selected);
@@ -138,14 +138,11 @@ namespace Puzzle.Core
 
             if (!isAdjacent) return;
 
-            // 블럭 능력 체크
-            if (targetCell.Block is ILinkableBlock targetLinkable)
+            // 블럭 능력 체크 (링크 가능 여부는 데이터 inputType로 판정)
+            if (targetCell.Block.GetInputType().HasFlag(InputType.Link))
             {
-                if (targetLinkable.CanLink(this, input, currentPos))
-                {
-                    _linkPath.Add(input);
-                    targetCell.Block.SetState(BlockState.Selected);
-                }
+                _linkPath.Add(input);
+                targetCell.Block.SetState(BlockState.Selected);
             }
         }
 
@@ -247,8 +244,9 @@ namespace Puzzle.Core
                 var cell = GetCell(pos);
                 if (cell?.Block != null)
                 {
-                    cell.Block.SetState(BlockState.Matched);
-                    Objective.OnBlockDestroyed(cell.Block.GetBlockId());
+                    Block destroyed = cell.Block;
+                    destroyed.SetState(BlockState.Matched);
+                    Objective.OnBlockDestroyed(destroyed.GetBlockId());
                     cell.Block = null;
 
                     AddView(new BoardViewAction
@@ -257,6 +255,9 @@ namespace Puzzle.Core
                         frame = (uint)_frameCount,
                         position = pos
                     }, burstOrder);
+
+                    // 파괴된 블럭에 부착된 기믹 발화 (폭탄 등)
+                    destroyed.FireDestroyed(this, pos);
                 }
             }
 
@@ -291,7 +292,7 @@ namespace Puzzle.Core
                             var targetCell = GetCell(new GridPos(x, writeY));
                             if (targetCell != null)
                             {
-                                BaseBlock movingBlock = cell.Block;
+                                Block movingBlock = cell.Block;
                                 cell.Block = null;
                                 targetCell.Block = movingBlock;
                                 targetCell.Block.SetState(BlockState.Falling);
@@ -376,6 +377,8 @@ namespace Puzzle.Core
 
         public void AddView(BoardViewAction view, uint? customOrder = null)
         {
+            // 연출 프레임/순서는 큐 소유자(보드)가 스탬프한다. (Model의 연출 데이터 책임 분리)
+            view.frame = (uint)_frameCount;
             view.orderIndex = customOrder ?? _currentOrderIndex++;
             _views.Add(view);
         }

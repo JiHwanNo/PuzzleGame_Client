@@ -453,7 +453,7 @@ public class PuzzleBoardView : MonoBehaviour
         _cellViews[gridPos] = cellView;
     }
 
-    private void CreateBlockView(GridPos gridPos, BaseBlock blockData)
+    private void CreateBlockView(GridPos gridPos, Block blockData)
     {
         if (_blockPrefabObj == null)
         {

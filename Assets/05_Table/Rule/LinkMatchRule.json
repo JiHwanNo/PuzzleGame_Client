@@ -27,7 +27,7 @@
     {
       "_comment": "기본 빨간색 블럭",
       "blockId": "100-1",
-      "inputType": 2,
+      "inputType": [ "Link" ],
       "_inputType_info": "Flags - 1: Swap, 2: Link, 4: Touch",
       "destroyType": 2,
       "life": 1
@@ -35,28 +35,28 @@
     {
       "_comment": "기본 파란색 블럭",
       "blockId": "100-2",
-      "inputType": 2,
+      "inputType": [ "Link" ],
       "destroyType": 2,
       "life": 1
     },
     {
       "_comment": "기본 노란색 블럭",
       "blockId": "100-3",
-      "inputType": 2,
+      "inputType": [ "Link" ],
       "destroyType": 2,
       "life": 1
     },
     {
       "_comment": "기본 초록색 블럭",
       "blockId": "100-4",
-      "inputType": 2,
+      "inputType": [ "Link" ],
       "destroyType": 2,
       "life": 1
     },
     {
       "_comment": "기본 보라색 블럭",
       "blockId": "100-5",
-      "inputType": 2,
+      "inputType": [ "Link" ],
       "destroyType": 2,
       "life": 1
     }

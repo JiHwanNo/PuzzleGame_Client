@@ -15,7 +15,7 @@ namespace Puzzle.Core
         public CellType CellType { get; set; }
         
         /// <summary> 이 셀 위에 놓인 블럭 객체. null이면 빈 공간입니다. </summary>
-        public BaseBlock Block { get; set; }
+        public Block Block { get; set; }
         
         /// <summary> 이 셀의 바닥판(Panel) 객체 </summary>
         public PuzzlePanel Panel { get; set; }
@@ -52,7 +52,7 @@ namespace Puzzle.Core
         /// <param name="random">공용 난수 객체</param>
         /// <param name="factory">블럭 생성 팩토리</param>
         /// <returns>생성된 블럭 객체</returns>
-        public BaseBlock GenerateBlock(GameSpec spec, PuzzleRandom random, PuzzleBlockFactory factory)
+        public Block GenerateBlock(GameSpec spec, PuzzleRandom random, PuzzleBlockFactory factory)
         {
             if (CellType != CellType.Generator || generatorBlockIds.Count == 0 || factory == null)
             {
