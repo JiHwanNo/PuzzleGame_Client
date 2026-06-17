@@ -27,7 +27,7 @@
     {
       "_comment": "기본 빨간색 블럭",
       "blockId": "100-1",
-      "inputType": 4,
+      "inputType": [ "Touch" ],
       "_inputType_info": "Flags - 1: Swap, 4: Touch (5: Swap|Touch)",
       "destroyType": 50,
       "_destroyType_info": "2: Three_Match, 50: Splash",
@@ -36,28 +36,28 @@
     {
       "_comment": "기본 파란색 블럭",
       "blockId": "100-2",
-      "inputType": 4,
+      "inputType": [ "Touch" ],
       "destroyType": 50,
       "life": 1
     },
     {
       "_comment": "기본 노란색 블럭",
       "blockId": "100-3",
-      "inputType": 4,
+      "inputType": [ "Touch" ],
       "destroyType": 50,
       "life": 1
     },
     {
       "_comment": "기본 초록색 블럭",
       "blockId": "100-4",
-      "inputType": 4,
+      "inputType": [ "Touch" ],
       "destroyType": 50,
       "life": 1
     },
     {
       "_comment": "기본 보라색 블럭",
       "blockId": "100-5",
-      "inputType": 4,
+      "inputType": [ "Touch" ],
       "destroyType": 50,
       "life": 1
     }

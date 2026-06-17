@@ -27,7 +27,7 @@
     {
       "_comment": "기본 빨간색 블럭",
       "blockId": "100-1",
-      "inputType": 5,
+      "inputType": [ "Swap", "Touch" ],
       "_inputType_info": "Flags - 1: Swap, 4: Touch (5: Swap|Touch)",
       "destroyType": 2,
       "_destroyType_info": "2: Three_Match",
@@ -36,30 +36,41 @@
     {
       "_comment": "기본 파란색 블럭",
       "blockId": "100-2",
-      "inputType": 5,
+      "inputType": [ "Swap", "Touch" ],
       "destroyType": 2,
       "life": 1
     },
     {
       "_comment": "기본 노란색 블럭",
       "blockId": "100-3",
-      "inputType": 5,
+      "inputType": [ "Swap", "Touch" ],
       "destroyType": 2,
       "life": 1
     },
     {
       "_comment": "기본 초록색 블럭",
       "blockId": "100-4",
-      "inputType": 5,
+      "inputType": [ "Swap", "Touch" ],
       "destroyType": 2,
       "life": 1
     },
     {
       "_comment": "기본 보라색 블럭",
       "blockId": "100-5",
-      "inputType": 5,
+      "inputType": [ "Swap", "Touch" ],
       "destroyType": 2,
       "life": 1
+    },
+    {
+      "_comment": "테스트용 원형 폭탄 (파괴 시 주변 반경 2칸 파괴)",
+      "blockId": "200-1",
+      "inputType": [ "Swap", "Touch" ],
+      "_inputType_info": "조작 방법 (문자열 목록). Swap, Link, Touch 조합 — 기믹과 무관",
+      "destroyType": 51,
+      "_destroyType_info": "51: Bomb",
+      "life": 1,
+      "gimmickIds": [ "Bomb" ],
+      "_gimmickIds_info": "연동할 기믹 id 목록 (문자열). Bomb = 원형 폭탄"
     }
   ]
 }

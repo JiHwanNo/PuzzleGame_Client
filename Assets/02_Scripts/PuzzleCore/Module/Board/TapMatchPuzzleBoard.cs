@@ -140,6 +140,12 @@ namespace Puzzle.Core
                 return false;
             }
 
+            // 터치 가능 여부는 블럭 데이터(inputType)로 판정한다.
+            if (!cell.Block.GetInputType().HasFlag(InputType.Touch))
+            {
+                return false;
+            }
+
             cell.Block.SetState(BlockState.Idle); // 선택 피드백 취소
 
             string targetId = cell.Block.GetBlockId();
@@ -156,8 +162,9 @@ namespace Puzzle.Core
                     var mCell = GetCell(pos);
                     if (mCell?.Block != null)
                     {
-                        mCell.Block.SetState(BlockState.Matched);
-                        Objective.OnBlockDestroyed(mCell.Block.GetBlockId());
+                        Block destroyed = mCell.Block;
+                        destroyed.SetState(BlockState.Matched);
+                        Objective.OnBlockDestroyed(destroyed.GetBlockId());
                         mCell.Block = null;
 
                         AddView(new BoardViewAction
@@ -166,6 +173,9 @@ namespace Puzzle.Core
                             frame = (uint)_frameCount,
                             position = pos
                         }, burstOrder);
+
+                        // 파괴된 블럭에 부착된 기믹 발화 (폭탄 등)
+                        destroyed.FireDestroyed(this, pos);
                     }
                 }
 
@@ -281,7 +291,7 @@ namespace Puzzle.Core
                             var targetCell = GetCell(new GridPos(x, writeY));
                             if (targetCell != null)
                             {
-                                BaseBlock movingBlock = cell.Block;
+                                Block movingBlock = cell.Block;
                                 cell.Block = null;
                                 targetCell.Block = movingBlock;
                                 targetCell.Block.SetState(BlockState.Falling);
@@ -364,6 +374,8 @@ namespace Puzzle.Core
 
         public void AddView(BoardViewAction view, uint? customOrder = null)
         {
+            // 연출 프레임/순서는 큐 소유자(보드)가 스탬프한다. (Model의 연출 데이터 책임 분리)
+            view.frame = (uint)_frameCount;
             view.orderIndex = customOrder ?? _currentOrderIndex++;
             _views.Add(view);
         }
@@ -397,7 +409,7 @@ namespace Puzzle.Core
         {
             if (HasPossibleMoves()) return;
 
-            List<BaseBlock> blocks = new List<BaseBlock>();
+            List<Block> blocks = new List<Block>();
             List<GridPos> positions = new List<GridPos>();
 
             for (int y = 0; y < Height; y++)

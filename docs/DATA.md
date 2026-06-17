@@ -63,9 +63,10 @@ GameSpec
 │
 └─ List<BlockData>
     ├─ blockId         (string) — 블럭 식별자 (예: "100-1")
-    ├─ inputType       (int) — Flags: 1:Swap, 2:Link, 4:Touch (조합 가능, 예: 5=Swap+Touch)
+    ├─ inputType       (List<string>) — 조작 방법 문자열 목록 (예: ["Swap","Touch"]) → InputType 플래그로 변환
     ├─ destroyType     (int) — 파괴 방식
-    └─ life            (int) — 내구도
+    ├─ life            (int) — 내구도
+    └─ gimmickIds      (List<string>) — 부착할 기믹 id 목록 (예: ["Bomb"]). 없거나 비어있으면 기믹 없음
 ```
 
 ---
@@ -92,19 +93,22 @@ GameSpec
   "blocks": [
     {
       "blockId": "100-1",
-      "inputType": 5,
+      "inputType": [ "Swap", "Touch" ],
       "destroyType": 2,
       "life": 1
     },
     {
-      "blockId": "100-2",
-      "inputType": 1,
-      "destroyType": 2,
-      "life": 1
+      "blockId": "200-1",
+      "inputType": [ "Swap", "Touch" ],
+      "destroyType": 51,
+      "life": 1,
+      "gimmickIds": [ "Bomb" ]
     }
   ]
 }
 ```
+
+> JSON에는 `_comment*` 형태의 설명 필드를 자유롭게 넣을 수 있다. `JsonUtility`는 매칭되지 않는 키를 무시하므로 파싱에 영향 없음.
 
 ### puzzleType 값
 | 값 | 모드 | 보드 클래스 |
@@ -113,13 +117,25 @@ GameSpec
 | 2 | Link | LinkPuzzleBoard |
 | 3 | TapMatch | TapMatchPuzzleBoard |
 
-### inputType 값 (비트 플래그)
-| 값 | 의미 | 생성되는 블럭 |
-|----|------|-------------|
-| 1 | Swap | NormalBlock |
-| 2 | Link | NormalBlock |
-| 4 | Touch | NormalBlock |
-| 5 | Swap+Touch | BombBlock |
+### inputType 값 (문자열 목록 → InputType 플래그)
+JSON에는 **가독성을 위해 문자열 목록**으로 두고, 게임 로직에서는 `Block` 생성자가 `Enum.TryParse`로 `InputType` 플래그(int)로 변환한다. 보드는 이 플래그로 조작 가능 여부를 게이팅한다.
+
+| 문자열 | InputType 플래그 | 의미 |
+|--------|:---:|------|
+| `"Swap"` | 1 | 위치 바꾸기 (ThreeMatch) |
+| `"Link"` | 2 | 연결하기 (Link) |
+| `"Touch"` | 4 | 터치(클릭)하기 (TapMatch) |
+
+조합 예: `["Swap","Touch"]` → `Swap|Touch`(5). `inputType`은 **조작 방법**일 뿐이며, 폭탄 같은 **행동은 `gimmickIds`로 별도 지정**한다.
+
+### gimmickIds 값 (문자열 목록 → GimmickType → 기믹 부착)
+블럭에 부착할 기믹을 문자열 목록으로 지정한다. `PuzzleBlockFactory`가 `Enum.TryParse`로 `GimmickType`(enum) 변환 후 `GimmickFactory`로 기믹을 생성해 `Block`에 부착한다.
+
+| 문자열 | GimmickType | 동작 |
+|--------|:---:|------|
+| `"Bomb"` | 1 | 원형 폭탄. 파괴 시 주변 반경 2칸(유클리드 거리) 블럭 연쇄 파괴 |
+
+> **문자열 ↔ enum 변환 정리**: `JsonUtility`는 `inputType`/`gimmickIds`를 `List<string>`으로 역직렬화만 한다. 문자열 → enum 변환은 `Block`(inputType) / `PuzzleBlockFactory`(gimmickIds)에서 `Enum.TryParse`로 수행한다. JsonUtility 자체는 enum 변환을 하지 않으므로, 새 값 추가 시 enum 정의(`PuzzleDefine.cs`)와 팩토리 분기를 함께 갱신해야 한다.
 
 ---
 
@@ -181,8 +197,10 @@ GameSpec
 
 1. Rule JSON의 `blocks` 배열에 새 BlockData 추가
 2. `blockId` 고유 값 지정
-3. `inputType` 플래그 조합 설정
-4. 필요 시 `INGAME.md` 참고하여 새 Block 클래스 + Factory 분기 추가
+3. `inputType` 조작 방법 문자열 목록 설정 (예: `["Swap","Touch"]`)
+4. 특수 행동이 필요하면 `gimmickIds`에 기믹 문자열 추가 (예: `["Bomb"]`).
+   - **새 기믹 타입**이면 `PuzzleDefine.cs`의 `GimmickType` enum 값 + `GimmickFactory` 분기 + (`GimmickBase` 상속) 기믹 클래스를 함께 추가 → 상세: `INGAME.md` "새 블럭(기믹) 추가 절차"
+   - 일반 색 블럭은 코드 변경 없이 JSON 추가만으로 동작
 5. 블럭 스프라이트를 `Assets/04_Resources/Block/`에 추가 후 Addressable 등록
 
 ---

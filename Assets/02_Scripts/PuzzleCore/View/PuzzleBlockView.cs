@@ -26,7 +26,7 @@ public class PuzzleBlockView : MonoBehaviour
     }
 
     /// <summary> 이 뷰와 연결된 블럭 모델 데이터 </summary>
-    private BaseBlock _blockData;
+    private Block _blockData;
 
     /// <summary> 이 블럭이 위치한 보드상의 그리드 좌표 </summary>
     private GridPos _gridPos;
@@ -49,7 +49,7 @@ public class PuzzleBlockView : MonoBehaviour
     /// <param name="blockData">연결할 블럭 모델 객체</param>
     /// <param name="pos">배치될 그리드 좌표</param>
     /// <param name="boardView">관리 중인 보드 뷰 객체</param>
-    public void Initialize(BaseBlock blockData, GridPos pos, PuzzleBoardView boardView)
+    public void Initialize(Block blockData, GridPos pos, PuzzleBoardView boardView)
     {
         _blockData = blockData;
         _gridPos = pos;
@@ -189,7 +189,7 @@ public class PuzzleBlockView : MonoBehaviour
     /// 이 뷰가 참조하고 있는 블럭 모델 데이터를 반환합니다.
     /// </summary>
     /// <returns>연결된 블럭 모델 데이터</returns>
-    public BaseBlock GetBlockData()
+    public Block GetBlockData()
     {
         return _blockData;
     }

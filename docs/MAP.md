@@ -65,11 +65,13 @@
 3. `PuzzleGameController.Start()` PuzzleType별 분기 추가
 4. Rule JSON 생성 + Addressable 등록 → 상세: `INGAME.md`, `DATA.md`
 
-### 새 블럭 능력 추가
-1. 능력 인터페이스 추가 또는 기존 인터페이스 구현 (`ITouchableBlock` 등)
-2. `BaseBlock` 상속 클래스 작성 (`PuzzleCore/Module/Block/`)
-3. `PuzzleBlockFactory.Create()` 조합 분기 추가
-4. Rule JSON의 `blocks[]`에 BlockData 추가 → 상세: `INGAME.md`, `DATA.md`
+### 새 블럭/기믹 추가 (기믹 컴포지션)
+- 일반 색 블럭: Rule JSON `blocks[]`에 BlockData 추가만으로 동작 (코드 변경 불필요)
+- 새 행동(기믹)이 필요한 경우:
+  1. `GimmickBase` 상속 기믹 클래스 작성 (`PuzzleCore/Module/Gimmick/`)
+  2. `PuzzleDefine.cs`의 `GimmickType` enum 값 추가
+  3. `GimmickFactory.Create()`에 `GimmickType → 기믹` 생성 분기 추가
+  4. Rule JSON BlockData에 `gimmickIds`(문자열 목록) + 필요한 `inputType` 추가 → 상세: `INGAME.md`, `DATA.md`
 
 ### 새 매니저 추가
 1. `02_Scripts/Manager/`에 MonoBehaviour 싱글톤 작성
@@ -89,7 +91,8 @@
 |------|------|----------|
 | Model (순수 C#) | `02_Scripts/PuzzleCore/Module/` | `GameSpec.cs`, `PuzzleDefine.cs`, `IPuzzleBoard.cs` |
 | Model - 보드 | `02_Scripts/PuzzleCore/Module/Board/` | `ThreeMatchPuzzleBoard.cs`, `LinkPuzzleBoard.cs`, `TapMatchPuzzleBoard.cs` |
-| Model - 블럭 | `02_Scripts/PuzzleCore/Module/Block/` | `BaseBlock.cs`, `NormalBlock.cs`, `BombBlock.cs`, `PuzzleBlockFactory.cs` |
+| Model - 블럭 | `02_Scripts/PuzzleCore/Module/Block/` | `Block.cs` (단일 블럭, `IGimmickHost`), `PuzzleBlockFactory.cs` |
+| Model - 기믹 | `02_Scripts/PuzzleCore/Module/Gimmick/` | `IGimmick.cs` (IGimmick/IGimmickHost/GimmickBase), `BombGimmick.cs`, `GimmickFactory.cs`, `GimmickUtil.cs` |
 | View | `02_Scripts/PuzzleCore/View/` | `PuzzleBoardView.cs`, `PuzzleBlockView.cs`, `PuzzleCellView.cs` |
 | Controller | `02_Scripts/PuzzleCore/Controller/` | `PuzzleGameController.cs`, `ReplayController.cs` |
 | Manager | `02_Scripts/Manager/` | `Main.cs`, `AssetManager.cs`, `PoolManager.cs`, `DomainManager.cs`, `NetworkManager.cs`, `UserDataManager.cs` |

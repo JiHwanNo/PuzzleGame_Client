@@ -181,12 +181,14 @@ namespace Puzzle.Core
     {
         /// <summary> 블럭 고유 아이디 </summary>
         public string blockId;
-        /// <summary> 조작 방식 </summary>
-        public InputType inputType;
+        /// <summary> 조작 방식 (JSON에는 문자열 목록, 예: ["Swap","Touch"]. 게임 로직에서 InputType 플래그로 변환) </summary>
+        public List<string> inputType;
         /// <summary> 파괴 조건 </summary>
         public DestroyType destroyType;
         /// <summary> 내구도/생명력 </summary>
         public int life;
+        /// <summary> 이 블럭에 연동할 기믹 id 목록 (없거나 비어있으면 기믹 없음) </summary>
+        public List<string> gimmickIds;
     }
 
     // ==========================================================
@@ -287,6 +289,15 @@ namespace Puzzle.Core
         Splash = 50,
         /// <summary> 폭탄 직접 파괴 </summary>
         Bomb = 51
+    }
+
+    /// <summary> 블럭/판넬에 부착되는 기믹의 종류 (JSON에는 문자열, 내부 처리는 이 enum) </summary>
+    public enum GimmickType
+    {
+        /// <summary> 없음 </summary>
+        None = 0,
+        /// <summary> 원형 폭탄 (파괴 시 주변 반경을 함께 파괴) </summary>
+        Bomb = 1
     }
 
     /// <summary> 방향 정의 </summary>
