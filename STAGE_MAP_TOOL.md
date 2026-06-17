@@ -13,7 +13,8 @@
   - `StageMapJsonRepository`: StageData JSON 로드/저장
   - `StageMapValidator`: 저장 전 검증
 - `Runtime`은 현재 `StageMapToolController`만 유지한다.
-- `ToolScene`과 기존 Runtime 뷰/입력/패널 스크립트는 제거된 상태다.
+- `ToolScene`(에디터 전용 씬, `Assets/01_Scenes/ToolScene.unity`)은 존재한다. SceneEnum에는 미등록.
+- 기존 Runtime 뷰/입력/패널 스크립트는 제거되고 `StageMapToolController`로 대체된 상태다.
 
 ---
 
