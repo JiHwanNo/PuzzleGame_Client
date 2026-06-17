@@ -42,6 +42,7 @@
 | 새 퍼즐 모드 추가 | `INGAME.md` → `DATA.md` |
 | 새 블럭 타입 추가 | `INGAME.md` → `DATA.md` |
 | 새 스테이지 추가 | `DATA.md` |
+| 스테이지 맵 편집(맵 툴) | `DATA.md` → "스테이지 맵 툴" |
 | 매칭/점수 밸런싱 | `INGAME.md` → `DATA.md` |
 | 애니메이션 수정 | `INGAME.md` |
 | 보드 좌표/레이아웃 | `INGAME.md` |
@@ -97,7 +98,9 @@
 | Controller | `02_Scripts/PuzzleCore/Controller/` | `PuzzleGameController.cs`, `ReplayController.cs` |
 | Manager | `02_Scripts/Manager/` | `Main.cs`, `AssetManager.cs`, `PoolManager.cs`, `DomainManager.cs`, `NetworkManager.cs`, `UserDataManager.cs` |
 | Network | `02_Scripts/Manager/Network/` | `HttpNetworkClient.cs` |
-| UserData | `02_Scripts/Manager/UserData/` | `IdentityLayer.cs` |
+| UserData | `02_Scripts/Manager/UserData/` | `IdentityLayer.cs`, `AuthLayer.cs` |
+| 스테이지 주입/저장소 | `02_Scripts/` | `StageInjection.cs`, `StageStorage.cs` |
+| 스테이지 맵 툴 | `02_Scripts/StageMapTool/` | Core: `StageMapToolState.cs`, `StageMapCellBrush.cs`, `StageMapJsonRepository.cs`, `StageMapValidator.cs`, `StageMapValidationResult.cs` / Runtime: `StageMapToolController.cs` |
 | 공유 DLL | `Plugins/` | `PuzleBattleShared.dll` |
 | UI | `02_Scripts/UI/` | `UIButton.cs`, `PopupReady.cs` |
-| Data | `05_Table/` | `Rule/*.json`, `Stage/Stage.json`, `Replay/*.json` |
+| Data | `05_Table/`, `Resources/Stage/` | `Rule/*.json`, `Stage/Stage.json`(레거시), `Resources/Stage/{모드}/Stage_NNN.json`(모드별), `Replay/*.json` |

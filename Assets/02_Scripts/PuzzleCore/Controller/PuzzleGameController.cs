@@ -45,7 +45,7 @@ public class PuzzleGameController : MonoBehaviour
     private readonly List<Collider2D> _hitBuffer = new List<Collider2D>(16);
 
     /// <summary> Physics2D.OverlapPoint에 사용할 캐싱된 필터 (매 프레임 할당 방지) </summary>
-    private static readonly ContactFilter2D _noFilter = ContactFilter2D.noFilter;
+    private static readonly ContactFilter2D _noFilter = new ContactFilter2D().NoFilter();
 
     /// <summary> 타이머 텍스트 갱신 빈도 제어용 (이전 표시된 초 값) </summary>
     private int _lastDisplayedSeconds = -1;

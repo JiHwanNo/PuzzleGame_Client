@@ -13,6 +13,9 @@
 | LoadingScene | 씬 전환 시 로딩 화면 | — |
 | LobbyScene | 스테이지 선택, 게임 준비 | LobbyMain.cs |
 | GameScene | 인게임 퍼즐 플레이 | PuzzleGameController.cs, ReplayController.cs |
+| ToolScene | 스테이지 맵 편집 도구 (에디터 전용) | StageMapToolController.cs |
+
+> **ToolScene**: 스테이지 맵 툴 전용 씬. `SceneEnum`에 등록되지 않으며 `Main.MoveScene` 흐름과 무관하다(에디터에서 직접 열어 사용). 상세: `DATA.md` "스테이지 맵 툴".
 
 ---
 

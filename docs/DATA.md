@@ -16,7 +16,9 @@ Rule JSON + Stage JSON
             → board.Initialize(gameSpec)
 ```
 
-**StageInjection**: 싱글톤. `MakeGameSpec(ruleAddress, stageAddress)`로 JSON 로드 후 `GetGameSpec()`으로 반환. 파싱 실패 시 `false` 반환 + `_gameSpec = null`.
+**StageInjection**: 싱글톤. JSON 로드 후 `GetGameSpec()`으로 반환. 파싱 실패 시 `false` 반환 + `_gameSpec = null`. `MakeGameSpec`은 두 가지 오버로드를 제공한다.
+- `MakeGameSpec(ruleAddress, stageAddress)` — 레거시/메인·리플레이 경로. Rule·Stage 둘 다 **Addressable** 에셋(`AssetManager.LoadAsset<TextAsset>`)으로 로드. `PopupReady`(시작/리플레이)가 사용.
+- `MakeGameSpec(ruleAddress, puzzleType, stageId)` — 사이드 스테이지 모드 경로. Rule은 Addressable, Stage는 **`StageStorage`**(Resources/다운로드 경로)로 로드. 아래 "스테이지 저장소" 참고.
 
 ### 데이터 타입 주의 (struct vs class)
 | 타입 | 종류 | `== null` 가능 | 비고 |
@@ -141,7 +143,9 @@ JSON에는 **가독성을 위해 문자열 목록**으로 두고, 게임 로직�
 
 ## Stage JSON 구조
 
-파일 위치: `Assets/05_Table/Stage/Stage.json`
+파일 위치:
+- **레거시/메인**: `Assets/05_Table/Stage/Stage.json` (Addressable 등록 에셋)
+- **모드별 스테이지**: `Assets/Resources/Stage/{모드}/Stage_{번호:000}.json` (예: `Resources/Stage/ThreeMatch/Stage_001.json`). `StageStorage`로 로드. 아래 "스테이지 저장소" 참고.
 
 ```json
 {
@@ -188,10 +192,59 @@ JSON에는 **가독성을 위해 문자열 목록**으로 두고, 게임 로직�
 
 ## 새 스테이지 추가 방법
 
-1. `Assets/05_Table/Stage/Stage.json` 수정 또는 새 JSON 생성
+1. 모드별 스테이지: `Assets/Resources/Stage/{모드}/Stage_{번호:000}.json` 생성 (스테이지 맵 툴 권장). 레거시 메인 경로는 `Assets/05_Table/Stage/Stage.json` 수정
 2. `cells` 배열에 보드 크기만큼 셀 데이터 작성
 3. 최상단 행은 `cell_type: 3` (Generator) + `generator_block_ids` 설정
 4. `block_id`로 초기 블럭 배치 (null이면 빈 셀)
+5. `stage_id`는 파일 번호와 일치해야 한다 (맵 툴 검증 규칙)
+
+---
+
+## 스테이지 저장소 (StageStorage)
+
+모드별 스테이지 JSON을 로드하는 정적 저장소(`02_Scripts/StageStorage.cs`). 다운로드 경로 우선, 없으면 Resources에서 로드.
+
+| 항목 | 값 |
+|------|-----|
+| Resources 루트 | `Stage` |
+| 모드 폴더 | ThreeMatch → `ThreeMatch`, Link → `Link`, TapMatch → `TapMatch` |
+| 리소스 키 | `Stage/{모드}/Stage_{번호:000}` (예: `Stage/ThreeMatch/Stage_001`) |
+| 다운로드 경로 | `Application.persistentDataPath/Stage/{모드}/Stage_{번호:000}.json` |
+| 스테이지 번호 범위 | `MinStageId(1)` ~ `MaxStageId(100)` |
+
+- `TryLoadStageJson(puzzleType, stageId, out json)`: 다운로드 파일이 있으면 먼저 읽고, 없으면 `Resources.Load<TextAsset>`로 로드.
+- `GetResourceKey` / `TryGetModeFolder` / `GetStageFileName` / `GetDownloadedPath`: 키·경로 생성 헬퍼.
+- 지원하지 않는 퍼즐 타입이나 범위를 벗어난 번호는 `Debug.LogError` 후 실패 반환.
+
+---
+
+## 스테이지 맵 툴 (StageMapTool)
+
+스테이지 JSON을 시각적으로 편집/저장하는 에디터 도구. `ToolScene`(SceneEnum 미등록, 에디터 전용)에서 동작. 소스: `02_Scripts/StageMapTool/`.
+
+### Core (`StageMapTool/Core/`)
+| 클래스 | 역할 |
+|--------|------|
+| `StageMapToolState` | 현재 편집 상태(퍼즐 타입, `StageId`, `RuleAddress`, `StageData`, `Brush`) 보유. `PaintCell(x,y)`로 선택 셀에 브러시 적용, `GetCell(x,y)` 조회 |
+| `StageMapCellBrush` | 셀에 칠할 값(`cellType`, `blockId`, `panelId`, `generatorBlockIds`). `CopyFrom`으로 값 복사 |
+| `StageMapJsonRepository` | StageData JSON 로드/저장. `LoadOrCreate`(없으면 기본 8×8 생성, 최상단 행 Generator), `SaveToResources`(`Application.dataPath/Resources/Stage/{모드}/`에 저장 후 AssetDatabase.Refresh), `SaveToDownloaded`, `CreateDefaultStage`. 저장 시 셀을 (y, x) 순으로 정렬해 diff 안정화 |
+| `StageMapValidator` | 저장 전 정합성 검증 → `StageMapValidationResult` |
+| `StageMapValidationResult` | `errors`/`warnings` 목록, `IsValid()`(오류 0개) |
+
+### Runtime (`StageMapTool/Runtime/`)
+| 클래스 | 역할 |
+|--------|------|
+| `StageMapToolController` | UI 입력을 상태 모듈에 연결하는 MonoBehaviour. `UIButtonGroup`으로 퍼즐 타입/편집 모드 선택 |
+
+- **퍼즐 타입 버튼**: `OnClickPuzzleType(val)` — 인덱스 `0:ThreeMatch, 1:TapMatch, 2:Link`. Rule 주소 `ThreeMatchRule/TapMatchRule/LinkMatchRule`. 맵 데이터가 없으면 `PlayerPrefs`의 마지막 선택값 복원.
+- **편집 모드 버튼**: `OnClickEditMode(val)` — `0:Cell, 1:Block, 2:Tile`. 선택 모드의 하위 패널만 활성화.
+
+### 검증 규칙 (StageMapValidator)
+- `stage_id`가 파일 번호와 일치해야 함, `stage_width/height > 0`.
+- 셀 좌표 범위/중복 검사, 셀 개수 = `width × height`.
+- `Close` 셀은 `block_id`·생성 목록이 비어 있어야 함.
+- `block_id`/`generator_block_ids` 항목은 현재 Rule의 `blocks[]`에 존재해야 함.
+- `Generator` 셀은 `generator_block_ids`가 비면 안 됨.
 
 ## 새 블럭 추가 방법
 
