@@ -65,7 +65,7 @@ Main.MoveScene(preScene, nextScene)
 | 매니저 | 역할 | 주요 API |
 |--------|------|----------|
 | Main | 씬 전환, 게임 흐름 | `MoveScene(pre, next)` |
-| AssetManager | Addressables 에셋 로드/캐싱 | 아래 상세 |
+| AssetManager | 에셋 로드/캐싱 (데이터: Addressables / 프리팹: Resources) | 아래 상세 |
 | PoolManager | 오브젝트 풀링 | 아래 상세 |
 | DomainManager | 팝업/탭 도메인 관리 | `UI.md` 참고 |
 | CameraController | 메인 카메라 싱글톤 | `MainCamera` 정적 접근 |
@@ -86,32 +86,43 @@ Main.MoveScene(preScene, nextScene)
 
 ## AssetManager 상세
 
-Addressables 래핑 싱글톤. 모든 에셋 로드는 이 매니저를 통해 수행.
+에셋 로드 래핑 싱글톤. 모든 에셋 로드는 이 매니저를 통해 수행.
+**데이터 에셋(스프라이트·TextAsset)은 Addressables, 프리팹은 Resources**로 로드한다.
 
+**Addressables 계열 (데이터 에셋)**
 | 메서드 | 용도 |
 |--------|------|
 | `LoadAsset<T>(address)` | 동기 로드 (WaitForCompletion) |
 | `LoadAssetAsync<T>(AssetArguments<T>)` | 비동기 로드 (콜백 기반) |
-| `LoadGameObject(address, parent?)` | 동기 프리팹 인스턴스 생성 |
-| `LoadGameObjectAsync(AssetArguments<GameObject>, parent?)` | 비동기 프리팹 인스턴스 생성 |
+| `LoadGameObject(address, parent?)` | 동기 프리팹 인스턴스 생성 (범용 유틸, 현재 미사용) |
+| `LoadGameObjectAsync(AssetArguments<GameObject>, parent?)` | 비동기 프리팹 인스턴스 생성 (범용 유틸, 현재 미사용) |
 | `MarkPersistent(address)` | 씬 전환 시에도 캐시 유지할 에셋 등록 |
-| `ReleaseAll()` | Persistent 제외 전체 에셋 캐시 해제 (씬 전환 시 Main에서 호출) |
+| `ReleaseAll()` | Persistent 제외 전체 Addressable 캐시 해제 (씬 전환 시 Main에서 호출) |
 
-- 캐시: `_addressablePacket` (주소 → 에셋), `_handlePacket` (주소 → 핸들)
-- `AssetArguments<T>`: `address`, `successCallback`, `failedCallback` 구조체
-- `LoadAsset<T>`: 빈 주소 전달 시 `Debug.LogError` 출력 후 `default` 반환
-- `ReleaseAll()`: 내부 `_releaseBuffer` 리스트를 재사용하여 LINQ/리스트 할당 방지
-- **직접 `Addressables.LoadAssetAsync` 호출 금지** — 반드시 AssetManager 경유.
+**Resources 계열 (프리팹 전용)**
+| 메서드 | 용도 |
+|--------|------|
+| `LoadResource<T>(path)` | Resources 동기 로드 + 캐싱 |
+| `LoadGameObjectFromResources(path, parent?)` | Resources 프리팹 동기 인스턴스 생성 |
+| `LoadGameObjectFromResourcesAsync(AssetArguments<GameObject>, parent?)` | Resources 프리팹 비동기 인스턴스 생성 (`Resources.LoadAsync` 기반) |
 
-### 주요 Addressable 주소 패턴
-| 대상 | 주소 패턴 |
-|------|-----------|
-| 팝업 프리팹 | `Popup/{팝업이름}` |
-| 블럭 스프라이트 | `Block_{blockId}` |
-| 셀 프리팹 | `CellPrefab` |
-| 블럭 프리팹 | `BlockPrefab` |
-| Rule JSON | Addressable에 등록된 이름 |
-| Stage JSON | Addressable에 등록된 이름 |
+- 캐시: `_addressablePacket` (주소 → 에셋), `_handlePacket` (주소 → 핸들), `_resourcePacket` (Resources 경로 → 에셋)
+- `AssetArguments<T>`: `address`, `successCallback`, `failedCallback` 구조체 (Resources 계열은 `address`에 Resources 상대 경로 지정)
+- `LoadAsset<T>` / `LoadResource<T>`: 빈 주소 전달 시 `Debug.LogError` 출력 후 `default`/`null` 반환
+- `ReleaseAll()`: 내부 `_releaseBuffer` 리스트를 재사용하여 LINQ/리스트 할당 방지. **Resources 캐시(`_resourcePacket`)는 해제하지 않음** (공용 프리팹은 앱 수명 동안 유지).
+- **직접 `Addressables.LoadAssetAsync` / `Resources.Load` 호출 금지** — 반드시 AssetManager 경유.
+
+### 주요 로드 경로 패턴
+| 대상 | 로드 방식 | 경로 패턴 |
+|------|-----------|-----------|
+| 팝업 프리팹 | Resources | `Prefab/UI/Popup/{팝업이름}` |
+| 셀 프리팹 | Resources | `Prefab/Puzzle/CellPrefab` |
+| 블럭 프리팹 | Resources | `Prefab/Puzzle/BlockPrefab` |
+| 블럭 스프라이트 | Addressables | `Block_{blockId}` |
+| Rule JSON | Addressables | Addressable에 등록된 이름 |
+| Stage JSON | Addressables | Addressable에 등록된 이름 |
+
+> 프리팹 실물은 `Assets/Resources/Prefab/` 하위에 위치한다. Resources 폴더 내 에셋은 Addressable로 중복 등록하지 않는다.
 
 ---
 

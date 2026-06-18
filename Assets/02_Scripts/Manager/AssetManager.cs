@@ -4,7 +4,8 @@ using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
 /// <summary>
-/// Addressables 시스템을 이용해 게임 에셋의 로드 및 인스턴스화를 관리하는 싱글톤 클래스입니다.
+/// 게임 에셋의 로드 및 인스턴스화를 관리하는 싱글톤 클래스입니다.
+/// 스프라이트/TextAsset 등 데이터 에셋은 Addressables로, 프리팹은 Resources로 로드합니다.
 /// </summary>
 public class AssetManager
 {
@@ -47,6 +48,9 @@ public class AssetManager
 
     /// <summary> 씬 전환 시에도 캐시에서 유지할 에셋 주소 목록 (프리팹 등 공용 에셋) </summary>
     private HashSet<string> _persistentAddresses = new HashSet<string>();
+
+    /// <summary> Resources에서 로드된 에셋을 경로별로 캐싱하는 딕셔너리 (프리팹 등) </summary>
+    private Dictionary<string, UnityEngine.Object> _resourcePacket = new Dictionary<string, UnityEngine.Object>();
 
     /// <summary>
     /// 에셋을 비동기적으로 로드합니다. 이미 캐싱된 경우 즉시 성공 콜백을 호출합니다.
@@ -205,4 +209,101 @@ public class AssetManager
         Debug.LogError($"게임 오브젝트 로드 실패! 주소: {address}");
         return null;
     }
+
+    #region Resources (프리팹 전용)
+
+    /// <summary>
+    /// Resources 폴더에서 에셋을 동기적으로 로드합니다. 이미 캐싱된 경우 즉시 반환합니다.
+    /// </summary>
+    /// <typeparam name="T">에셋 타입 (UnityEngine.Object 파생)</typeparam>
+    /// <param name="path">Resources 폴더 기준 상대 경로 (확장자 제외)</param>
+    /// <returns>로드된 에셋 혹은 null</returns>
+    internal T LoadResource<T>(string path) where T : UnityEngine.Object
+    {
+        if (string.IsNullOrEmpty(path))
+        {
+            Debug.LogError($"[AssetManager] LoadResource<{typeof(T).Name}> 호출 시 경로가 비어 있습니다.");
+            return null;
+        }
+
+        if (_resourcePacket.TryGetValue(path, out UnityEngine.Object cached))
+        {
+            return (T)cached;
+        }
+
+        T result = Resources.Load<T>(path);
+        if (result != null)
+        {
+            _resourcePacket[path] = result;
+        }
+        else
+        {
+            Debug.LogError($"[AssetManager] Resources 로드 실패! 타입: {typeof(T).Name}, 경로: {path}");
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Resources 폴더의 프리팹을 동기적으로 로드하고 실제 게임 오브젝트로 생성합니다.
+    /// </summary>
+    /// <param name="path">Resources 폴더 기준 상대 경로 (확장자 제외)</param>
+    /// <param name="parent">부모 Transform</param>
+    /// <returns>생성된 게임 오브젝트 혹은 null</returns>
+    internal GameObject LoadGameObjectFromResources(string path, Transform parent = null)
+    {
+        GameObject prefab = LoadResource<GameObject>(path);
+        if (prefab != null)
+        {
+            return UnityEngine.Object.Instantiate(prefab, parent);
+        }
+
+        Debug.LogError($"[AssetManager] 프리팹 인스턴스화 실패! 경로: {path}");
+        return null;
+    }
+
+    /// <summary>
+    /// Resources 폴더의 프리팹을 비동기적으로 로드하고 실제 게임 오브젝트로 생성합니다.
+    /// 이미 캐싱된 경우 즉시 성공 콜백을 호출합니다.
+    /// </summary>
+    /// <param name="args">로드 설정 인자 (address에 Resources 상대 경로 지정)</param>
+    /// <param name="parent">생성될 오브젝트의 부모 Transform</param>
+    internal void LoadGameObjectFromResourcesAsync(AssetArguments<GameObject> args, Transform parent = null)
+    {
+        if (string.IsNullOrEmpty(args.address))
+        {
+            Debug.LogError("[AssetManager] Resources 경로가 비어 있습니다.");
+            args.failedCallback?.Invoke();
+            return;
+        }
+
+        if (_resourcePacket.TryGetValue(args.address, out UnityEngine.Object cached))
+        {
+            GameObject cachedInstance = UnityEngine.Object.Instantiate((GameObject)cached, parent);
+            args.successCallback?.Invoke(cachedInstance);
+            return;
+        }
+
+        ResourceRequest request = Resources.LoadAsync<GameObject>(args.address);
+        request.completed += (op) =>
+        {
+            GameObject prefab = request.asset as GameObject;
+            if (prefab != null)
+            {
+                if (!_resourcePacket.ContainsKey(args.address))
+                {
+                    _resourcePacket[args.address] = prefab;
+                }
+
+                GameObject instance = UnityEngine.Object.Instantiate(prefab, parent);
+                args.successCallback?.Invoke(instance);
+            }
+            else
+            {
+                Debug.LogError($"[AssetManager] Resources 프리팹 로드 실패! 경로: {args.address}");
+                args.failedCallback?.Invoke();
+            }
+        };
+    }
+
+    #endregion
 }

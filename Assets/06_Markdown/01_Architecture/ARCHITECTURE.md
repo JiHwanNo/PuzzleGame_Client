@@ -139,7 +139,7 @@
 
 ### 에셋/인스턴스는 풀로 관리
 - 블럭·셀처럼 반복 생성되는 오브젝트는 **`PoolManager` 경유**. `Instantiate`/`Destroy` 직접 호출 금지.
-- Addressables 로드는 반드시 `AssetManager` 경유 — 중복 로드 방지 + `MarkPersistent` 통제.
+- 에셋 로드는 반드시 `AssetManager` 경유 — 중복 로드 방지 + `MarkPersistent` 통제. 데이터 에셋은 Addressables, 프리팹은 Resources(`Assets/Resources/Prefab/`).
 
 ### 결정론 제약 내에서만 최적화
 - 성능 개선이 §5 결정론 규칙과 충돌하면 **결정론이 우선**.
@@ -178,8 +178,11 @@
   Lobby/      - 로비 로직
   Title/      - 타이틀 로직
   UI/         - UI 컴포넌트
-03_Prefab/    - Puzzle/, UI/
-04_Resources/ - 이미지, 사운드
+Resources/    - 런타임 로드 에셋 (Resources.Load, 빌드 포함). Prefab/, Texture/, Animation/, Font/, Stage/
+                · Prefab/  : Puzzle/, UI/Popup/, UI/Module/, Tool/
+                · Texture/ : 非Addressable 텍스처 (UI/button_Image, UI/panel_Image, Tool)
+                · Animation/: 애니메이션 클립/컨트롤러 (예정)
+04_Resources/ - Addressables 소스 에셋 (Ingame/Block, Ingame/Cell 등 스프라이트)
 05_Table/     - Rule/, Stage/, Replay/
 ```
 

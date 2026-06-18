@@ -115,7 +115,7 @@ public class DomainManager : MonoBehaviour
     /// 팝업을 이름으로 엽니다. 활성 PopupController를 통해 프리팹을 생성합니다.
     /// 도메인 스택에 팝업이 추가되어 경로가 확장됩니다.
     /// </summary>
-    /// <param name="popupName">팝업 이름 (Addressable 주소: "Popup/{popupName}")</param>
+    /// <param name="popupName">팝업 이름 (Resources 경로: "Prefab/UI/Popup/{popupName}")</param>
     /// <param name="onOpened">팝업 열림 완료 시 콜백</param>
     public void OpenPopup(string popupName, Action<PopupBase> onOpened = null)
     {

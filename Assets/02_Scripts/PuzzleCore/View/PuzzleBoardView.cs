@@ -10,11 +10,11 @@ using System.Collections;
 /// </summary>
 public class PuzzleBoardView : MonoBehaviour
 {
-    /// <summary> 생성할 셀(배경 타일)의 Addressables 주소 </summary>
-    private string cellAddress = "CellPrefab";
+    /// <summary> 생성할 셀(배경 타일) 프리팹의 Resources 경로 </summary>
+    private string cellAddress = "Prefab/Puzzle/CellPrefab";
 
-    /// <summary> 생성할 블럭의 Addressables 주소 </summary>
-    private string blockAddress = "BlockPrefab";
+    /// <summary> 생성할 블럭 프리팹의 Resources 경로 </summary>
+    private string blockAddress = "Prefab/Puzzle/BlockPrefab";
 
     [Header("Hierarchy Roots")]
     /// <summary> 셀들이 생성될 부모 트랜스폼 </summary>
@@ -208,8 +208,8 @@ public class PuzzleBoardView : MonoBehaviour
             return;
         }
 
-        _cellPrefabObj = AssetManager.Instance.LoadAsset<GameObject>(cellAddress);
-        _blockPrefabObj = AssetManager.Instance.LoadAsset<GameObject>(blockAddress);
+        _cellPrefabObj = AssetManager.Instance.LoadResource<GameObject>(cellAddress);
+        _blockPrefabObj = AssetManager.Instance.LoadResource<GameObject>(blockAddress);
 
         if (_cellPrefabObj == null || _blockPrefabObj == null)
         {

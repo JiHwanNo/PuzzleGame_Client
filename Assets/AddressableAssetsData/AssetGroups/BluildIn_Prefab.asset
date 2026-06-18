@@ -14,12 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Unity.Addressables.Editor::UnityEditor.AddressableAssets.Settings.AddressableAssetGroup
   m_GroupName: BluildIn_Prefab
   m_GUID: 9aecbb2535c142a45893e4221ea2c4c6
-  m_SerializeEntries:
-  - m_GUID: ffae52dfe27a60a44b2f0610dd4dc7a6
-    m_Address: Popup/PopupReady
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
+  m_SerializeEntries: []
   m_ReadOnly: 0
   m_Settings: {fileID: 11400000, guid: 08b14f19381d0a146bdc4641103dff40, type: 2}
   m_SchemaSet:

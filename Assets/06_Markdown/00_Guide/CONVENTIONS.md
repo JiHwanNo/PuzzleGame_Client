@@ -69,7 +69,8 @@ for (int i = 0; i < 10; i++)
 ```
 
 ### 1-4. 에셋 및 리소스
-- [ ] 에셋 로드는 **`AssetManager` 경유**. `Addressables.LoadAssetAsync` **직접 호출 금지**.
+- [ ] 에셋 로드는 **`AssetManager` 경유**. `Addressables.LoadAssetAsync` / `Resources.Load` **직접 호출 금지**.
+- [ ] 데이터 에셋은 Addressables(`LoadAsset`), **프리팹은 Resources(`LoadResource`/`LoadGameObjectFromResources`)**. 프리팹 실물은 `Assets/Resources/Prefab/` 하위.
 - [ ] 인게임 시각 요소는 **`Ingame` Sorting Layer**에서 렌더링.
 
 ---

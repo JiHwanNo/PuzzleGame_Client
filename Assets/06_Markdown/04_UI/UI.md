@@ -53,7 +53,7 @@ DomainManager (SharedScene 싱글톤)
 ```
 DomainManager.OpenPopup("ItemDetail")
   → _activePopupController.CreatePopup("ItemDetail")
-    → AssetManager.LoadGameObject("Popup/ItemDetail")  ← Addressable 주소 패턴
+    → AssetManager.LoadGameObjectFromResourcesAsync("Prefab/UI/Popup/ItemDetail")  ← Resources 경로 패턴
       → 인스턴스 생성 → PopupBase 컴포넌트 확보
         → _domainStack에 추가
           → PopupBase.Open()
@@ -164,10 +164,10 @@ Inspector에서 설정하는 범용 버튼 컴포넌트.
 
 ## 팝업 추가 방법 (체크리스트)
 
-1. `Assets/03_Prefab/UI/Popup/`에 프리팹 생성
+1. `Assets/Resources/Prefab/UI/Popup/`에 프리팹 생성 (프리팹 이름 = 팝업이름)
 2. PopupBase 컴포넌트 부착 (`_dimBackground`, `_contentPanel` 연결)
 3. PopupHandler 서브클래스 작성 (같은 GameObject)
-4. Addressable 주소 등록: `Popup/{팝업이름}`
+4. 별도 등록 불필요 — Resources 경로 `Prefab/UI/Popup/{팝업이름}`로 자동 로드
 5. UIButton으로 버튼 → Handler 메서드 연결 (`_root` = Handler, `_callbackName` = 메서드명)
 6. 호출: `DomainManager.Instance.OpenPopup("팝업이름")`
 

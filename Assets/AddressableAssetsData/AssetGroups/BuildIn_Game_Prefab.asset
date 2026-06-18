@@ -14,17 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Unity.Addressables.Editor::UnityEditor.AddressableAssets.Settings.AddressableAssetGroup
   m_GroupName: BuildIn_Game_Prefab
   m_GUID: 8c773ab169cd3d9498ab8961749d4a45
-  m_SerializeEntries:
-  - m_GUID: 47222cc0d1dcb614e8719046d0e37555
-    m_Address: BlockPrefab
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: d02099b419b7a73479bc1cdd0c13bc9e
-    m_Address: CellPrefab
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
+  m_SerializeEntries: []
   m_ReadOnly: 0
   m_Settings: {fileID: 11400000, guid: 08b14f19381d0a146bdc4641103dff40, type: 2}
   m_SchemaSet:

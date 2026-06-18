@@ -33,15 +33,15 @@ public abstract class PopupController : MonoBehaviour
     }
 
     /// <summary>
-    /// 팝업 프리팹을 Addressables에서 로드하여 _popupRoot 하위에 생성합니다.
+    /// 팝업 프리팹을 Resources에서 로드하여 _popupRoot 하위에 생성합니다.
     /// </summary>
-    /// <param name="popupName">팝업 이름 (Addressable 주소: "Popup/{popupName}")</param>
+    /// <param name="popupName">팝업 이름 (Resources 경로: "Prefab/UI/Popup/{popupName}")</param>
     /// <param name="onCreated">생성 완료 시 PopupBase 인스턴스를 전달하는 콜백</param>
     public void CreatePopup(string popupName, Action<PopupBase> onCreated)
     {
-        string address = $"Popup/{popupName}";
+        string address = $"Prefab/UI/Popup/{popupName}";
 
-        AssetManager.Instance.LoadGameObjectAsync(
+        AssetManager.Instance.LoadGameObjectFromResourcesAsync(
             new AssetManager.AssetArguments<GameObject>
             {
                 address = address,

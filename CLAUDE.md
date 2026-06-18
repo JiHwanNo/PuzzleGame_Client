@@ -35,8 +35,12 @@ if (condition)
 - 스타일 교정 시 기존 실행 로직/메서드 호출/조건문 결과를 절대 변경하지 않는다.
 
 ### 에셋 및 리소스
-- 모든 게임 리소스는 **Addressables** 시스템을 통해 관리.
-- 에셋 로드 시 반드시 `AssetManager.cs` 경유. 직접 `Addressables.LoadAssetAsync` 호출 금지.
+- 데이터 에셋(스프라이트·TextAsset 등)은 **Addressables**, **프리팹은 `Resources`**로 관리.
+- 에셋 로드 시 반드시 `AssetManager.cs` 경유. 직접 `Addressables.LoadAssetAsync` / `Resources.Load` 호출 금지.
+  - 데이터: `LoadAsset<T>` / `LoadAssetAsync<T>` (Addressables 소스는 `Assets/04_Resources/`)
+  - 프리팹: `LoadResource<T>` / `LoadGameObjectFromResources(Async)` (실물은 `Assets/Resources/Prefab/` 하위, Addressable 중복 등록 금지)
+- `Assets/Resources/` 폴더 구조는 **에셋 타입별**로 분리: `Prefab/`, `Texture/`, `Animation/`(+`Font/`, `Stage/`).
+  - **Addressable에 등록되지 않은(직접 참조로 빌드에 포함되는) 텍스처는 `Resources/Texture/`** 하위에 배치. Addressable 텍스처는 `04_Resources/`에 유지.
 - 인게임 시각 요소는 **`Ingame` Sorting Layer**에서 렌더링.
 
 ### 디버깅
