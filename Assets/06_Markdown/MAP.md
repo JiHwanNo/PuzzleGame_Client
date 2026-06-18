@@ -2,14 +2,17 @@
 
 작업 전 이 문서에서 대상 문서를 확인하고 이동하세요.
 
+> 문서는 콘텐츠별 폴더(`00_Guide`/`01_Architecture`/`02_Ingame`/`03_Data`/`04_UI`/`05_Scene`/`06_Server`/`07_Agents`)로 묶여 있다.
+> 아래 표의 백틱 문서명(예: `INGAME.md`)은 **위치가 아닌 식별자**다. 실제 위치는 [README.md](README.md) 인덱스의 링크를 따른다.
+
 ---
 
 ## 문서 목록
 
 | 문서 | 내용 | 언제 읽을까? |
 |------|------|-------------|
-| `../AGENTS.md` | Codex 작업 원칙, 코딩 규칙, 주의사항(Known Pitfalls), 작업별 참고 링크 | 항상 (기본 규칙) |
-| `../CLAUDE.md` | Claude Code 호환용 기존 가이드 | Claude Code 사용 시 |
+| `../../AGENTS.md` | Codex 작업 원칙, 코딩 규칙, 주의사항(Known Pitfalls), 작업별 참고 링크 | 항상 (기본 규칙) |
+| `../../CLAUDE.md` | Claude Code 호환용 기존 가이드 | Claude Code 사용 시 |
 | `ARCHITECTURE.md` | MVC, 데이터 흐름, 리플레이, 게임 흐름, 폴더 구조 | 아키텍처 이해 시 |
 | `CONVENTIONS.md` | 코드 리뷰 체크리스트, 위반 예시, 수정 가이드 | 커밋 전 리뷰 시 필독 |
 | `INGAME.md` | 게임 루프, 보드 상태, 블럭, 매칭, 뷰 동기화, 애니메이션, 리플레이 | 인게임 퍼즐 작업 시 |
@@ -28,6 +31,7 @@
 | `INGAME_REPLAY.md` | `INGAME.md` | 리플레이 기록/재생 흐름 상세 |
 | `DATA_SCHEMA.md` | `DATA.md` | GameSpec 전체 필드 스키마 트리 + ReplayData JSON |
 | `DATA_STAGE.md` | `DATA.md` | 스테이지 저장소(StageStorage)·맵 툴(StageMapTool) 레퍼런스 |
+| `STAGE_MAP_TOOL_ARCH.md` | `DATA_STAGE.md` | 맵 툴(ToolScene) 아키텍처·데이터 흐름·구현 순서 |
 | `SERVER_DTO.md` | `SERVER.md` | 공유 DLL DTO 필드 정의 |
 | `UI_SIDE_STAGE.md` | `UI.md` | 사이드 스테이지 팝업 진입 흐름 |
 | `STAGE_MAP_TOOL.md` | `DATA_STAGE.md`/`CHANGELOG.md` | 스테이지 맵 툴 상태·작업 메모 |
@@ -38,12 +42,12 @@
 
 | 상황 | 읽을 곳 |
 |------|---------|
-| 정렬 변경 후 버그 | `../AGENTS.md` → "주의사항 - 정렬 안정성" |
+| 정렬 변경 후 버그 | `../../AGENTS.md` → "주의사항 - 정렬 안정성" |
 | 뷰 블럭 미씽/소실 | `INGAME.md` → "ExecuteBatchMovement 처리 순서 규칙" |
-| LINQ 제거 최적화 | `../AGENTS.md` → "주의사항 - 최적화 체크리스트" |
-| 씬 전환 후 에셋 미씽 | `../AGENTS.md` → "주의사항 - Pool/Addressable 생명주기" |
-| struct null 비교 에러 | `../AGENTS.md` → "주의사항 - 데이터 타입" |
-| Model에서 Debug.Log 사용 | `../AGENTS.md` → "주의사항 - Model 레이어 로깅" |
+| LINQ 제거 최적화 | `../../AGENTS.md` → "주의사항 - 최적화 체크리스트" |
+| 씬 전환 후 에셋 미씽 | `../../AGENTS.md` → "주의사항 - Pool/Addressable 생명주기" |
+| struct null 비교 에러 | `../../AGENTS.md` → "주의사항 - 데이터 타입" |
+| Model에서 Debug.Log 사용 | `../../AGENTS.md` → "주의사항 - Model 레이어 로깅" |
 | 데이터 타입 확인 | `DATA.md` → "데이터 타입 주의" |
 
 ---

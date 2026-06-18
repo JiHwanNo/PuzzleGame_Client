@@ -2,7 +2,7 @@
 
 작업 규모에 따라 단독 진행과 팀 에이전트 진행을 구분한다.
 
-> 본 문서에서 참조하는 문서명은 위치가 아닌 식별자다. 주제 문서는 `docs/`, 자동 로드 문서(`AGENTS.md`/`CLAUDE.md`/`README.md`)는 리포 루트, 에이전트 역할 문서(`AGENT_*.md`)는 `docs/agents/`에 있다. 진입점은 `docs/MAP.md`.
+> 본 문서에서 참조하는 문서명은 위치가 아닌 식별자다. 주제 문서는 `Assets/06_Markdown/`의 콘텐츠별 폴더, 자동 로드 문서(`AGENTS.md`/`CLAUDE.md`/`README.md`)는 리포 루트, 에이전트 역할 문서(`AGENT_*.md`)는 `Assets/06_Markdown/07_Agents/`에 있다. 진입점은 `Assets/06_Markdown/MAP.md`이며, 실제 위치는 `Assets/06_Markdown/README.md` 인덱스의 링크를 따른다.
 
 ---
 
