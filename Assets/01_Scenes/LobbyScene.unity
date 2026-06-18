@@ -249,6 +249,7 @@ MonoBehaviour:
   m_ScreenCoordScaleBias: {x: 0, y: 0, z: 0, w: 0}
   m_RequiresDepthTexture: 0
   m_RequiresColorTexture: 0
+  m_Version: 2
   m_TaaSettings:
     m_Quality: 3
     m_FrameInfluence: 0.1
@@ -256,7 +257,6 @@ MonoBehaviour:
     m_MipBias: 0
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
-  m_Version: 2
 --- !u!114 &196401655
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -527,22 +527,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 340659677}
     m_Modifications:
-    - target: {fileID: 160604638974810638, guid: 1dd7abb55ae232d44b600f5607c47108, type: 3}
-      propertyPath: m_Type
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 160604638974810638, guid: 1dd7abb55ae232d44b600f5607c47108, type: 3}
-      propertyPath: m_Sprite
-      value: 
-      objectReference: {fileID: 5431321606129080730, guid: 0bb660e2e18746d458da032a7b49f8e9, type: 3}
     - target: {fileID: 2067200797208832703, guid: 1dd7abb55ae232d44b600f5607c47108, type: 3}
       propertyPath: _root
       value: 
       objectReference: {fileID: 809702437}
-    - target: {fileID: 2067200797208832703, guid: 1dd7abb55ae232d44b600f5607c47108, type: 3}
-      propertyPath: _unityButton
-      value: 
-      objectReference: {fileID: 7208696125696649658}
     - target: {fileID: 2067200797208832703, guid: 1dd7abb55ae232d44b600f5607c47108, type: 3}
       propertyPath: _callbackName
       value: OnClickStartStage
@@ -633,28 +621,29 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4760552368652298055, guid: 1dd7abb55ae232d44b600f5607c47108, type: 3}
       propertyPath: m_SizeDelta.x
-      value: 491.5
+      value: 300
       objectReference: {fileID: 0}
     - target: {fileID: 4760552368652298055, guid: 1dd7abb55ae232d44b600f5607c47108, type: 3}
       propertyPath: m_SizeDelta.y
-      value: 256
+      value: 150
       objectReference: {fileID: 0}
+    - target: {fileID: 5290254282973616013, guid: 1dd7abb55ae232d44b600f5607c47108, type: 3}
+      propertyPath: m_fontSize
+      value: 54
+      objectReference: {fileID: 0}
+    - target: {fileID: 5290254282973616013, guid: 1dd7abb55ae232d44b600f5607c47108, type: 3}
+      propertyPath: m_fontSizeBase
+      value: 54
+      objectReference: {fileID: 0}
+    - target: {fileID: 5290254282973616013, guid: 1dd7abb55ae232d44b600f5607c47108, type: 3}
+      propertyPath: m_sharedMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: 1a7b60334ffadab47b630a011019f706, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 1dd7abb55ae232d44b600f5607c47108, type: 3}
---- !u!114 &7208696125696649658 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 6152134135614511035, guid: 1dd7abb55ae232d44b600f5607c47108, type: 3}
-  m_PrefabInstance: {fileID: 7208696125696649657}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Button
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
