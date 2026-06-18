@@ -19,6 +19,19 @@
 | `SERVER.md` | 서버 통신, 공유 DLL, 네트워크 레이어, API 연동 | 서버 API 작업 시 |
 | `CHANGELOG.md` | 전체 변경 이력 | 이전 작업 맥락 파악 시 |
 
+### 상세 단편 문서 (주제 문서에서 분리)
+
+| 문서 | 상위 문서 | 내용 |
+|------|----------|------|
+| `ARCHITECTURE_FLOW.md` | `ARCHITECTURE.md` | 메인 대전/사이드 스테이지 게임 흐름 상세 |
+| `INGAME_GIMMICK.md` | `INGAME.md` | 기믹 인터페이스/파괴 연쇄/새 기믹 추가 절차 |
+| `INGAME_REPLAY.md` | `INGAME.md` | 리플레이 기록/재생 흐름 상세 |
+| `DATA_SCHEMA.md` | `DATA.md` | GameSpec 전체 필드 스키마 트리 + ReplayData JSON |
+| `DATA_STAGE.md` | `DATA.md` | 스테이지 저장소(StageStorage)·맵 툴(StageMapTool) 레퍼런스 |
+| `SERVER_DTO.md` | `SERVER.md` | 공유 DLL DTO 필드 정의 |
+| `UI_SIDE_STAGE.md` | `UI.md` | 사이드 스테이지 팝업 진입 흐름 |
+| `STAGE_MAP_TOOL.md` | `DATA_STAGE.md`/`CHANGELOG.md` | 스테이지 맵 툴 상태·작업 메모 |
+
 ---
 
 ## 디버깅/최적화 시 필독
@@ -42,7 +55,7 @@
 | 새 퍼즐 모드 추가 | `INGAME.md` → `DATA.md` |
 | 새 블럭 타입 추가 | `INGAME.md` → `DATA.md` |
 | 새 스테이지 추가 | `DATA.md` |
-| 스테이지 맵 편집(맵 툴) | `DATA.md` → "스테이지 맵 툴" |
+| 스테이지 맵 편집(맵 툴) | `DATA_STAGE.md` → "스테이지 맵 툴" |
 | 매칭/점수 밸런싱 | `INGAME.md` → `DATA.md` |
 | 애니메이션 수정 | `INGAME.md` |
 | 보드 좌표/레이아웃 | `INGAME.md` |
@@ -99,7 +112,7 @@
 | Manager | `02_Scripts/Manager/` | `Main.cs`, `AssetManager.cs`, `PoolManager.cs`, `DomainManager.cs`, `NetworkManager.cs`, `UserDataManager.cs` |
 | Network | `02_Scripts/Manager/Network/` | `HttpNetworkClient.cs` |
 | UserData | `02_Scripts/Manager/UserData/` | `IdentityLayer.cs`, `AuthLayer.cs` |
-| 스테이지 주입/저장소 | `02_Scripts/` | `StageInjection.cs`, `StageStorage.cs` |
+| 스테이지 주입/저장소 | `02_Scripts/StageMapTool/` | `StageInjection.cs`, `StageStorage.cs` |
 | 스테이지 맵 툴 | `02_Scripts/StageMapTool/` | Core: `StageMapToolState.cs`, `StageMapCellBrush.cs`, `StageMapJsonRepository.cs`, `StageMapValidator.cs`, `StageMapValidationResult.cs` / Runtime: `StageMapToolController.cs` |
 | 공유 DLL | `Plugins/` | `PuzleBattleShared.dll` |
 | UI | `02_Scripts/UI/` | `UIButton.cs`, `PopupReady.cs` |

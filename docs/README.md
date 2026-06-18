@@ -21,6 +21,23 @@ PuzleBattleGame(Unity 6000.0.38f1, URP) 문서 모음. 작업 영역에 맞는 �
 
 ---
 
+## 상세 단편 문서
+
+주제 문서에서 분리한 상세 문서. 해당 주제 작업 시 상위 문서에서 링크로 진입.
+
+| 문서 | 상위 | 요약 |
+|------|------|------|
+| [ARCHITECTURE_FLOW.md](ARCHITECTURE_FLOW.md) | ARCHITECTURE | 메인 대전/사이드 스테이지 게임 흐름 상세. |
+| [INGAME_GIMMICK.md](INGAME_GIMMICK.md) | INGAME | 기믹 인터페이스/파괴 연쇄/새 기믹 추가 절차. |
+| [INGAME_REPLAY.md](INGAME_REPLAY.md) | INGAME | 리플레이 기록/재생 흐름 상세. |
+| [DATA_SCHEMA.md](DATA_SCHEMA.md) | DATA | GameSpec 전체 필드 스키마 트리 + ReplayData JSON. |
+| [DATA_STAGE.md](DATA_STAGE.md) | DATA | 스테이지 저장소(StageStorage)·맵 툴(StageMapTool) 레퍼런스. |
+| [SERVER_DTO.md](SERVER_DTO.md) | SERVER | 공유 DLL DTO 필드 정의. |
+| [UI_SIDE_STAGE.md](UI_SIDE_STAGE.md) | UI | 사이드 스테이지 팝업 진입 흐름. |
+| [STAGE_MAP_TOOL.md](STAGE_MAP_TOOL.md) | DATA_STAGE/CHANGELOG | 스테이지 맵 툴 상태·작업 메모. |
+
+---
+
 ## 루트 문서 (자동 로드)
 
 | 문서 | 요약 |
@@ -28,3 +45,10 @@ PuzleBattleGame(Unity 6000.0.38f1, URP) 문서 모음. 작업 영역에 맞는 �
 | [../AGENTS.md](../AGENTS.md) | Codex 작업 원칙 + 코딩 규칙 + 주의사항(Known Pitfalls). 기본 규칙. |
 | [../CLAUDE.md](../CLAUDE.md) | Claude Code 호환 가이드. AGENTS.md와 동일 규칙. |
 | [../README.md](../README.md) | 프로젝트 개요, 주요 특징, 기술 스택, 씬 구성. |
+
+---
+
+## 팀 에이전트 문서 (`agents/`)
+
+Codex 팀 에이전트 운용 규칙과 역할별 가이드. 진입점은 [agents/AGENT_TEAM.md](agents/AGENT_TEAM.md).
+역할 문서: `AGENT_ARCHITECT` · `AGENT_CODING` · `AGENT_REVIEW` · `AGENT_CONVENTION` · `AGENT_IMAGE_PROMPT`.

@@ -29,13 +29,14 @@ GameSpec
 │       ├─ targetId     (string) — 대상 blockId (CollectBlock일 때)
 │       └─ count        (int) — 목표 값
 │
-├─ randomSeed        (int) — 결정론적 리플레이를 위한 난수 시드
+├─ randomSeed        (int) — 결정론적 리플레이를 위한 난수 시드 (StageInjection에서 자동 생성)
 │
 └─ List<BlockData>
-    ├─ blockId         (string) — 블럭 식별자
-    ├─ inputType       (int) — Flags: 1:Swap, 2:Link, 4:Touch
+    ├─ blockId         (string) — 블럭 식별자 (예: "100-1")
+    ├─ inputType       (List<string>) — 조작 방법 문자열 목록 (예: ["Swap","Touch"]) → InputType 플래그로 변환
     ├─ destroyType     (int) — 파괴 방식
-    └─ life            (int) — 내구도
+    ├─ life            (int) — 내구도
+    └─ gimmickIds      (List<string>) — 부착할 기믹 id 목록 (예: ["Bomb"]). 없거나 비어있으면 기믹 없음
 ```
 
 ---
