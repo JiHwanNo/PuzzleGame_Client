@@ -30,8 +30,9 @@ Unity 에디터 수기 배선(프리팹/버튼/참조 연결)은 `STAGE_MAP_TOOL
 - `StageMapTool/Core/`
   - `StageMapToolState`: 퍼즐 타입/스테이지/StageData/브러시 상태. **`CreateCell(x,y)`**(빈 칸→Normal, Close면 되살림), **`RemoveCell(x,y)`**(→빈 칸), `GetCell`, `PaintCell`.
   - `StageMapCellBrush`: 셀에 적용할 값(인스펙터 편집 값으로 재활용 예정).
-  - `StageMapJsonRepository`: StageData JSON 로드/저장. **`CreateEmptyStage`**(빈 9×9), 기본 크기 9×9.
-  - `StageMapValidator`: 저장 전 검증.
+  - `StageMapJsonRepository`: StageData JSON 로드/저장. **`CreateEmptyStage`**(빈 9×9), `LoadOrCreate`(불러오기), `SaveToResources`(Resources 저장), 기본 크기 9×9.
+  - `StageMapNormalizer`: **저장 직전 내용 기준 정규화(trim)**. `TryNormalize(source, out normalized)` — 찍은 셀 바운딩 박스로 잘라 (0,0) 재매핑 + `stage_width/height` 갱신 + 내부 빈 칸 Close 채움. 원본 미변경(새 데이터 반환), 찍은 셀 0개면 false.
+  - `StageMapValidator`: 저장 전 검증(좌표 범위/중복, 셀 개수=W×H, Rule에 없는 block_id, Generator 생성목록 비어있음 등).
 - `StageMapTool/Runtime/`
   - `StageMapBoardView`: **`Build(StageData, hexLayout)`**로 빈 칸 포함 전체 격자 생성, `RefreshCell(x,y)`(선택 반영), **`Select`/`ClearSelection`**, 헥사 오프셋·셀 간격(`_cellSpacing`). `OnCellClicked` 이벤트.
   - `StageMapCellView`: **3-state**(`+`빈칸 / 생성됨 / 선택). `Bind(x,y,cell,onClicked)`, `Refresh(cell,selected)`, `_selectionOutline` 하이라이트.
@@ -58,11 +59,14 @@ Unity 에디터 수기 배선(프리팹/버튼/참조 연결)은 `STAGE_MAP_TOOL
   - **버튼 규격 = 스프라이트 크기 영향**: 고정값 아님. `BuildBlockPalette`가 행 높이(`_blockPaletteContent.rect.height`)에 맞추고 **폭 = 행높이 × 스프라이트 종횡비**로 버튼 `sizeDelta` + `LayoutElement` 설정(블럭 젬은 256×256 정사각 → 행높이 75면 75×75). childControlWidth=false라 버튼 자체 RectTransform 크기가 레이아웃 폭이 됨.
 - **타일 편집 패널(`TileEditPanel`) — 미착수**: `panel_id` 편집. 현재 빈 플레이스홀더.
 
-### Phase 3 — 저장/로드/검증 (미착수)
-- **저장 시 내용 기준 정규화(trim)**: 찍은 셀 바운딩 박스로 잘라 (0,0) 재매핑 + `stage_width/height` 갱신 + 내부 빈 칸 `Close` → 인게임 중앙 출력 보장.
-- `Validator.Validate` 연결, StageId 선택/Save/Load UI.
-- 편집 스테이지로 게임 실행 테스트(`StageInjection.MakeGameSpec`)로 **인게임 중앙정렬 확인**.
-- **불러오기(Load)는 `StageMapJsonRepository.LoadOrCreate`/`CreateDefaultStage`를 재사용** — 현재 편집 모델 전환으로 호출처가 빠졌지만(빈 맵 시작) Phase 3 Load UI에서 다시 연결할 예정이므로 **삭제 금지**.
+### Phase 3 — 저장/로드/검증 (코드 ✅ 완료 / 씬 배선·생성목록 편집 잔여, 2026-06-24)
+- **저장 흐름(`OnClickSave`)**: `StageMapNormalizer.TryNormalize`로 내용 기준 정규화(trim) → `StageMapValidator.Validate`(현재 룰 블럭 기준) → 통과 시 `Repository.SaveToResources`. 실패/검증오류는 콘솔 + 상태 라벨(`_statusText`)에 표시. 찍은 셀 0개면 저장 거부.
+  - **정규화로 인게임 중앙정렬 보장**: 찍은 셀 바운딩 박스로 잘라 (0,0) 재매핑 + `stage_width/height`를 내용 크기로 + 내부 빈 칸 `Close` 채움. 인게임 `PuzzleBoardView`가 W×H를 중앙 정렬하므로 격자 어디에 찍든 출력이 화면 중앙.
+- **불러오기 흐름(`OnClickLoad`)**: `Repository.LoadOrCreate`(현재 퍼즐타입+StageId) → `SetStage` → `BoardView.Build`. 정규화된 파일의 `Close` 셀은 셀뷰가 빈 칸("+")으로 렌더(`StageMapCellView.Refresh`의 `isEmpty` 분기)하므로 이어서 편집 가능. (`LoadOrCreate`/`CreateDefaultStage`는 이 경로에서 재사용 — 삭제 금지)
+- **StageId 선택**: `OnClickStageIdPrev/Next` → `SetStageId`(`MinStageId`~`MaxStageId` clamp) → `_stageIdLabel` 갱신. `StageMapToolState.SetStageId`가 StageData.stage_id도 동기화.
+- **잔여(씬 배선)**: 저장/불러오기/StageId±버튼, `_stageIdLabel`/`_statusText` TMP_Text를 ToolScene에 배치하고 콜백 연결 필요. → `STAGE_MAP_TOOL_SCENE_SETUP.md`.
+- **잔여(기능 갭)**: Generator 셀의 `generator_block_ids`(생성 목록) 편집 UI 미구현 → 현재 Generator 셀이 있으면 Validator가 "생성 목록 비어 있음" 오류로 저장을 막는다. `TileEditPanel`(panel_id)과 함께 후속 작업.
+- **검증 권장**: 편집 스테이지 저장 후 게임 실행(`StageInjection.MakeGameSpec`)으로 **인게임 중앙정렬** 확인.
 
 ---
 

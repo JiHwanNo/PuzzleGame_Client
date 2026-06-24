@@ -75,12 +75,34 @@
 
 ---
 
+## 3단계. 저장/로드/검증 UI 배선 (Phase 3 — 코드 ✅ 완료 / 배선 미착수)
+
+> 코드(`OnClickSave`/`OnClickLoad`/`OnClickStageIdPrev`/`OnClickStageIdNext` + `_stageIdLabel`/`_statusText`)는 컨트롤러에 추가됨. 아래 UI만 ToolScene에 배치·연결하면 동작.
+
+### 3-1. 스테이지 파일 패널 배치
+- 상단(또는 별도 패널)에 다음 UI를 둔다:
+  - **StageId 표시 라벨**(TMP_Text) → 컨트롤러 `_stageIdLabel`(STAGE FILE COMPONENT 헤더)에 연결. 시작 시 `Stage_001` 표시됨.
+  - **◀ / ▶ 버튼**(`UIButton`) → 콜백 `OnClickStageIdPrev` / `OnClickStageIdNext`(인자 불필요).
+  - **저장 버튼**(`UIButton`) → 콜백 `OnClickSave`.
+  - **불러오기 버튼**(`UIButton`) → 콜백 `OnClickLoad`.
+  - **상태 라벨**(TMP_Text) → 컨트롤러 `_statusText`에 연결. 저장/검증/로드 결과 메시지가 표시된다.
+
+### 3-2. 동작 규칙
+- **저장**: 찍은 셀의 바운딩 박스로 자동 trim → 검증 통과 시 `Resources/Stage/{모드}/Stage_NNN.json` 저장(에디터에서 `AssetDatabase.Refresh`). 검증 오류는 콘솔 + 상태 라벨에 건수 표시.
+- **불러오기**: 현재 퍼즐타입 + StageId의 저장 파일을 보드에 올린다. `Close` 칸은 `+`로 보이며 이어서 편집 가능.
+- ⚠️ **Generator 셀 주의**: 생성 목록(`generator_block_ids`) 편집 UI가 아직 없어, Generator 셀이 있으면 검증에서 막힌다(생성 목록 비어 있음). 현재는 Normal/Lock 셀 위주 스테이지부터 저장 가능.
+
+### 3단계 검증
+> 빈 격자 한쪽 구석에 셀 몇 개만 찍고 저장 → 저장된 JSON의 `stage_width/height`가 찍은 범위 크기와 같고 좌표가 (0,0)부터 시작하면 trim 정상. 불러오기 시 같은 모양이 보이면 OK. 게임 실행(`StageInjection`)에서 화면 중앙 출력 확인.
+
+---
+
 ## 참고: 아직 코드가 없는 다음 단계 (배선 불필요)
 
 | 단계 | 내용 | 선행 코드 |
 |------|------|-----------|
-| 3 | Rule 로드 + 블럭 팔레트 + 타일(panelId) | `StageMapRuleProvider` 신규 작성 필요 |
-| 4 | 저장/로드/검증 UI (StageId 선택, Save/Load, 결과 표시) | 컨트롤러에 저장 파이프라인 연결 필요 |
-| 5 | 편집 스테이지로 게임 실행 테스트 | `StageInjection.MakeGameSpec` 연동 |
+| 4 | Generator 생성 목록(`generator_block_ids`) 편집 UI | 컨트롤러/패널 신규 |
+| 5 | 타일(`panel_id`) 편집 패널(`TileEditPanel`) | 컨트롤러/패널 신규 |
+| 6 | 편집 스테이지로 게임 실행 테스트 | `StageInjection.MakeGameSpec` 연동 |
 
-3단계 이후는 코드부터 추가한 뒤 배선 항목을 본 문서에 이어서 정리한다.
+이후 단계는 코드부터 추가한 뒤 배선 항목을 본 문서에 이어서 정리한다.

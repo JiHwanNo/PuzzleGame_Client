@@ -7,16 +7,27 @@ using UnityEngine;
 /// 스테이지 맵 툴에서 StageData를 격자 셀 뷰로 렌더링하고 셀 클릭을 전달합니다.
 /// 빈 칸("+")을 포함한 전체 격자를 그리며, Link 모드의 헥사 오프셋과 선택 하이라이트를 지원합니다.
 /// 인게임 보드 뷰와 로직을 공유하지 않는 편집 전용 경량 그리드입니다.
+/// _fitTarget(예: BoardBackground)을 지정하면 그리드를 그 영역 중앙에 맞추고 영역 크기에 비례해 균등 스케일합니다.
 /// </summary>
+[ExecuteAlways]
 public class StageMapBoardView : MonoBehaviour
 {
     /// <summary> 셀 하나를 표현할 셀 뷰 프리팹입니다. </summary>
     [SerializeField]
     private StageMapCellView _cellPrefab;
 
-    /// <summary> 셀 뷰를 배치할 부모 RectTransform입니다. </summary>
+    /// <summary> 셀 뷰를 배치할 부모 RectTransform입니다(_fitTarget과 형제여야 함 — 스케일이 영역에 영향 주지 않도록). </summary>
     [SerializeField]
     private RectTransform _cellRoot;
+
+    /// <summary> 그리드를 가운데 맞춰 채울 대상 영역입니다(예: BoardBackground). 비우면 스케일/중앙정렬을 하지 않습니다. </summary>
+    [SerializeField]
+    private RectTransform _fitTarget;
+
+    /// <summary> fit 시 대상 영역 대비 여백 비율입니다(0.1~1, 1이면 영역에 가득). </summary>
+    [SerializeField]
+    [Range(0.1f, 1f)]
+    private float _fitPadding = 0.92f;
 
     /// <summary> 셀 한 칸의 픽셀 크기입니다(좌하단 원점 기준 배치). </summary>
     [SerializeField]
@@ -25,6 +36,15 @@ public class StageMapBoardView : MonoBehaviour
     /// <summary> 셀 사이의 간격(px)입니다. 타일이 서로 구분되어 보이도록 합니다. </summary>
     [SerializeField]
     private float _cellSpacing = 6f;
+
+    /// <summary> 마지막으로 fit 적용한 대상 영역 크기입니다(변경 감지용). </summary>
+    private Vector2 _lastFitSize;
+
+    /// <summary> 마지막으로 fit 적용한 대상 영역 월드 위치입니다(변경 감지용). </summary>
+    private Vector3 _lastFitWorldPosition;
+
+    /// <summary> fit 변경 감지 캐시 초기화 여부입니다. </summary>
+    private bool _hasFitCache;
 
     /// <summary> 좌표로 셀 뷰를 조회하기 위한 2차원 배열입니다. </summary>
     private StageMapCellView[,] _cellViews;
@@ -91,6 +111,59 @@ public class StageMapBoardView : MonoBehaviour
                 _spawned.Add(view);
             }
         }
+
+        ApplyFit();
+    }
+
+    /// <summary>
+    /// 대상 영역(_fitTarget)의 크기·위치가 바뀌면 그리드 fit을 다시 적용합니다(해상도/반응형 대응).
+    /// </summary>
+    private void Update()
+    {
+        if (_fitTarget == null || _cellRoot == null)
+        {
+            return;
+        }
+
+        Vector2 size = _fitTarget.rect.size;
+        Vector3 worldPosition = _fitTarget.position;
+        if (_hasFitCache && size == _lastFitSize && worldPosition == _lastFitWorldPosition)
+        {
+            return;
+        }
+
+        _lastFitSize = size;
+        _lastFitWorldPosition = worldPosition;
+        _hasFitCache = true;
+        ApplyFit();
+    }
+
+    /// <summary>
+    /// 현재 그리드를 _fitTarget 영역 중앙에 맞추고, 영역 안에 들어가도록 균등 스케일합니다.
+    /// 셀 컨테이너(_cellRoot)는 _fitTarget과 형제이므로 스케일이 영역 크기에 영향을 주지 않습니다.
+    /// </summary>
+    public void ApplyFit()
+    {
+        if (_cellRoot == null || _fitTarget == null || _stageData == null)
+        {
+            return;
+        }
+
+        float step = _cellSize + _cellSpacing;
+        float spanX = (_stageData.stage_width - 1) * step + _cellSize;
+        float spanY = (_stageData.stage_height - 1) * step + _cellSize;
+        if (spanX <= 0f || spanY <= 0f)
+        {
+            return;
+        }
+
+        Rect target = _fitTarget.rect;
+        float scale = Mathf.Min(target.width / spanX, target.height / spanY) * _fitPadding;
+
+        // 셀 컨테이너를 균등 스케일하고 대상 영역의 월드 중심에 맞춘다(그리드는 컨테이너 원점 기준 중앙 배치됨).
+        // 대상 피벗이 0.5가 아니어도 정확히 가운데 오도록 rect.center(피벗 무관 시각 중심)를 월드로 변환해 사용한다.
+        _cellRoot.localScale = new Vector3(scale, scale, 1f);
+        _cellRoot.position = _fitTarget.TransformPoint(target.center);
     }
 
     /// <summary>

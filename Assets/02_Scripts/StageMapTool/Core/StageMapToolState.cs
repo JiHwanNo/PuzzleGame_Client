@@ -55,6 +55,19 @@ public class StageMapToolState
     }
 
     /// <summary>
+    /// 현재 편집 중인 스테이지 번호를 변경합니다. 데이터가 있으면 stage_id도 함께 맞춥니다.
+    /// </summary>
+    /// <param name="stageId">변경할 스테이지 번호입니다.</param>
+    public void SetStageId(int stageId)
+    {
+        StageId = stageId;
+        if (StageData != null)
+        {
+            StageData.stage_id = stageId;
+        }
+    }
+
+    /// <summary>
     /// 현재 편집 중인 스테이지 데이터를 교체합니다.
     /// </summary>
     /// <param name="stageData">편집 대상으로 사용할 스테이지 데이터입니다.</param>

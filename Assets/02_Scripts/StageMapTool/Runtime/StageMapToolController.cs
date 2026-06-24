@@ -80,6 +80,7 @@ public class StageMapToolController : MonoBehaviour
         ApplyEditMode(_editMode);
         BuildBlockPalette();
         BuildNewStage();
+        UpdateStageIdLabel();
     }
 
     /// <summary>
@@ -479,6 +480,12 @@ public class StageMapToolController : MonoBehaviour
     /// <summary> 스테이지 JSON 로드/저장 저장소입니다. </summary>
     private readonly StageMapJsonRepository _repository = new StageMapJsonRepository();
 
+    /// <summary> 저장 직전 내용 기준 정규화(trim)를 수행하는 정규화기입니다. </summary>
+    private readonly StageMapNormalizer _normalizer = new StageMapNormalizer();
+
+    /// <summary> 저장 직전 데이터 정합성을 검증하는 검증기입니다. </summary>
+    private readonly StageMapValidator _validator = new StageMapValidator();
+
     /// <summary>
     /// 새 빈 스테이지(전부 "+")를 만들고 보드 뷰를 다시 그립니다.
     /// 맵툴은 시작/퍼즐타입 변경 시 항상 빈 맵으로 시작한다(기존 스테이지 편집은 별도 불러오기에서 처리 — Phase 3).
@@ -560,6 +567,160 @@ public class StageMapToolController : MonoBehaviour
         if (_boardView != null)
         {
             _boardView.OnCellClicked -= HandleCellClicked;
+        }
+    }
+
+    #endregion
+
+    #region 스테이지 파일 (저장/로드/검증)
+
+    [Header("STAGE FILE COMPONENT")]
+    /// <summary> 현재 편집 중인 스테이지 파일명을 표시할 라벨입니다. 없으면 무시됩니다. </summary>
+    [SerializeField]
+    private TMP_Text _stageIdLabel;
+
+    /// <summary> 저장/로드/검증 결과 메시지를 표시할 상태 라벨입니다. 없으면 무시됩니다. </summary>
+    [SerializeField]
+    private TMP_Text _statusText;
+
+    /// <summary>
+    /// 저장 버튼: 현재 편집 데이터를 내용 기준으로 정규화하고 검증한 뒤 Resources에 저장합니다.
+    /// </summary>
+    public void OnClickSave()
+    {
+        if (_state.StageData == null)
+        {
+            SetStatus("저장할 스테이지가 없습니다.", true);
+            return;
+        }
+
+        if (!_normalizer.TryNormalize(_state.StageData, IsHexLayout(), out StageData normalized))
+        {
+            SetStatus("저장할 셀이 없습니다. 셀을 먼저 배치하세요.", true);
+            return;
+        }
+
+        List<BlockData> ruleBlocks = _ruleProvider.LoadBlocks(_state.RuleAddress);
+        StageMapValidationResult validation = _validator.Validate(normalized, _state.StageId, ruleBlocks);
+        if (!validation.IsValid())
+        {
+            LogValidation(validation);
+            SetStatus($"검증 실패: 오류 {validation.errors.Count}건 (콘솔 확인)", true);
+            return;
+        }
+
+        if (validation.warnings.Count > 0)
+        {
+            LogValidation(validation);
+        }
+
+        bool saved = _repository.SaveToResources(_state.PuzzleType, _state.StageId, normalized);
+        if (saved)
+        {
+            SetStatus($"저장 완료: {StageStorage.GetStageFileName(_state.StageId)} ({normalized.stage_width}×{normalized.stage_height})", false);
+        }
+        else
+        {
+            SetStatus("저장 실패 (콘솔 확인)", true);
+        }
+    }
+
+    /// <summary>
+    /// 불러오기 버튼: 현재 퍼즐 타입/스테이지 번호의 저장된 스테이지를 읽어 편집 보드에 올립니다.
+    /// 정규화된 파일의 Close 셀은 편집 모델에서 빈 칸("+")으로 표시되어 이어서 편집할 수 있습니다.
+    /// </summary>
+    public void OnClickLoad()
+    {
+        if (_boardView == null)
+        {
+            return;
+        }
+
+        StageData loaded = _repository.LoadOrCreate(_state.PuzzleType, _state.StageId);
+        _state.SetStage(loaded);
+        // 불러온 파일의 stage_id가 현재 선택한 슬롯 번호와 다를 수 있으므로 슬롯 기준으로 맞춘다(저장 시 검증 일치).
+        _state.SetStageId(_state.StageId);
+        _hasSelection = false;
+        _boardView.ClearSelection();
+        _boardView.Build(loaded, IsHexLayout());
+        RefreshInspector();
+        SetStatus($"불러오기 완료: {StageStorage.GetStageFileName(_state.StageId)}", false);
+    }
+
+    /// <summary>
+    /// 스테이지 번호 감소 버튼입니다.
+    /// </summary>
+    public void OnClickStageIdPrev()
+    {
+        SetStageId(_state.StageId - 1);
+    }
+
+    /// <summary>
+    /// 스테이지 번호 증가 버튼입니다.
+    /// </summary>
+    public void OnClickStageIdNext()
+    {
+        SetStageId(_state.StageId + 1);
+    }
+
+    /// <summary>
+    /// 스테이지 번호를 허용 범위로 보정해 적용하고 라벨을 갱신합니다.
+    /// </summary>
+    /// <param name="stageId">적용할 스테이지 번호입니다.</param>
+    private void SetStageId(int stageId)
+    {
+        int clamped = Mathf.Clamp(stageId, StageStorage.MinStageId, StageStorage.MaxStageId);
+        _state.SetStageId(clamped);
+        UpdateStageIdLabel();
+    }
+
+    /// <summary>
+    /// 현재 스테이지 번호를 라벨에 표시합니다.
+    /// </summary>
+    private void UpdateStageIdLabel()
+    {
+        if (_stageIdLabel != null)
+        {
+            _stageIdLabel.text = StageStorage.GetStageFileName(_state.StageId);
+        }
+    }
+
+    /// <summary>
+    /// 상태 라벨과 콘솔에 결과 메시지를 출력합니다.
+    /// </summary>
+    /// <param name="message">표시할 메시지입니다.</param>
+    /// <param name="isError">오류 메시지 여부입니다.</param>
+    private void SetStatus(string message, bool isError)
+    {
+        if (isError)
+        {
+            Debug.LogError($"[StageMapToolController] {message}");
+        }
+        else
+        {
+            Debug.Log($"[StageMapToolController] {message}");
+        }
+
+        if (_statusText != null)
+        {
+            _statusText.text = message;
+        }
+    }
+
+    /// <summary>
+    /// 검증 결과의 오류/경고를 콘솔에 출력합니다.
+    /// </summary>
+    /// <param name="result">출력할 검증 결과입니다.</param>
+    private void LogValidation(StageMapValidationResult result)
+    {
+        for (int i = 0; i < result.errors.Count; i++)
+        {
+            Debug.LogError($"[StageMapTool 검증] {result.errors[i]}");
+        }
+
+        for (int i = 0; i < result.warnings.Count; i++)
+        {
+            Debug.LogWarning($"[StageMapTool 검증] {result.warnings[i]}");
         }
     }
 

@@ -28,6 +28,7 @@ ToolScene (에디터 전용 씬)
    ├─ StageMapToolState                            [Core]     편집 상태 모델 (PuzzleType/StageId/Rule/StageData/Brush)
    ├─ StageMapCellBrush                            [Core]     칠할 값 (cellType/blockId/panelId/generatorIds)
    ├─ StageMapJsonRepository                       [Core]     StageData JSON Load/Save (UnityEditor 의존)
+   ├─ StageMapNormalizer                           [Core]     ★신규 — 저장 직전 내용 기준 정규화(trim)
    ├─ StageMapValidator → StageMapValidationResult [Core]     저장 전 정합성 검증
    └─ StageMapRuleProvider                         [Core]     ★신규 — RuleAddress로 현재 규칙 BlockData 목록 로드
 ```
@@ -55,11 +56,13 @@ ToolScene (에디터 전용 씬)
   → 인스펙터 값 변경(state.PaintCell 등) / 삭제(state.RemoveCell) → boardView.RefreshCell(x,y)
 
 [저장]   저장 버튼
-  → validator.Validate(stageData, stageId, ruleBlocks) → result
-  → result.IsValid() ? repository.SaveToResources(...) : 오류 표시
+  → normalizer.TryNormalize(stageData) → normalized (내용 bbox로 trim, 내부 빈칸 Close)
+  → validator.Validate(normalized, stageId, ruleBlocks) → result
+  → result.IsValid() ? repository.SaveToResources(type, id, normalized) : 오류 표시(콘솔+상태 라벨)
 ```
 
-핵심 불변식: **뷰는 상태를 그리기만 하고, 편집은 항상 `State`(`CreateCell`/`RemoveCell`/`PaintCell`)를 거친다.** 뷰가 `CellData`를 직접 수정하지 않는다.
+핵심 불변식: **뷰는 상태를 그리기만 하고, 편집은 항상 `State`(`CreateCell`/`SetCellType`/`SetBlockId`/`RemoveCell`)를 거친다.** 뷰가 `CellData`를 직접 수정하지 않는다.
+정규화는 **원본 편집 데이터를 변경하지 않고 새 데이터를 반환**하므로, 저장 후에도 기획자는 원래 찍은 좌표 그대로 계속 편집한다.
 
 ---
 
