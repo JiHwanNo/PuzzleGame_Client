@@ -73,6 +73,129 @@ public class StageMapToolState
     }
 
     /// <summary>
+    /// 지정한 좌표에 셀을 생성합니다. 이미 빈 칸(Close)이면 일반 셀로 되살립니다.
+    /// </summary>
+    /// <param name="x">생성할 X 좌표입니다.</param>
+    /// <param name="y">생성할 Y 좌표입니다.</param>
+    /// <returns>생성되거나 갱신된 셀 데이터입니다. 스테이지가 없으면 null입니다.</returns>
+    public CellData CreateCell(int x, int y)
+    {
+        if (StageData == null)
+        {
+            return null;
+        }
+
+        if (StageData.cells == null)
+        {
+            StageData.cells = new List<CellData>();
+        }
+
+        CellData cell = GetCell(x, y);
+        if (cell != null)
+        {
+            if (cell.cell_type == (int)CellType.Close)
+            {
+                cell.cell_type = (int)CellType.Normal;
+            }
+
+            return cell;
+        }
+
+        cell = new CellData
+        {
+            x = x,
+            y = y,
+            block_id = null,
+            panel_id = 0,
+            cell_type = (int)CellType.Normal,
+            generator_block_ids = new List<string>()
+        };
+        StageData.cells.Add(cell);
+        return cell;
+    }
+
+    /// <summary>
+    /// 지정한 좌표 셀의 타입을 변경합니다(블럭/패널 값은 보존).
+    /// </summary>
+    /// <param name="x">변경할 X 좌표입니다.</param>
+    /// <param name="y">변경할 Y 좌표입니다.</param>
+    /// <param name="type">적용할 셀 타입입니다.</param>
+    /// <returns>변경 성공 여부입니다.</returns>
+    public bool SetCellType(int x, int y, CellType type)
+    {
+        CellData cell = GetCell(x, y);
+        if (cell == null)
+        {
+            return false;
+        }
+
+        cell.cell_type = (int)type;
+        if (type == CellType.Generator)
+        {
+            if (cell.generator_block_ids == null)
+            {
+                cell.generator_block_ids = new List<string>();
+            }
+        }
+        else
+        {
+            // 생성기 → 일반/잠금 등으로 바뀌면 남아 있던 생성기 블럭 ID가
+            // 저장 데이터에 stale 상태로 보존되어 인게임 오동작을 유발하므로 비운다.
+            if (cell.generator_block_ids != null)
+            {
+                cell.generator_block_ids.Clear();
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// 지정한 좌표 셀의 초기 블럭 아이디를 설정합니다.
+    /// </summary>
+    /// <param name="x">변경할 X 좌표입니다.</param>
+    /// <param name="y">변경할 Y 좌표입니다.</param>
+    /// <param name="blockId">배치할 블럭 아이디입니다.</param>
+    /// <returns>변경 성공 여부입니다.</returns>
+    public bool SetBlockId(int x, int y, string blockId)
+    {
+        CellData cell = GetCell(x, y);
+        if (cell == null)
+        {
+            return false;
+        }
+
+        cell.block_id = blockId;
+        return true;
+    }
+
+    /// <summary>
+    /// 지정한 좌표의 셀을 빈 칸으로 되돌립니다(데이터에서 제거).
+    /// </summary>
+    /// <param name="x">제거할 X 좌표입니다.</param>
+    /// <param name="y">제거할 Y 좌표입니다.</param>
+    /// <returns>제거 성공 여부입니다.</returns>
+    public bool RemoveCell(int x, int y)
+    {
+        if (StageData == null || StageData.cells == null)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < StageData.cells.Count; i++)
+        {
+            CellData cell = StageData.cells[i];
+            if (cell != null && cell.x == x && cell.y == y)
+            {
+                StageData.cells.RemoveAt(i);
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// 지정한 좌표의 셀 데이터를 반환합니다.
     /// </summary>
     /// <param name="x">조회할 X 좌표입니다.</param>

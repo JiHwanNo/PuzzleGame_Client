@@ -35,7 +35,31 @@
       "Bash(sed -i 's/net9.0/net10.0/' dllinspect.csproj)",
       "Skill(update-config)",
       "Bash(node *)",
-      "Bash(cd *)"
+      "Bash(cd *)",
+      "Bash(mv docs/STAGE_MAP_TOOL_ARCH.md Assets/06_Markdown/03_Data/STAGE_MAP_TOOL_ARCH.md)",
+      "Bash(rmdir docs/agents docs)",
+      "Read(//Users/njaewon/Documents/**)",
+      "Bash(D/PuzzleGame_Client)",
+      "Bash(grep -rln \"74e53554f202ff44480fb94267a06791\\\\|1dd7abb55ae232d44b600f5607c47108\" Assets/AddressableAssetsData)",
+      "Bash(mkdir -p Assets/Resources/Prefab/Tool Assets/Resources/Prefab/UI/Module)",
+      "Bash(uv --version)",
+      "Bash(claude --version)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:coplaydev.github.io)",
+      "WebSearch",
+      "mcp__UnityMCP__read_console",
+      "mcp__UnityMCP__manage_scene",
+      "mcp__UnityMCP__manage_gameobject",
+      "mcp__UnityMCP__manage_components",
+      "mcp__UnityMCP__manage_prefabs",
+      "mcp__UnityMCP__manage_editor",
+      "mcp__UnityMCP__find_gameobjects",
+      "mcp__UnityMCP__execute_code",
+      "mcp__UnityMCP__refresh_unity",
+      "mcp__UnityMCP__manage_camera",
+      "mcp__UnityMCP__manage_asset",
+      "Skill(code-review)",
+      "Workflow(code-review)"
     ]
   }
 }

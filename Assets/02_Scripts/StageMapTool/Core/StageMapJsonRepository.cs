@@ -13,10 +13,10 @@ using UnityEditor;
 public class StageMapJsonRepository
 {
     /// <summary> 새 스테이지 기본 가로 크기입니다. </summary>
-    private const int DefaultWidth = 8;
+    private const int DefaultWidth = 9;
 
     /// <summary> 새 스테이지 기본 세로 크기입니다. </summary>
-    private const int DefaultHeight = 8;
+    private const int DefaultHeight = 9;
 
     /// <summary>
     /// 스테이지 JSON을 로드하거나 없으면 새 스테이지를 생성합니다.
@@ -36,7 +36,36 @@ public class StageMapJsonRepository
             }
         }
 
-        return CreateDefaultStage(stageId, DefaultWidth, DefaultHeight);
+        return CreateEmptyStage(stageId, DefaultWidth, DefaultHeight);
+    }
+
+    /// <summary>
+    /// 기본 크기(9×9)의 빈 스테이지를 생성합니다.
+    /// </summary>
+    /// <param name="stageId">생성할 스테이지 번호입니다.</param>
+    /// <returns>셀이 비어 있는 스테이지 데이터입니다.</returns>
+    public StageData CreateEmptyStage(int stageId)
+    {
+        return CreateEmptyStage(stageId, DefaultWidth, DefaultHeight);
+    }
+
+    /// <summary>
+    /// 셀이 모두 비어 있는("+") 새 스테이지 데이터를 생성합니다.
+    /// 기획자가 빈 격자에서 셀을 직접 찍어 만드는 흐름의 시작 상태입니다.
+    /// </summary>
+    /// <param name="stageId">생성할 스테이지 번호입니다.</param>
+    /// <param name="width">생성할 보드 가로 크기입니다.</param>
+    /// <param name="height">생성할 보드 세로 크기입니다.</param>
+    /// <returns>셀이 비어 있는 스테이지 데이터입니다.</returns>
+    public StageData CreateEmptyStage(int stageId, int width, int height)
+    {
+        return new StageData
+        {
+            stage_id = stageId,
+            stage_width = width,
+            stage_height = height,
+            cells = new List<CellData>()
+        };
     }
 
     /// <summary>

@@ -11,6 +11,11 @@ ToolScene(에디터 전용)의 스테이지 맵 편집기 아키텍처와 구현
 - 런타임 게임 빌드에 포함되지 않는다. `ToolScene`은 `SceneEnum`에 등록하지 않는다.
 - 인게임 보드/뷰와 **로직을 공유하지 않는다**. 편집 전용 경량 그리드 뷰를 별도로 둔다(게임 로직 결합 회피).
 
+### 편집 모델 (선택 + 인스펙터)
+- 맵 미로드 시 **모든 칸이 빈 `+`**(최대 9×9). `+` 클릭 → 셀 생성(`Normal`). 생성된 셀 클릭 → 선택(하이라이트) → **인스펙터로 편집**(블럭/판넬/셀 상태변화/삭제→`+`).
+- **빈 칸 `+` ≡ `CellType.Close`**: 편집 중엔 `cells` 부재(존재=셀), 저장 시 9×9 전 좌표를 채우되 빈 칸은 `Close`로 내보낸다(인게임 로더 호환). 로드 시 `Close`/부재 → `+`.
+- **보드 모양**: `PuzzleType.Link`면 헥사(Even-Q Flat-Top), 그 외 사각. 짝수 열 반 칸 아래(인게임 `PuzzleBoardView` 규칙).
+
 ---
 
 ## 2. 레이어 구조
@@ -45,29 +50,33 @@ ToolScene (에디터 전용 씬)
   → StageMapJsonRepository.LoadOrCreate(type, id) → StageData
   → state.SetStage(stageData) → boardView.Build(stageData)
 
-[편집]   브러시 버튼 → state.SetBrush(...)
-  → 셀 클릭(x,y) → state.PaintCell(x,y) → boardView.RefreshCell(x,y)
+[편집]   빈 칸(+) 클릭 → state.CreateCell(x,y) (Normal 생성)
+  → 생성된 셀 클릭 → boardView.Select(x,y) → 인스펙터 노출
+  → 인스펙터 값 변경(state.PaintCell 등) / 삭제(state.RemoveCell) → boardView.RefreshCell(x,y)
 
 [저장]   저장 버튼
   → validator.Validate(stageData, stageId, ruleBlocks) → result
   → result.IsValid() ? repository.SaveToResources(...) : 오류 표시
 ```
 
-핵심 불변식: **뷰는 상태를 그리기만 하고, 편집은 항상 `State.PaintCell`을 거친다.** 뷰가 `CellData`를 직접 수정하지 않는다.
+핵심 불변식: **뷰는 상태를 그리기만 하고, 편집은 항상 `State`(`CreateCell`/`RemoveCell`/`PaintCell`)를 거친다.** 뷰가 `CellData`를 직접 수정하지 않는다.
 
 ---
 
 ## 4. 전용 그리드 뷰 설계 (신규)
 
 - `StageMapBoardView`
-  - `Build(StageData)`: 기존 셀 뷰 제거 후 `stage_width × stage_height`만큼 `StageMapCellView` 생성·배치.
-  - `RefreshCell(x, y)`: 한 셀만 다시 그림(브러시 적용 직후 부분 갱신).
+  - `Build(StageData, hexLayout)`: 기존 셀 뷰 제거 후 `stage_width × stage_height` **전체 격자(빈 칸 포함)**를 `StageMapCellView`로 생성·배치.
+  - `RefreshCell(x, y)`: 한 셀만 선택 상태 반영해 다시 그림.
+  - `Select(x,y)`/`ClearSelection()`: 선택 셀 하이라이트 관리(이전 선택 해제).
   - `event Action<int,int> OnCellClicked`: 셀 클릭을 Controller로 전달.
-  - 좌표/셀 크기는 인게임 `GetLocalPos`를 쓰지 않고 툴 자체 규칙(좌하단 원점, 고정 셀 크기)으로 단순화.
-- `StageMapCellView`
-  - 셀 타입(Normal/Close/Lock/Generator) 틴트, 초기 블럭 스프라이트, 패널 표시, 좌표 라벨.
-  - 클릭 시 자신의 `(x, y)`로 `OnCellClicked` 발화.
-- Controller가 `OnCellClicked` 구독 → `state.PaintCell` → `RefreshCell`.
+  - 좌표는 인게임 `GetLocalPos`를 쓰지 않고 툴 자체 규칙(좌하단 원점, `_cellSize`+`_cellSpacing` 스텝). 헥사면 짝수 열 반 칸 아래.
+- `StageMapCellView` — **3-state**
+  - `+`(빈 칸, `cell==null` 또는 `Close`): 어두운 타일 + 밝은 `+` 라벨(클릭 affordance).
+  - 생성됨: 셀 타입(Normal/Lock/Generator) 틴트 + 블럭ID 라벨.
+  - 선택: `_selectionOutline` 하이라이트 ON.
+  - `Bind(x,y,cell,onClicked)` / `Refresh(cell,selected)`. 클릭 시 자신의 `(x,y)`로 발화.
+- Controller가 `OnCellClicked` 구독 → 빈 칸이면 `state.CreateCell` → `RefreshCell`, 그 후 `boardView.Select`.
 
 ---
 
@@ -83,13 +92,12 @@ ToolScene (에디터 전용 씬)
 
 > 각 단계는 독립 동작·검증 가능한 단위. 1번부터 진행한다.
 
-1. **그리드 뷰 + 셀 클릭 → PaintCell** (편집의 뼈대)
-   - `StageMapBoardView`/`StageMapCellView` 신규 작성.
-   - Controller: 시작 시 `Repository.LoadOrCreate`로 StageData 확보 → `state.SetStage` → `boardView.Build`.
-   - 셀 클릭 → `state.PaintCell` → `RefreshCell`. (이 단계에서 Repository 로드 경로가 연결됨)
-2. **셀 타입 브러시 버튼** — Normal/Close/Lock/Generator → `Brush.cellType`. (Rule 불필요)
-3. **Rule 로드 + 블럭 팔레트 + 타일** — `StageMapRuleProvider` 작성 → Block 브러시(`Brush.blockId`)·Generator 목록, Tile(`Brush.panelId`).
-4. **저장/로드/검증 파이프라인** — StageId 선택 + Load/Save 버튼, `Validator.Validate` → 통과 시 `Repository.Save*`, 오류/경고 UI 표시.
+> 재설계(2026-06-19): 브러시 모델 → 선택+인스펙터 모델. 진행 상태는 `STAGE_MAP_TOOL.md` 참고.
+
+1. **Phase 1 — 기반 전환 (✅ 완료)**: 빈 격자(9×9, 전부 `+`) + `+`클릭→`CreateCell`(Normal) + 셀 선택(하이라이트) + Link 헥사 + 셀 간격. `StageMapBoardView.Build(stage,hex)`/`Select`, `StageMapCellView` 3-state, `state.CreateCell/RemoveCell`, `Repository.CreateEmptyStage`. 씬: `MapCell` 프리팹(+`Selection`), `CellRoot`(+`BoardBackground`), `BoardView`.
+2. **Phase 2 — 인스펙터 패널**: 선택 셀 편집 — ①셀 상태변화(Normal/Lock/Generator + 삭제→`+`) ②블럭ID ③판넬ID. `EditButtonPanelRoot` 활용, 기존 `OnClickCellType`/`Brush`/`PaintCell` 재활용.
+3. **Phase 2.5 — Rule 로드**: `StageMapRuleProvider` 작성 → 블럭 팔레트(`Brush.blockId`)·Generator 목록.
+4. **Phase 3 — 저장/로드/검증**: 저장 시 빈 칸→`Close` 9×9 채움 + `Validator.Validate` → `Repository.Save*`, StageId/Load/Save UI, 오류·경고 표시.
 5. **게임 실행 테스트 진입** — 편집 스테이지로 `StageInjection.MakeGameSpec(ruleAddress, puzzleType, stageId)` 호출해 플레이 검증.
 
 ---

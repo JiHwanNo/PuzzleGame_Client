@@ -99,6 +99,35 @@ public class UIButton : MonoBehaviour
     }
 
     /// <summary>
+    /// 코드로 생성한 버튼의 콜백 대상/메서드/인자를 설정합니다.
+    /// </summary>
+    /// <param name="root">메시지를 수신할 대상 스크립트입니다.</param>
+    /// <param name="callbackName">실행할 콜백 메서드 이름입니다.</param>
+    /// <param name="callbackValue">콜백에 전달할 인자값입니다.</param>
+    public void SetCallback(MonoBehaviour root, string callbackName, string callbackValue)
+    {
+        _root = root;
+        _callbackName = callbackName;
+        _callbackValue = callbackValue;
+    }
+
+    /// <summary>
+    /// 버튼 이미지를 아이콘 스프라이트로 설정합니다(원본 비율 유지, Simple 타입).
+    /// </summary>
+    /// <param name="sr">표시할 아이콘 스프라이트입니다.</param>
+    public void SetIconSprite(Sprite sr)
+    {
+        if (_buttonImage == null || sr == null)
+        {
+            return;
+        }
+
+        _buttonImage.sprite = sr;
+        _buttonImage.type = Image.Type.Simple;
+        _buttonImage.preserveAspect = true;
+    }
+
+    /// <summary>
     /// 버튼 클릭 피드백 트윈을 재생합니다.
     /// </summary>
     private void PlayClickTween()

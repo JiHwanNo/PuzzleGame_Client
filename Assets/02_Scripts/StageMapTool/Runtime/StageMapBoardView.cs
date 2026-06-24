@@ -5,6 +5,7 @@ using UnityEngine;
 
 /// <summary>
 /// 스테이지 맵 툴에서 StageData를 격자 셀 뷰로 렌더링하고 셀 클릭을 전달합니다.
+/// 빈 칸("+")을 포함한 전체 격자를 그리며, Link 모드의 헥사 오프셋과 선택 하이라이트를 지원합니다.
 /// 인게임 보드 뷰와 로직을 공유하지 않는 편집 전용 경량 그리드입니다.
 /// </summary>
 public class StageMapBoardView : MonoBehaviour
@@ -21,6 +22,10 @@ public class StageMapBoardView : MonoBehaviour
     [SerializeField]
     private float _cellSize = 64f;
 
+    /// <summary> 셀 사이의 간격(px)입니다. 타일이 서로 구분되어 보이도록 합니다. </summary>
+    [SerializeField]
+    private float _cellSpacing = 6f;
+
     /// <summary> 좌표로 셀 뷰를 조회하기 위한 2차원 배열입니다. </summary>
     private StageMapCellView[,] _cellViews;
 
@@ -30,18 +35,28 @@ public class StageMapBoardView : MonoBehaviour
     /// <summary> 현재 렌더링 중인 스테이지 데이터입니다. </summary>
     private StageData _stageData;
 
+    /// <summary> 헥사(Even-Q Flat-Top) 오프셋 적용 여부입니다. </summary>
+    private bool _hexLayout;
+
+    /// <summary> 현재 선택된 셀의 X 좌표입니다. 선택이 없으면 -1입니다. </summary>
+    private int _selectedX = -1;
+
+    /// <summary> 현재 선택된 셀의 Y 좌표입니다. 선택이 없으면 -1입니다. </summary>
+    private int _selectedY = -1;
+
     /// <summary> 셀 클릭 시 (x, y)를 전달하는 이벤트입니다. </summary>
     public event Action<int, int> OnCellClicked;
 
     /// <summary>
-    /// 스테이지 데이터로 그리드 전체를 다시 생성합니다.
+    /// 스테이지 데이터로 그리드 전체(빈 칸 포함)를 다시 생성합니다.
     /// </summary>
     /// <param name="stageData">렌더링할 스테이지 데이터입니다.</param>
-    public void Build(StageData stageData)
+    /// <param name="hexLayout">헥사 오프셋(Link 모드) 적용 여부입니다.</param>
+    public void Build(StageData stageData, bool hexLayout)
     {
         Clear();
 
-        if (stageData == null || stageData.cells == null)
+        if (stageData == null)
         {
             Debug.LogError("[StageMapBoardView] 렌더링할 스테이지 데이터가 없습니다.");
             return;
@@ -54,31 +69,32 @@ public class StageMapBoardView : MonoBehaviour
         }
 
         _stageData = stageData;
-        _cellViews = new StageMapCellView[stageData.stage_width, stageData.stage_height];
+        _hexLayout = hexLayout;
+        int width = stageData.stage_width;
+        int height = stageData.stage_height;
+        _cellViews = new StageMapCellView[width, height];
 
-        for (int i = 0; i < stageData.cells.Count; i++)
+        // 데이터 유무와 무관하게 전체 격자를 빈 칸("+")까지 모두 생성한다.
+        for (int y = 0; y < height; y++)
         {
-            CellData cell = stageData.cells[i];
-            if (cell == null || !IsInBounds(cell.x, cell.y))
+            for (int x = 0; x < width; x++)
             {
-                continue;
-            }
+                StageMapCellView view = Instantiate(_cellPrefab, _cellRoot);
+                RectTransform rect = view.transform as RectTransform;
+                if (rect != null)
+                {
+                    rect.anchoredPosition = GetCellPosition(x, y);
+                }
 
-            StageMapCellView view = Instantiate(_cellPrefab, _cellRoot);
-            RectTransform rect = view.transform as RectTransform;
-            if (rect != null)
-            {
-                rect.anchoredPosition = new Vector2(cell.x * _cellSize, cell.y * _cellSize);
+                view.Bind(x, y, FindCell(x, y), HandleCellClicked);
+                _cellViews[x, y] = view;
+                _spawned.Add(view);
             }
-
-            view.Bind(cell, HandleCellClicked);
-            _cellViews[cell.x, cell.y] = view;
-            _spawned.Add(view);
         }
     }
 
     /// <summary>
-    /// 지정한 좌표의 셀 한 칸만 다시 그립니다.
+    /// 지정한 좌표의 셀 한 칸만 선택 상태를 반영해 다시 그립니다.
     /// </summary>
     /// <param name="x">갱신할 X 좌표입니다.</param>
     /// <param name="y">갱신할 Y 좌표입니다.</param>
@@ -95,15 +111,75 @@ public class StageMapBoardView : MonoBehaviour
             return;
         }
 
-        CellData cell = FindCell(x, y);
-        if (cell != null)
+        view.Refresh(FindCell(x, y), x == _selectedX && y == _selectedY);
+    }
+
+    /// <summary>
+    /// 지정 좌표를 선택 상태로 만들고 이전 선택을 해제합니다.
+    /// </summary>
+    /// <param name="x">선택할 X 좌표입니다.</param>
+    /// <param name="y">선택할 Y 좌표입니다.</param>
+    public void Select(int x, int y)
+    {
+        int prevX = _selectedX;
+        int prevY = _selectedY;
+        _selectedX = x;
+        _selectedY = y;
+
+        if (IsInBounds(prevX, prevY))
         {
-            view.Refresh(cell);
+            RefreshCell(prevX, prevY);
+        }
+
+        RefreshCell(x, y);
+    }
+
+    /// <summary>
+    /// 현재 선택을 해제합니다.
+    /// </summary>
+    public void ClearSelection()
+    {
+        int prevX = _selectedX;
+        int prevY = _selectedY;
+        _selectedX = -1;
+        _selectedY = -1;
+
+        if (IsInBounds(prevX, prevY))
+        {
+            RefreshCell(prevX, prevY);
         }
     }
 
     /// <summary>
-    /// 생성된 셀 뷰를 모두 제거합니다.
+    /// 좌표에 대응하는 셀 뷰의 배치 위치를 계산합니다(헥사면 짝수 열을 반 칸 내림).
+    /// </summary>
+    /// <param name="x">셀 X 좌표입니다.</param>
+    /// <param name="y">셀 Y 좌표입니다.</param>
+    /// <returns>좌하단 원점 기준 anchoredPosition입니다.</returns>
+    private Vector2 GetCellPosition(int x, int y)
+    {
+        float step = _cellSize + _cellSpacing;
+
+        // 격자를 CellRoot 원점 기준으로 가운데 정렬한다(크기와 무관하게 항상 중앙).
+        int width = _stageData != null ? _stageData.stage_width : 0;
+        int height = _stageData != null ? _stageData.stage_height : 0;
+        float halfSpanX = ((width - 1) * step + _cellSize) * 0.5f;
+        float halfSpanY = ((height - 1) * step + _cellSize) * 0.5f;
+
+        float xPos = x * step - halfSpanX;
+        float yPos = y * step - halfSpanY;
+
+        // 헥사(Even-Q Flat-Top): 짝수 열을 반 칸 아래로 배치 (인게임 PuzzleBoardView와 동일 규칙).
+        if (_hexLayout && x % 2 == 0)
+        {
+            yPos -= step * 0.5f;
+        }
+
+        return new Vector2(xPos, yPos);
+    }
+
+    /// <summary>
+    /// 생성된 셀 뷰를 모두 제거하고 선택을 초기화합니다.
     /// </summary>
     private void Clear()
     {
@@ -118,6 +194,8 @@ public class StageMapBoardView : MonoBehaviour
         _spawned.Clear();
         _cellViews = null;
         _stageData = null;
+        _selectedX = -1;
+        _selectedY = -1;
     }
 
     /// <summary>
@@ -151,6 +229,11 @@ public class StageMapBoardView : MonoBehaviour
     /// <returns>좌표에 대응하는 셀 데이터입니다. 없으면 null입니다.</returns>
     private CellData FindCell(int x, int y)
     {
+        if (_stageData == null || _stageData.cells == null)
+        {
+            return null;
+        }
+
         for (int i = 0; i < _stageData.cells.Count; i++)
         {
             CellData cell = _stageData.cells[i];

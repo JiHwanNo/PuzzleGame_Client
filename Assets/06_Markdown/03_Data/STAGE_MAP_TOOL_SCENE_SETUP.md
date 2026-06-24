@@ -1,7 +1,9 @@
 # 스테이지 맵 툴 — Unity 에디터 수기 배선 가이드
 
 `ToolScene`에서 맵툴을 동작시키기 위해 **Unity 에디터에서 직접 해야 하는 작업**만 모았다.
-코드(컨트롤러/뷰/브러시 콜백)는 작성 완료 상태이며, 아래 인스펙터 참조 연결과 프리팹/버튼 배치만 남았다.
+
+> **모델 전환(2026-06-19)**: 브러시 모델 → **선택+인스펙터 모델**(빈 격자에서 `+`로 셀 생성, 셀 선택해 인스펙터로 편집). 상세 `STAGE_MAP_TOOL.md`.
+> **1단계(그리드 뷰)는 완료**(프리팹/씬 배선 + 검증). 아래 1단계는 완료 기록으로 남기며, 2단계 이후는 신모델 기준으로 갱신함.
 
 - 대상 씬: `Assets/01_Scenes/ToolScene.unity` (에디터 전용, `SceneEnum` 미등록)
 - 관련 아키텍처: `STAGE_MAP_TOOL_ARCH.md`
@@ -9,7 +11,9 @@
 
 ---
 
-## 1단계. 그리드 뷰 배선 (ARCH 1단계)
+## 1단계. 그리드 뷰 배선 (✅ 완료 — `Assets/01_Scenes/ToolPrefab/MapCell.prefab`)
+
+> 완료 결과: 셀 프리팹 `MapCell`(Image+Button+`StageMapCellView`+`Label`(`+`,44pt)+`Selection`(노랑 하이라이트)), `Canvas/CellRoot`+`BoardBackground`(어두운 판), `StageMapToolRoot/BoardView`(`StageMapBoardView`, `_cellPrefab`/`_cellRoot`/`_cellSize=64`/`_cellSpacing=6`), 컨트롤러 `_boardView` 연결. 아래는 절차 기록.
 
 ### 1-1. 셀 프리팹 제작
 1. `StageMapCellView` 한 칸을 표현할 프리팹을 만든다. 권장 크기 **64×64**, 앵커/피벗 **좌하단 (0, 0)**.
@@ -41,47 +45,33 @@
 ### 1-4. 컨트롤러 연결
 - `StageMapToolController`의 `_boardView`(BOARD COMPONENT 헤더)에 1-3 보드 뷰를 연결한다.
 
-### 1단계 검증
-> 플레이 시 **8×8 격자**가 그려지고 최상단 행이 Generator(녹색)로 표시되면 OK.
-> 셀 클릭 시 해당 칸이 현재 브러시 색(기본 Normal=흰색)으로 바뀌면 클릭→PaintCell→RefreshCell 경로 동작 확인.
+### 1단계 검증 (완료)
+> 플레이 시 **9×9 빈 격자**(전부 `+`)가 그려지고, `+` 클릭 시 그 칸이 셀(Normal=흰색)로 생성되며, 생성된 셀 클릭 시 노랑 하이라이트가 표시되면 OK.
+> 퍼즐타입 `Link` 선택 시 보드가 헥사(짝수 열 반 칸 아래)로 배치되면 헥사 경로 확인.
+> (검증은 부트스트랩이 SharedScene으로 전환되므로 `execute_code`로 보드 빌드를 직접 실행해 확인함.)
 
 ---
 
-## 2단계. 셀 타입 브러시 버튼 배선 (ARCH 2단계)
+## 2단계. 인스펙터 패널 배선 (Phase 2 — 미착수)
 
-> 코드 추가 완료: `StageMapToolController.OnClickCellType(string val)` + `_cellTypeButtonGroup`(CELL BRUSH COMPONENT 헤더).
-> 브러시 = "셀에 칠할 셀 타입". 버튼으로 타입을 고르고 격자 칸을 클릭하면 그 타입으로 칠해진다.
+> 모델 전환으로 "브러시 버튼"은 폐기. 대신 **셀을 선택하면 그 셀을 편집하는 인스펙터 패널**을 띄운다.
+> 셀 선택 시 `EditButtonPanelRoot`(빈 컨테이너) 아래 패널을 노출하고, 버튼은 **선택된 셀**의 값을 직접 바꾼다.
 
-### 2-1. 버튼 4개 배치
-- 셀 편집 패널(`_cellEditPanel`) 안에 `UIButton` 4개를 배치한다.
-- **버튼 순서(인덱스)와 콜백 값**은 아래 표를 반드시 지킬 것. (enum 값이 아니라 배열 인덱스 기준)
+### 2-1. 편집 패널 3종 배치
+- `EditButtonPanelRoot` 아래 `_cellEditPanel` / `_blockEditPanel` / `_tileEditPanel` 3개 패널 생성(편집 모드 버튼이 하나만 토글).
+- 컨트롤러 동명 필드(`_cellEditPanel`/`_blockEditPanel`/`_tileEditPanel`)에 연결.
 
-| 버튼 인덱스 (`_callbackValue`) | 셀 타입 | 셀뷰 틴트 색 |
-|------|---------|------|
-| `0` | Normal (일반 바닥) | 흰색 |
-| `1` | Close (막힌 구역) | 어두운 회색 |
-| `2` | Lock (잠긴 상태) | 파란색 |
-| `3` | Generator (블럭 생성기) | 녹색 |
+### 2-2. 셀 상태변화 버튼 (셀 편집 패널)
+- `Normal` / `Lock` / `Generator` / `삭제(→+)` 버튼. 콜백은 **선택된 셀**에 적용된다(`OnClickCellType` 재활용 + 삭제는 `RemoveCell`).
+- ⚠️ `CellType` 내부 값(Close=0, Normal=1, Lock=2, Generator=3)과 버튼 인덱스가 다름 → 컨트롤러 `BrushCellTypes` 매핑 사용.
+- `UIButtonGroup` + 컨트롤러 `_cellTypeButtonGroup` 연결(기존 코드 유지).
 
-> ⚠️ `CellType` enum 내부 값은 Close=0, Normal=1, Lock=2, Generator=3 으로 **버튼 인덱스와 다르다**.
-> 컨트롤러의 `BrushCellTypes` 배열이 인덱스→타입을 매핑하므로, 버튼에는 **위 표의 인덱스 값**만 넣으면 된다.
-
-### 2-2. 각 버튼 콜백 연결
-- 각 `UIButton`의 콜백을 컨트롤러로 연결한다(기존 퍼즐타입/편집모드 버튼과 동일 패턴):
-  - `_root` → `StageMapToolController`가 붙은 오브젝트
-  - `_callbackName` → `OnClickCellType`
-  - `_callbackValue` → `0` / `1` / `2` / `3` (2-1 표)
-
-### 2-3. 버튼 그룹 연결
-- 셀 편집 패널에 `UIButtonGroup` 컴포넌트를 두고 위 버튼 4개를 `_buttons` 배열에 **표 순서대로(0=Normal … 3=Generator)** 등록한다.
-- `_normalSprite` / `_selectedSprite` 지정(선택 강조용).
-- 컨트롤러 `_cellTypeButtonGroup`에 이 그룹을 연결한다.
-- 시작 시 컨트롤러가 `ApplyCellType(Normal)`로 0번을 자동 선택한다.
+### 2-3. 블럭 / 판넬 (Phase 2.5)
+- 블럭ID는 Rule 로드(`StageMapRuleProvider` 신규)로 팔레트 구성, 판넬ID는 우선 직접 입력/증감으로 시작.
 
 ### 2단계 검증
-> Lock 버튼 클릭 → 격자 칸 클릭 시 그 칸이 파란색으로 바뀌면 OK.
-> Close 클릭 후 칠하면 해당 칸의 block_id/생성목록이 비워진다(PaintCell 규칙).
-> 타입 버튼을 바꿔가며 칠했을 때 선택 버튼 강조와 칸 색이 일치하면 완료.
+> 셀을 선택한 상태에서 `Lock` → 그 셀이 파란색으로, `삭제` → 다시 `+`로 돌아가면 OK.
+> 선택 강조(노랑)와 인스펙터 표시가 선택 셀과 일치하면 완료.
 
 ---
 

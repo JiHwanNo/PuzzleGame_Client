@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
+using UnityEngine.ResourceManagement.ResourceLocations;
 /// <summary>
 /// 게임 에셋의 로드 및 인스턴스화를 관리하는 싱글톤 클래스입니다.
 /// 스프라이트/TextAsset 등 데이터 에셋은 Addressables로, 프리팹은 Resources로 로드합니다.
@@ -142,7 +143,23 @@ public class AssetManager
         {
             return (T)reObj;
         }
-        
+
+        // 등록되지 않은 주소로 LoadAssetAsync를 호출하면 InvalidKeyException이 발생하므로,
+        // 먼저 리소스 위치 존재 여부를 확인하고 없으면 경고 후 기본값을 반환한다.
+        // 타입(typeof(T))으로 필터링하면 카탈로그의 ResourceType이 T와 정확히 일치하지
+        // 않는(예: Sprite로 임포트된 Texture) 유효 에셋이 누락될 수 있으므로 주소만으로 조회한다.
+        AsyncOperationHandle<IList<IResourceLocation>> locationHandle =
+            Addressables.LoadResourceLocationsAsync(address);
+        IList<IResourceLocation> locations = locationHandle.WaitForCompletion();
+        bool hasLocation = locations != null && locations.Count > 0;
+        Addressables.Release(locationHandle);
+
+        if (!hasLocation)
+        {
+            Debug.LogWarning($"[AssetManager] LoadAsset<{typeof(T).Name}> 등록되지 않은 주소입니다: {address}");
+            return default;
+        }
+
         AsyncOperationHandle<T> handle = Addressables.LoadAssetAsync<T>(address);
         T result = handle.WaitForCompletion();
 
@@ -205,7 +222,7 @@ public class AssetManager
         {
             return UnityEngine.Object.Instantiate(prefab, parent);
         }
-        
+
         Debug.LogError($"게임 오브젝트 로드 실패! 주소: {address}");
         return null;
     }
