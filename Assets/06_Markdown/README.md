@@ -15,6 +15,7 @@ PuzleBattleGame(Unity 6000.0.38f1, URP) 문서 모음. 작업 영역에 맞는 �
 | [MAP.md](MAP.md) | **문서 네비게이션.** 작업별 빠른 경로, 디버깅 시 읽을 곳, 확장 포인트 체크리스트(새 모드/블럭/매니저/API 추가 절차), 주요 소스 파일 위치 표. 작업 시작 전 진입점. |
 | [01_Architecture/ARCHITECTURE.md](01_Architecture/ARCHITECTURE.md) | **아키텍처 전반.** MVC 엄격 분리, 데이터 기반 생성, 결정론적 리플레이, 인터페이스 기반 확장 원칙. 데이터 흐름·게임 흐름·폴더 구조. 결정론 규칙(난수/시간). |
 | [00_Guide/CONVENTIONS.md](00_Guide/CONVENTIONS.md) | **커밋 전 코드 리뷰 필독.** 리뷰 체크리스트, 위반 예시와 수정 가이드. 명명/스타일/주석 규칙 검증 기준. PR 올리기 전 반드시 확인. |
+| [00_Guide/PREFAB_STRUCTURE.md](00_Guide/PREFAB_STRUCTURE.md) | **프리팹 구조 규칙.** Root=컨트롤러/child=시각·입력 요소, 클릭은 UIButton 경유(Button.onClick→OnClickEvent→root SendMessage), 선택 표시는 테두리 방식. 프리팹 생성/리팩터링 시. |
 | [02_Ingame/INGAME.md](02_Ingame/INGAME.md) | **인게임 퍼즐.** 게임 루프, 보드 상태, 블럭, 매칭, 뷰 동기화, 애니메이션, 리플레이. ExecuteBatchMovement 처리 순서 규칙. 보드 좌표/레이아웃. |
 | [03_Data/DATA.md](03_Data/DATA.md) | **데이터/설정.** JSON 구조, GameSpec, Rule/Stage/Replay 데이터, 데이터 추가 방법. struct vs class 데이터 타입 주의. 스테이지 저장소(StageStorage)·맵 툴(StageMapTool). |
 | [04_UI/UI.md](04_UI/UI.md) | **UI 시스템.** 도메인 시스템, 팝업/탭 생명주기, UIButton, 팝업·탭 추가 방법. |

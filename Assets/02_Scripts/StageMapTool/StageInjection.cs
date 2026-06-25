@@ -149,6 +149,45 @@ public class StageInjection
     }
 
     /// <summary>
+    /// 저장하지 않은 편집 중 스테이지 데이터를 메모리에서 직접 주입해 게임 사양서를 완성합니다.
+    /// 맵 툴의 "맵 시작해보기"에서 파일 저장 없이 현재 편집 맵을 즉시 플레이할 때 사용합니다.
+    /// </summary>
+    /// <param name="ruleAddress">Addressable 내 규칙 JSON 에셋 주소</param>
+    /// <param name="stageAddress">이 맵이 저장될/저장된 스테이지 슬롯의 리소스 키(리플레이 재로드용)</param>
+    /// <param name="stageData">정규화 완료된 스테이지 데이터(메모리)</param>
+    /// <returns>사양서 생성 성공 여부</returns>
+    public bool MakeGameSpecFromData(string ruleAddress, string stageAddress, StageData stageData)
+    {
+        if (stageData == null)
+        {
+            Debug.LogError("[StageInjection] 주입할 스테이지 데이터가 없습니다.");
+            return false;
+        }
+
+        _ruleAddress = ruleAddress;
+        // 메모리 주입이지만, 리플레이가 동일 슬롯의 맵을 다시 찾을 수 있도록 슬롯 주소를 보관한다.
+        _stageAddress = stageAddress;
+        _gameSpec = new GameSpec();
+
+        if (!TryLoadRule(ruleAddress, _gameSpec))
+        {
+            _gameSpec = null;
+            return false;
+        }
+
+        if (stageData.cells == null || stageData.cells.Count == 0)
+        {
+            Debug.LogError("[StageInjection] 스테이지 셀 데이터가 비어 있습니다.");
+            _gameSpec = null;
+            return false;
+        }
+
+        _gameSpec.stageData = stageData;
+        _gameSpec.randomSeed = new System.Random().Next();
+        return true;
+    }
+
+    /// <summary>
     /// 규칙 JSON 에셋을 로드하여 게임 사양서에 적용합니다.
     /// </summary>
     /// <param name="ruleAddress">Addressable 내 규칙 JSON 에셋 주소</param>

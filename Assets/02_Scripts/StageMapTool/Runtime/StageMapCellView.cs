@@ -18,13 +18,9 @@ public class StageMapCellView : MonoBehaviour
     /// <summary> 생성된 셀의 라벨 색입니다(어둡게). </summary>
     private static readonly Color FilledLabelColor = new Color(0.12f, 0.12f, 0.14f, 1f);
 
-    /// <summary> 셀 배경 틴트를 표시할 이미지입니다. </summary>
+    /// <summary> 셀 배경 틴트를 표시할 이미지입니다(하위 CellImage). </summary>
     [SerializeField]
     private Image _background;
-
-    /// <summary> 클릭을 받는 유니티 버튼입니다. </summary>
-    [SerializeField]
-    private Button _button;
 
     /// <summary> 블럭 아이디/빈 칸("+")을 표시할 라벨입니다. 없으면 무시됩니다. </summary>
     [SerializeField]
@@ -59,12 +55,6 @@ public class StageMapCellView : MonoBehaviour
         _x = x;
         _y = y;
         _onClicked = onClicked;
-
-        if (_button != null)
-        {
-            _button.onClick.RemoveListener(HandleClick);
-            _button.onClick.AddListener(HandleClick);
-        }
 
         Refresh(cell, false);
     }
@@ -143,22 +133,12 @@ public class StageMapCellView : MonoBehaviour
     }
 
     /// <summary>
-    /// 버튼 클릭 시 좌표 콜백을 호출합니다.
+    /// 셀 클릭 시 호출됩니다. 하위 CellImage의 UIButton(OnClickEvent → SendMessage)이 이 메서드를 호출하며,
+    /// 보관된 좌표(x, y)를 클릭 콜백으로 전달합니다.
     /// </summary>
-    private void HandleClick()
+    public void OnCellClicked()
     {
         _onClicked?.Invoke(_x, _y);
-    }
-
-    /// <summary>
-    /// 오브젝트 파괴 시 버튼 리스너를 정리합니다.
-    /// </summary>
-    private void OnDestroy()
-    {
-        if (_button != null)
-        {
-            _button.onClick.RemoveListener(HandleClick);
-        }
     }
 
     /// <summary>
@@ -177,7 +157,8 @@ public class StageMapCellView : MonoBehaviour
             case CellType.Generator:
                 return new Color(0.30f, 0.62f, 0.38f, 1f);
             default:
-                return new Color(0.90f, 0.90f, 0.92f, 1f);
+                // Normal: 타일 스프라이트를 원색 그대로 보여주기 위해 흰색 틴트를 사용한다.
+                return Color.white;
         }
     }
 }

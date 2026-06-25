@@ -15,6 +15,7 @@
 | `../../CLAUDE.md` | Claude Code 호환용 기존 가이드 | Claude Code 사용 시 |
 | `ARCHITECTURE.md` | MVC, 데이터 흐름, 리플레이, 게임 흐름, 폴더 구조 | 아키텍처 이해 시 |
 | `CONVENTIONS.md` | 코드 리뷰 체크리스트, 위반 예시, 수정 가이드 | 커밋 전 리뷰 시 필독 |
+| `PREFAB_STRUCTURE.md` | 프리팹 계층·컴포넌트 배치·입력(UIButton) 배선 규칙 | 프리팹 생성/리팩터링 시 필독 |
 | `INGAME.md` | 게임 루프, 보드 상태, 블럭, 매칭, 뷰 동기화, 애니메이션, 리플레이 | 인게임 퍼즐 작업 시 |
 | `DATA.md` | JSON 구조, GameSpec, Rule/Stage/Replay 데이터, 추가 방법 | 데이터/설정 작업 시 |
 | `UI.md` | 도메인 시스템, 팝업/탭 생명주기, UIButton, 추가 방법 | UI 작업 시 |
@@ -66,6 +67,7 @@
 | 리플레이 기록/재생 | `INGAME.md` → `DATA.md` |
 | 팝업 추가 | `UI.md` |
 | 탭 추가 | `UI.md` |
+| 프리팹(위젯) 생성/구조 수정 | `PREFAB_STRUCTURE.md` |
 | 씬 전환 수정 | `SCENE.md` |
 | 매니저 구현 | `SCENE.md` |
 | 새 씬 추가 | `SCENE.md` |

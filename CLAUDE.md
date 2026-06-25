@@ -113,6 +113,7 @@ MVC 엄격 분리, 데이터 기반 생성, 결정론적 리플레이, 인터페
 | 작업 | 문서 |
 |------|------|
 | **커밋 전 코드 리뷰 (필독)** | **`Assets/06_Markdown/00_Guide/CONVENTIONS.md`** |
+| **프리팹 구조/입력 배선 (필독)** | **`Assets/06_Markdown/00_Guide/PREFAB_STRUCTURE.md`** |
 | 아키텍처/게임 흐름/폴더 구조 | `Assets/06_Markdown/01_Architecture/ARCHITECTURE.md` |
 | 인게임 퍼즐 (보드, 블럭, 매칭, 뷰, 애니메이션, 리플레이) | `Assets/06_Markdown/02_Ingame/INGAME.md` |
 | 데이터/설정 (JSON, GameSpec, 추가 방법, ReplayData) | `Assets/06_Markdown/03_Data/DATA.md` |

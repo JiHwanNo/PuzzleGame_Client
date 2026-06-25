@@ -248,4 +248,5 @@ public enum SceneEnum
     LoadingScene,
     LobbyScene,
     GameScene,
+    ToolScene,
 }

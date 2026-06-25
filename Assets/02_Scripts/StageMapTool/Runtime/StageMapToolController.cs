@@ -588,30 +588,9 @@ public class StageMapToolController : MonoBehaviour
     /// </summary>
     public void OnClickSave()
     {
-        if (_state.StageData == null)
+        if (!TryNormalizeAndValidate(out StageData normalized))
         {
-            SetStatus("저장할 스테이지가 없습니다.", true);
             return;
-        }
-
-        if (!_normalizer.TryNormalize(_state.StageData, IsHexLayout(), out StageData normalized))
-        {
-            SetStatus("저장할 셀이 없습니다. 셀을 먼저 배치하세요.", true);
-            return;
-        }
-
-        List<BlockData> ruleBlocks = _ruleProvider.LoadBlocks(_state.RuleAddress);
-        StageMapValidationResult validation = _validator.Validate(normalized, _state.StageId, ruleBlocks);
-        if (!validation.IsValid())
-        {
-            LogValidation(validation);
-            SetStatus($"검증 실패: 오류 {validation.errors.Count}건 (콘솔 확인)", true);
-            return;
-        }
-
-        if (validation.warnings.Count > 0)
-        {
-            LogValidation(validation);
         }
 
         bool saved = _repository.SaveToResources(_state.PuzzleType, _state.StageId, normalized);
@@ -645,6 +624,78 @@ public class StageMapToolController : MonoBehaviour
         _boardView.Build(loaded, IsHexLayout());
         RefreshInspector();
         SetStatus($"불러오기 완료: {StageStorage.GetStageFileName(_state.StageId)}", false);
+    }
+
+    /// <summary>
+    /// 맵 시작해보기 버튼: 현재 편집 중인 맵을 저장 없이 즉시 게임으로 실행합니다.
+    /// 저장과 동일하게 정규화·검증을 거친 뒤, 통과하면 메모리 주입으로 GameSpec을 만들고 GameScene으로 이동합니다.
+    /// </summary>
+    public void OnClickTestPlay()
+    {
+        if (!TryNormalizeAndValidate(out StageData normalized))
+        {
+            return;
+        }
+
+        // 저장하지 않은 편집 맵이라도, 리플레이가 이 맵을 다시 찾을 수 있도록 슬롯 주소를 함께 주입한다.
+        string stageAddress = StageStorage.GetResourceKey(_state.PuzzleType, _state.StageId);
+        if (!StageInjection.Instance.MakeGameSpecFromData(_state.RuleAddress, stageAddress, normalized))
+        {
+            SetStatus("게임 데이터 준비 실패 (콘솔 확인)", true);
+            return;
+        }
+
+        // 직전 리플레이가 남아 있으면 테스트 플레이가 상대 리플레이로 구동되므로 반드시 비운다.
+        StageInjection.Instance.SetReplayData(null);
+
+        if (Main.Instance == null)
+        {
+            SetStatus("Main을 찾을 수 없어 씬을 이동할 수 없습니다.", true);
+            return;
+        }
+
+        SetStatus("맵 시작...", false);
+        Main.Instance.MoveScene(SceneEnum.ToolScene, SceneEnum.GameScene);
+    }
+
+    /// <summary>
+    /// 저장/시작 공통 전처리: 현재 편집 데이터를 정규화하고 규칙 기준으로 검증합니다.
+    /// 실패 시 상태 라벨에 사유를 출력하고 false를 반환합니다.
+    /// </summary>
+    /// <param name="normalized">검증을 통과한 정규화 스테이지 데이터입니다. 실패 시 null입니다.</param>
+    /// <returns>정규화·검증을 모두 통과하면 true입니다.</returns>
+    private bool TryNormalizeAndValidate(out StageData normalized)
+    {
+        normalized = null;
+
+        if (_state.StageData == null)
+        {
+            SetStatus("스테이지가 없습니다.", true);
+            return false;
+        }
+
+        if (!_normalizer.TryNormalize(_state.StageData, IsHexLayout(), out normalized))
+        {
+            SetStatus("셀이 없습니다. 셀을 먼저 배치하세요.", true);
+            return false;
+        }
+
+        List<BlockData> ruleBlocks = _ruleProvider.LoadBlocks(_state.RuleAddress);
+        StageMapValidationResult validation = _validator.Validate(normalized, _state.StageId, ruleBlocks);
+        if (!validation.IsValid())
+        {
+            LogValidation(validation);
+            SetStatus($"검증 실패: 오류 {validation.errors.Count}건 (콘솔 확인)", true);
+            normalized = null;
+            return false;
+        }
+
+        if (validation.warnings.Count > 0)
+        {
+            LogValidation(validation);
+        }
+
+        return true;
     }
 
     /// <summary>
