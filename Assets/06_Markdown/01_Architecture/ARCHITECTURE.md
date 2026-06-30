@@ -45,10 +45,10 @@
 
 ### 인터페이스 기반 확장
 - `IPuzzleBoard`로 퍼즐 모드 교체(ThreeMatch/Link/TapMatch).
-- **블럭은 단일 `Block` 클래스 + 기믹 컴포지션**으로 확장한다(서브클래스 상속 폐기).
+- **블럭은 단일 `Block` 클래스 + 속성 데이터(HP·피격소스) + 효과 동사(verb) 조합**으로 확장한다(서브클래스 상속·기믹 클래스 폐기).
   - 조작 가능 여부(스왑/링크/터치)는 데이터(`inputType` 플래그)로 판정 → 보드가 게이팅.
-  - 특수 행동은 `IGimmick`을 `IGimmickHost`(`Block`)에 부착해 부여. `GimmickFactory`가 `GimmickType` → 기믹 생성, `GimmickUtil`이 파괴·연쇄 공통 처리.
-- 상세: `INGAME.md` "블럭 아키텍처 (기믹 컴포지션)"
+  - 무엇에 파괴되는지(`damagedBy`)와 무엇을 하는지(`effects`)를 데이터로 분리. 특수 행동은 `IBlockEffect`(동사)를 `Block`에 부착해 부여하고, `EffectFactory`가 `effects` 데이터 → 동사 생성, `BlockDamage`가 피격소스 게이팅·HP·파괴·연쇄를 공통 처리.
+- 상세: `INGAME.md` "블럭 아키텍처 (속성 데이터 + 효과 동사)"
 
 ---
 

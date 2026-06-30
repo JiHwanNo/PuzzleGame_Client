@@ -76,12 +76,13 @@ MVC 엄격 분리, 데이터 기반 생성, 결정론적 리플레이, 인터페
 ### 뷰 액션 처리 순서
 - `ExecuteBatchMovement`는 Move/Fall → CreateAndFall 순서 분리 필수. 상세: `Assets/06_Markdown/02_Ingame/INGAME.md` "ExecuteBatchMovement 처리 순서 규칙".
 
-### 기믹 컴포지션 / 연출 책임 분리
-- 블럭은 단일 `Block` 클래스 + 기믹 부착(`IGimmick`) 구조. `BaseBlock`/`NormalBlock`/`BombBlock` 서브클래스는 폐기됨 — 새 행동은 상속이 아니라 기믹으로 추가.
-- 조작 가능 여부(스왑/링크/터치)는 데이터(`inputType` 플래그)로 보드에서 게이팅. 블럭/기믹에 `return true` 하드코딩 금지.
-- **기믹/`Block`은 `frame`/`orderIndex`(연출 데이터)를 다루지 않는다.** 파괴 큐 등록은 `GimmickUtil.DestroyBlock` → `board.AddView`가 담당하며, frame 스탬프/order 부여는 `AddView`의 책임.
-- 파괴 연쇄는 `destroyed.FireDestroyed(board, pos)` → 부착 기믹 `OnDestroyed` 경로로만 발화. `GimmickUtil.DestroyBlock`은 빈 칸/막힘·잠금 셀에서 종료하므로 무한 연쇄가 방지됨.
-- `inputType`/`gimmickIds`는 JSON 문자열 목록 → `Enum.TryParse`로 enum 변환. 새 값은 `GimmickType` enum + `GimmickFactory` 분기를 함께 갱신. 상세: `Assets/06_Markdown/02_Ingame/INGAME.md`, `Assets/06_Markdown/03_Data/DATA.md`.
+### 효과(기믹) = 속성 데이터 + 효과 동사 / 연출 책임 분리
+- 기믹은 클래스(명사)가 아니라 **블럭 속성 데이터 + 효과 동사(`IBlockEffect`, verb)의 조합**이다. `BaseBlock`/`NormalBlock`/`BombBlock` 서브클래스, `IGimmick`/`GimmickFactory`/`GimmickUtil` 모두 폐기됨 — 새 행동은 상속/기믹클래스가 아니라 **데이터 조합 또는 새 동사**로 추가.
+- 블럭은 무엇에 파괴되는지(`damagedBy`, HP=`life`)와 무엇을 하는지(`effects`)를 **데이터로 분리**해 정의. 장애물(과자·금이간벽돌)은 동사 없이 `damagedBy`만으로 성립(클래스 불필요).
+- 조작 가능 여부(스왑/링크/터치)는 데이터(`inputType` 플래그)로 보드에서 게이팅. 블럭/동사에 `return true` 하드코딩 금지.
+- **효과/`Block`은 `frame`/`orderIndex`(연출 데이터)를 다루지 않는다.** 파괴 큐 등록은 `BlockDamage.Damage` → `board.AddView`가 담당하며, frame 스탬프/order 부여는 `AddView`의 책임.
+- 데미지/파괴는 `BlockDamage.Damage(board, pos, source)`로만: **피격소스 게이팅(`damagedBy`) → HP 감소 → 0이면 파괴 + `FireDestroyed`(OnDestroyed 동사 연쇄)**. 빈 칸/막힘·잠금 셀/면역 블럭에서 종료하므로 무한 연쇄 방지.
+- `inputType`/`damagedBy`는 JSON 문자열 목록 → `Enum.TryParse`(`Block`), `effects`는 `EffectFactory`로 동사 변환. 기존 동사 조합은 데이터만 추가, **진짜 새 동작**만 `IBlockEffect` 동사 + `EffectFactory` 분기 추가. 상세: `Assets/06_Markdown/02_Ingame/INGAME_GIMMICK.md`, `Assets/06_Markdown/03_Data/DATA.md`.
 
 ### 결정론 (Model 레이어)
 - `UnityEngine.Random` / `System.Random` / `Time.deltaTime` / `DateTime.Now` / Dictionary 순회 의존 금지.

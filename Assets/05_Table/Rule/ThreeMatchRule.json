@@ -69,8 +69,8 @@
       "destroyType": 51,
       "_destroyType_info": "51: Bomb",
       "life": 1,
-      "gimmickIds": [ "Bomb" ],
-      "_gimmickIds_info": "연동할 기믹 id 목록 (문자열). Bomb = 원형 폭탄"
+      "effects": [ { "trigger": "OnDestroyed", "action": "DestroyRadius", "param": "2" } ],
+      "_effects_info": "효과 동사 목록. trigger(OnDestroyed/OnSwapped) + action(DestroyRadius/DestroyLine/DestroySameColor) + param(반경/방향 등)"
     }
   ]
 }

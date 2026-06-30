@@ -63,6 +63,9 @@ namespace Puzzle.Core
         /// <summary> FindMatches() 재사용 HashSet (매 호출마다 할당 방지) </summary>
         private HashSet<GridPos> _matchBuffer = new HashSet<GridPos>();
 
+        /// <summary> 한 번의 매치 해소/스왑 스텝에서 이미 데미지를 받은 칸 집합 (재사용, "한 스텝 = 칸당 최대 1대" 보장) </summary>
+        private readonly HashSet<GridPos> _damageBuffer = new HashSet<GridPos>();
+
         /// <summary>
         /// 보드 내부 로직을 수행하며 로그를 전달합니다.
         /// </summary>
@@ -232,6 +235,17 @@ namespace Puzzle.Core
                 return;
             }
 
+            // 0. 특수 효과가 스왑을 소비하는지 먼저 확인한다. (무지개 폭탄 등: 매치 성립과 무관하게 발동)
+            //    물리 스왑 전에 호출하므로 각 블럭은 자신의 현재 좌표를 기준으로 대상 좌표를 받는다.
+            _damageBuffer.Clear();
+            if (cellA.Block.FireSwapped(this, first, second, _damageBuffer)
+                || (cellB.Block != null && cellB.Block.FireSwapped(this, second, first, _damageBuffer)))
+            {
+                // 스왑이 소비되어 블럭이 파괴되었으므로 낙하/보충 단계로 진입한다.
+                State = BoardState.Falling;
+                return;
+            }
+
             // 1. 물리적 스왑
             cellA.Block.SetState(BlockState.Moving);
             cellB.Block.SetState(BlockState.Moving);
@@ -340,30 +354,104 @@ namespace Puzzle.Core
 
             Objective?.OnMatchEvent();
 
+            // 이번 매치 해소 스텝의 피격 칸 집합 초기화 ("한 스텝 = 칸당 최대 1대")
+            _damageBuffer.Clear();
+
             // 이번 매칭 시퀀스의 터지는 연출을 하나의 그룹으로 묶음
             uint burstOrder = _currentOrderIndex++;
+            // 이번 스텝에 실제 파괴(빈 칸 생성)가 있었는지. 하나도 없으면 낙하 패스를 건너뛰어 무한 재매치를 막는다.
+            bool anyDestroyed = false;
             foreach (var pos in matches)
             {
                 var cell = GetCell(pos);
-                if (cell?.Block != null)
+                if (cell?.Block == null)
                 {
-                    Block destroyed = cell.Block;
-                    destroyed.SetState(BlockState.Matched);
-                    Objective.OnBlockDestroyed(destroyed.GetBlockId());
-                    cell.Block = null;
+                    continue;
+                }
 
-                    AddView(new BoardViewAction
+                // 이번 스텝에 이미 피격된 칸(예: 같은 매치의 폭탄 여파)은 매치 데미지를 중복 적용하지 않는다.
+                if (!_damageBuffer.Add(pos))
+                {
+                    continue;
+                }
+
+                Block block = cell.Block;
+
+                // "한 번의 매치 = 한 대(HP 1 감소)". 면역이거나 HP가 남으면 이번 매치에선 파괴되지 않는다(다중 HP 매치 블럭 대비).
+                if (!block.TakeDamage(DamageSource.Match))
+                {
+                    continue;
+                }
+
+                block.SetState(BlockState.Matched);
+                Objective.OnBlockDestroyed(block.GetBlockId());
+                cell.Block = null;
+
+                AddView(new BoardViewAction
+                {
+                    type = ViewType.Destroy,
+                    frame = (uint)_frameCount,
+                    position = pos
+                }, burstOrder);
+
+                // 파괴된 블럭의 OnDestroyed 효과 발화 (폭탄 등). 스텝 집합을 전파해 연쇄 데미지도 중복 차단.
+                block.FireDestroyed(this, pos, _damageBuffer);
+                anyDestroyed = true;
+            }
+
+            // 매치 칸에 직교 인접한 칸에 인접 매치 데미지 적용 (과자 등 인접 파괴형 장애물)
+            bool neighborDestroyed = DamageNeighborsOfMatches(matches);
+
+            // 파괴가 전혀 없었으면(예: 모든 매치 블럭이 HP만 깎임) 낙하 단계로 진입하지 않는다.
+            return anyDestroyed || neighborDestroyed;
+        }
+
+        /// <summary>
+        /// 이번 매치에 직교(상하좌우) 인접한 칸의 블럭에 NeighborMatch 데미지를 가합니다.
+        /// 해당 소스에 면역인 블럭(일반 블럭 등)은 영향받지 않습니다.
+        /// 보드를 (x, y) 순서로 스캔하여 결정론적 순서로 처리합니다.
+        /// </summary>
+        /// <param name="matches">이번 시퀀스에 매치된 좌표 집합</param>
+        /// <returns>인접 데미지로 블럭이 하나라도 파괴되었으면 true</returns>
+        private bool DamageNeighborsOfMatches(HashSet<GridPos> matches)
+        {
+            if (matches == null || matches.Count == 0)
+            {
+                return false;
+            }
+
+            bool anyDestroyed = false;
+            for (int y = 0; y < Height; y++)
+            {
+                for (int x = 0; x < Width; x++)
+                {
+                    GridPos pos = new GridPos(x, y);
+                    var cell = GetCell(pos);
+                    if (cell?.Block == null)
                     {
-                        type = ViewType.Destroy,
-                        frame = (uint)_frameCount,
-                        position = pos
-                    }, burstOrder);
+                        continue;
+                    }
 
-                    // 파괴된 블럭에 부착된 기믹 발화 (폭탄 등)
-                    destroyed.FireDestroyed(this, pos);
+                    // 매치 칸 자신은 이미 파괴 처리되었으므로 제외
+                    if (matches.Contains(pos))
+                    {
+                        continue;
+                    }
+
+                    // 직교 인접 칸 중 하나라도 이번 매치에 포함되면 인접 매치 데미지 적용
+                    if (matches.Contains(new GridPos(x + 1, y))
+                        || matches.Contains(new GridPos(x - 1, y))
+                        || matches.Contains(new GridPos(x, y + 1))
+                        || matches.Contains(new GridPos(x, y - 1)))
+                    {
+                        if (BlockDamage.Damage(this, pos, DamageSource.NeighborMatch, _damageBuffer))
+                        {
+                            anyDestroyed = true;
+                        }
+                    }
                 }
             }
-            return true;
+            return anyDestroyed;
         }
         private HashSet<GridPos> FindMatches()
         {

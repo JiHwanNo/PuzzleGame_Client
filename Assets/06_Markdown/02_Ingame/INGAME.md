@@ -49,16 +49,18 @@ Finish
 
 ---
 
-## 블럭 아키텍처 (기믹 컴포지션)
+## 블럭 아키텍처 (속성 데이터 + 효과 동사)
 
-서브클래스 상속(BaseBlock/NormalBlock/BombBlock)을 폐기하고, **단일 `Block` 클래스 + 기믹 부착(컴포지션)** 구조로 전환되었다.
-블럭 자체는 데이터만 보유하고, 특수 행동(폭발 등)은 부착된 기믹(`IGimmick`)이 담당한다.
+서브클래스 상속(BaseBlock/NormalBlock/BombBlock)을 폐기하고, **단일 `Block` 클래스 + 속성 데이터(HP·피격소스) + 효과 동사(`IBlockEffect`) 부착** 구조로 전환되었다.
+블럭은 무엇에 파괴되는지(`damagedBy`, HP)와 무엇을 하는지(`effects`)를 데이터로 분리해 보유하며, 특수 행동(폭발 등)은 부착된 효과 동사가 담당한다.
 
 ### 단일 블럭 클래스
 ```
-Block : IGimmickHost — State: Idle, Selected, Moving, Matched, Falling, None
-  ├─ _inputType : InputType   ← 데이터 inputType(문자열 목록)을 플래그로 파싱·캐싱
-  └─ Gimmicks : List<IGimmick> ← 부착된 기믹 목록 (행동 담당)
+Block — State: Idle, Selected, Moving, Matched, Falling, None
+  ├─ _inputType : InputType        ← 데이터 inputType(문자열 목록)을 플래그로 파싱·캐싱
+  ├─ _damagedBy : DamageSource     ← 데이터 damagedBy를 플래그로 파싱(미지정 시 Match|Splash)
+  ├─ Hp : int                      ← 데이터 life로 초기화(0이면 1). TakeDamage(source)로 감소
+  └─ Effects : List<IBlockEffect>  ← 부착된 효과 동사 목록 (행동 담당)
 ```
 - 조작 가능 여부(스왑/링크/터치)는 **데이터(`inputType`)로 판정**한다. 더 이상 서브클래스가 `return true`로 하드코딩하지 않는다.
 - 생성자에서 `BlockData.inputType`(예: `["Swap","Touch"]`)을 `Enum.TryParse`로 `InputType` 플래그로 변환해 캐싱하고, `GetInputType()`으로 노출한다.
@@ -71,8 +73,8 @@ Block : IGimmickHost — State: Idle, Selected, Moving, Matched, Falling, None
 | 링크 (Link) | `LinkPuzzleBoard` | `GetInputType().HasFlag(InputType.Link)` |
 | 터치 (TapMatch) | `TapMatchPuzzleBoard` | `GetInputType().HasFlag(InputType.Touch)` |
 
-### 기믹 시스템
-기믹 인터페이스/구현 표, 파괴·연쇄 흐름, 새 기믹 추가 절차 상세는 [`INGAME_GIMMICK.md`](INGAME_GIMMICK.md) 참고.
+### 효과(기믹) 시스템
+효과 동사 표, HP/피격소스, 파괴·연쇄 흐름, 새 동작 추가 절차 상세는 [`INGAME_GIMMICK.md`](INGAME_GIMMICK.md) 참고.
 
 ---
 
@@ -169,7 +171,8 @@ board.FetchActions()
 | BoardShape | Quadrangle, Hexagon |
 | CellType | Close, Normal, Lock, Generator |
 | InputType | Swap(1), Link(2), Touch(4) — Flags |
-| GimmickType | None(0), Bomb(1) — JSON엔 문자열, 내부 처리는 enum |
+| DamageSource | Match(1), NeighborMatch(2), Splash(4) — Flags. JSON엔 문자열 |
+| EffectTrigger | None(0), OnDestroyed(1), OnSwapped(2) — 효과 동사 발화 시점 |
 | BoardState | Waiting, Matching, Falling, Filling, Finish |
 | ViewType | Destroy, Create, Move, Land, Fall, CreateAndFall |
 | BlockState | Idle, Selected, Moving, Matched, Falling, None |

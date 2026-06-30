@@ -4,6 +4,52 @@
 
 ---
 
+## 2026-06-30 — 기믹을 "효과 동사(verb) + 속성 데이터"로 재설계 (클래스 명사 → 동사 라이브러리)
+
+### 설계 전환
+- 기믹은 더 이상 클래스(명사)가 아니라 **블럭 속성(HP·피격소스) + 효과 동사(verb)의 데이터 조합**으로 표현.
+- 블럭이 무엇에 파괴되는지(`damagedBy`)와 무엇을 하는지(`effects`)를 **데이터로 분리**. 장애물(과자·벽돌)은 클래스 없이 데이터만으로 성립.
+
+### 삭제
+- `IGimmick`/`IGimmickHost`/`GimmickBase`/`GimmickFactory`/`GimmickUtil` + `BombGimmick`/`LineBombGimmick`/`RainbowBombGimmick`/`CookieGimmick` 전부 제거. `GimmickType` enum 제거.
+
+### 신설 (`Module/Effect/`)
+- `IBlockEffect`(동사 계약: `Trigger` + `Apply`) + `EffectContext`(struct).
+- 동사: `DestroyRadiusEffect`(원형) / `DestroyLineEffect`(라인) / `DestroySameColorEffect`(무지개·스왑 소비).
+- `EffectFactory`(`EffectData` → 동사) + `BlockDamage`(피격소스 게이팅 → HP 감소 → 0이면 파괴/연쇄, 구 `GimmickUtil` 대체).
+- `PuzzleDefine.cs`: `DamageSource`(Flags) / `EffectTrigger` enum + `EffectData` class 신설, `LineDirection` 유지.
+
+### 데이터/블럭
+- `BlockData`: `gimmickIds` 제거 → `damagedBy`(List<string>) + `effects`(List<EffectData>) 추가. `life`=HP로 사용.
+- `Block`: HP/`TakeDamage(source)` + `Effects`(동사 목록) 보유. `FireDestroyed`/`FireSwapped`는 트리거별 동사만 발화.
+- `ThreeMatchPuzzleBoard`: 인접 매치 통지를 `BlockDamage.Damage(NeighborMatch)`로 전환(과자가 HP 데미지로 처리, 일반 블럭은 면역).
+- `ThreeMatchRule.json`: Bomb 블럭을 `effects:[{OnDestroyed, DestroyRadius, 2}]`로 마이그레이션.
+
+### 코드 리뷰 반영
+- **매치 경로 HP 배선**: `ProcessMatching`이 `TakeDamage(Match)`를 거치도록 변경 → `DamageSource.Match`가 실코드화, 다중 HP 매치 블럭 지원. 파괴가 없으면 낙하 생략(무한 재매치 방지). life=1은 기존과 동일.
+- **trigger 데이터화**: `EffectFactory`가 `data.trigger`를 파싱해 동사에 주입(미지정 시 동사별 기본값). "스왑 시 폭발" 같은 조합 가능.
+- **한 스텝 = 칸당 최대 1대**: `_damageBuffer`로 추적, 폭탄 Splash+인접 매치 중복 데미지 차단.
+- **무지개 자기 소비 분리**: `BlockDamage.Destroy`(게이팅 없는 무조건 제거) 추가 → Splash 면역 데이터여도 스왑 소비 후 고착되지 않음.
+- **`PuzzleCell.IsPlayable`** 헬퍼 추가(중복 셀 판정 정리, `BlockDamage` 적용). `BlockDamage.Damage`는 파괴 여부(bool) 반환.
+
+---
+
+## 2026-06-26 — 기믹 4종 추가 (라인/무지개 폭탄, 과자 장애물, 폭탄전용 장애물 규약)
+
+### 기믹
+- `GimmickType`에 `LineBomb`(2)/`Rainbow`(3)/`Cookie`(4) 추가, `LineDirection` enum 신설(`PuzzleDefine.cs`).
+- `IGimmick`/`GimmickBase`에 `OnNeighborMatched(board, myPos)` 훅 추가. `Block`에 `FireSwapped`/`FireNeighborMatched` 발화 메서드 추가.
+- `LineBombGimmick`(행/열/십자 라인 파괴), `RainbowBombGimmick`(스왑 시 동색 전체 파괴), `CookieGimmick`(인접 매치 시 파괴) 작성 + `GimmickFactory` 분기.
+
+### 보드 배선 (`ThreeMatchPuzzleBoard`)
+- `ProcessSwapInput`: 물리 스왑 "전"에 `FireSwapped` 호출 → 소비 시(무지개) 매치 검사/복구 생략하고 `Falling` 진입.
+- `ProcessMatching`: 매치 칸 파괴 후 `FireNeighborMatchedAround`로 직교 인접 블럭에 통지(과자) — 보드 (x,y) 스캔으로 결정론적.
+
+### 규약
+- **금이 간 벽돌(폭탄 전용 장애물)**: 별도 기믹 없이 데이터만으로 구성(조작 불가 `inputType` + 고유 `blockId`). 매칭 비대상이라 폭발 `DestroyBlock`에 의해서만 파괴 → 상세: `INGAME_GIMMICK.md`, `DATA.md`.
+
+---
+
 ## 2026-06-18 — Resources 폴더 구조 타입별 정리 (Prefab/Texture/Animation)
 
 ### 폴더 구조

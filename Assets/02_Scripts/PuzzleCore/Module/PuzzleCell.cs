@@ -13,7 +13,13 @@ namespace Puzzle.Core
         
         /// <summary> 이 셀의 종류 (일반, 생성기, 장애물 등) </summary>
         public CellType CellType { get; set; }
-        
+
+        /// <summary> 블럭이 놓이고 매치/낙하/데미지 대상이 되는 "플레이 가능" 셀인지 여부 (일반 또는 생성기) </summary>
+        public bool IsPlayable
+        {
+            get { return CellType == CellType.Normal || CellType == CellType.Generator; }
+        }
+
         /// <summary> 이 셀 위에 놓인 블럭 객체. null이면 빈 공간입니다. </summary>
         public Block Block { get; set; }
         

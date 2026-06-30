@@ -185,10 +185,30 @@ namespace Puzzle.Core
         public List<string> inputType;
         /// <summary> 파괴 조건 </summary>
         public DestroyType destroyType;
-        /// <summary> 내구도/생명력 </summary>
+        /// <summary> 내구도(HP). 데미지 소스에 맞는 피격마다 1씩 감소하며 0이 되면 파괴. (미지정/0이면 1로 취급) </summary>
         public int life;
-        /// <summary> 이 블럭에 연동할 기믹 id 목록 (없거나 비어있으면 기믹 없음) </summary>
-        public List<string> gimmickIds;
+        /// <summary>
+        /// 이 블럭의 HP를 깎을 수 있는 데미지 소스 목록 (문자열, 예: ["Match","Splash"]).
+        /// 비어있으면 일반 블럭 기본값(Match|Splash)으로 취급. 장애물은 ["NeighborMatch","Splash"] 등으로 데이터화.
+        /// </summary>
+        public List<string> damagedBy;
+        /// <summary> 이 블럭에 부착할 효과 동사 목록 (트리거+동작). 없거나 비어있으면 효과 없음. </summary>
+        public List<EffectData> effects;
+    }
+
+    /// <summary>
+    /// 블럭에 부착되는 "효과 동사" 하나를 데이터로 기술합니다.
+    /// 어떤 시점(trigger)에 어떤 동작(action)을 어떤 파라미터(param)로 수행할지를 정의합니다.
+    /// </summary>
+    [Serializable]
+    public class EffectData
+    {
+        /// <summary> 발화 시점 (문자열, 예: "OnDestroyed" / "OnSwapped" → EffectTrigger로 변환) </summary>
+        public string trigger;
+        /// <summary> 수행할 동작 동사 (예: "DestroyRadius" / "DestroyLine" / "DestroySameColor") </summary>
+        public string action;
+        /// <summary> 동작별 보조 파라미터 (예: 반경 "2", 라인 방향 "Cross"). 동작이 알아서 해석. </summary>
+        public string param;
     }
 
     // ==========================================================
@@ -291,13 +311,43 @@ namespace Puzzle.Core
         Bomb = 51
     }
 
-    /// <summary> 블럭/판넬에 부착되는 기믹의 종류 (JSON에는 문자열, 내부 처리는 이 enum) </summary>
-    public enum GimmickType
+    /// <summary>
+    /// 블럭이 데미지를 받는 경로(원인)입니다. 블럭 데이터의 damagedBy(어떤 데미지에 HP가 깎이는지)와
+    /// 효과 동사가 가하는 데미지를 매칭하는 데 사용합니다. (JSON에는 문자열 목록, 내부 처리는 이 플래그)
+    /// </summary>
+    [Flags]
+    public enum DamageSource
     {
         /// <summary> 없음 </summary>
         None = 0,
-        /// <summary> 원형 폭탄 (파괴 시 주변 반경을 함께 파괴) </summary>
-        Bomb = 1
+        /// <summary> 자신이 매치에 포함되어 터짐 (일반팡) </summary>
+        Match = 1 << 0,
+        /// <summary> 직교 인접 칸에서 매치가 발생 (과자 등 인접 파괴형) </summary>
+        NeighborMatch = 1 << 1,
+        /// <summary> 폭발 여파 — 폭탄/라인/무지개 등 효과 동사에 의한 파괴 (폭탄팡) </summary>
+        Splash = 1 << 2
+    }
+
+    /// <summary> 효과 동사(IBlockEffect)가 발화되는 시점입니다. (JSON에는 문자열, 내부 처리는 이 enum) </summary>
+    public enum EffectTrigger
+    {
+        /// <summary> 없음 </summary>
+        None = 0,
+        /// <summary> 블럭이 파괴(HP 0)될 때 (예: 라인/원형 폭발) </summary>
+        OnDestroyed = 1,
+        /// <summary> 블럭이 스왑될 때 (예: 무지개 — 스왑을 소비) </summary>
+        OnSwapped = 2
+    }
+
+    /// <summary> 라인 폭탄의 파괴 방향 </summary>
+    public enum LineDirection
+    {
+        /// <summary> 가로(행) 한 줄 </summary>
+        Horizontal = 0,
+        /// <summary> 세로(열) 한 줄 </summary>
+        Vertical = 1,
+        /// <summary> 가로 + 세로 십자 </summary>
+        Cross = 2
     }
 
     /// <summary> 방향 정의 </summary>

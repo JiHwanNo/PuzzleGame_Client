@@ -28,7 +28,7 @@
 | 문서 | 상위 문서 | 내용 |
 |------|----------|------|
 | `ARCHITECTURE_FLOW.md` | `ARCHITECTURE.md` | 메인 대전/사이드 스테이지 게임 흐름 상세 |
-| `INGAME_GIMMICK.md` | `INGAME.md` | 기믹 인터페이스/파괴 연쇄/새 기믹 추가 절차 |
+| `INGAME_GIMMICK.md` | `INGAME.md` | 효과 동사/HP·피격소스/파괴 연쇄/새 동작 추가 절차 |
 | `INGAME_REPLAY.md` | `INGAME.md` | 리플레이 기록/재생 흐름 상세 |
 | `DATA_SCHEMA.md` | `DATA.md` | GameSpec 전체 필드 스키마 트리 + ReplayData JSON |
 | `DATA_STAGE.md` | `DATA.md` | 스테이지 저장소(StageStorage)·맵 툴(StageMapTool) 레퍼런스 |
@@ -85,13 +85,12 @@
 3. `PuzzleGameController.Start()` PuzzleType별 분기 추가
 4. Rule JSON 생성 + Addressable 등록 → 상세: `INGAME.md`, `DATA.md`
 
-### 새 블럭/기믹 추가 (기믹 컴포지션)
-- 일반 색 블럭: Rule JSON `blocks[]`에 BlockData 추가만으로 동작 (코드 변경 불필요)
-- 새 행동(기믹)이 필요한 경우:
-  1. `GimmickBase` 상속 기믹 클래스 작성 (`PuzzleCore/Module/Gimmick/`)
-  2. `PuzzleDefine.cs`의 `GimmickType` enum 값 추가
-  3. `GimmickFactory.Create()`에 `GimmickType → 기믹` 생성 분기 추가
-  4. Rule JSON BlockData에 `gimmickIds`(문자열 목록) + 필요한 `inputType` 추가 → 상세: `INGAME.md`, `DATA.md`
+### 새 블럭/효과 추가 (속성 데이터 + 효과 동사)
+- 일반 색 블럭/장애물(과자·벽돌)/기존 동사 조합: Rule JSON `blocks[]`에 BlockData(`life`/`damagedBy`/`effects`) 추가만으로 동작 (코드 변경 불필요)
+- **진짜 새로운 동작**(새 동사)이 필요한 경우:
+  1. `IBlockEffect` 구현 동사 클래스 작성 (`PuzzleCore/Module/Effect/`, `Trigger` 지정 + `Apply` 구현)
+  2. `EffectFactory.Create()`에 `action 문자열 → 동사` 생성 분기 추가
+  3. Rule JSON BlockData `effects`에 `{trigger, action, param}` + 필요한 `inputType`/`damagedBy` 추가 → 상세: `INGAME_GIMMICK.md`, `DATA.md`
 
 ### 새 매니저 추가
 1. `02_Scripts/Manager/`에 MonoBehaviour 싱글톤 작성
@@ -111,8 +110,8 @@
 |------|------|----------|
 | Model (순수 C#) | `02_Scripts/PuzzleCore/Module/` | `GameSpec.cs`, `PuzzleDefine.cs`, `IPuzzleBoard.cs` |
 | Model - 보드 | `02_Scripts/PuzzleCore/Module/Board/` | `ThreeMatchPuzzleBoard.cs`, `LinkPuzzleBoard.cs`, `TapMatchPuzzleBoard.cs` |
-| Model - 블럭 | `02_Scripts/PuzzleCore/Module/Block/` | `Block.cs` (단일 블럭, `IGimmickHost`), `PuzzleBlockFactory.cs` |
-| Model - 기믹 | `02_Scripts/PuzzleCore/Module/Gimmick/` | `IGimmick.cs` (IGimmick/IGimmickHost/GimmickBase), `BombGimmick.cs`, `GimmickFactory.cs`, `GimmickUtil.cs` |
+| Model - 블럭 | `02_Scripts/PuzzleCore/Module/Block/` | `Block.cs` (단일 블럭, HP+효과 동사), `PuzzleBlockFactory.cs` |
+| Model - 효과 | `02_Scripts/PuzzleCore/Module/Effect/` | `IBlockEffect.cs`, `DestroyRadiusEffect.cs`/`DestroyLineEffect.cs`/`DestroySameColorEffect.cs`, `EffectFactory.cs`, `BlockDamage.cs` |
 | View | `02_Scripts/PuzzleCore/View/` | `PuzzleBoardView.cs`, `PuzzleBlockView.cs`, `PuzzleCellView.cs` |
 | Controller | `02_Scripts/PuzzleCore/Controller/` | `PuzzleGameController.cs`, `ReplayController.cs` |
 | Manager | `02_Scripts/Manager/` | `Main.cs`, `AssetManager.cs`, `PoolManager.cs`, `DomainManager.cs`, `NetworkManager.cs`, `UserDataManager.cs` |

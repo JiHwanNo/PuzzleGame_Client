@@ -35,8 +35,12 @@ GameSpec
     ├─ blockId         (string) — 블럭 식별자 (예: "100-1")
     ├─ inputType       (List<string>) — 조작 방법 문자열 목록 (예: ["Swap","Touch"]) → InputType 플래그로 변환
     ├─ destroyType     (int) — 파괴 방식
-    ├─ life            (int) — 내구도
-    └─ gimmickIds      (List<string>) — 부착할 기믹 id 목록 (예: ["Bomb"]). 없거나 비어있으면 기믹 없음
+    ├─ life            (int) — HP(내구도). 피격마다 1 감소, 0이면 파괴 (미지정/0이면 1)
+    ├─ damagedBy       (List<string>) — HP를 깎는 데미지 소스 (예: ["Match","Splash"]). 미지정이면 일반 블럭 기본값(Match|Splash)
+    └─ effects         (List<EffectData>) — 효과 동사 목록. 각 항목 { trigger, action, param }
+        ├─ trigger     (string) — 발화 시점 (OnDestroyed / OnSwapped)
+        ├─ action      (string) — 동작 동사 (DestroyRadius / DestroyLine / DestroySameColor)
+        └─ param       (string) — 동작별 보조 파라미터 (반경 "2" / 방향 "Cross" 등)
 ```
 
 ---
