@@ -136,6 +136,13 @@ Block : IGimmickHost — State: Idle, Selected, Moving, Matched, Falling, None
 
 ---
 
+## 입력 안전성과 초기화
+
+- `PuzzleGameController.GetGridPosFromCollider()`는 `PuzzleBlockView.BoardView`가 플레이어 보드인 경우만 입력을 받습니다. 리플레이의 `PuzzleBoardView.InputEnabled`는 꺼 두며, 뷰를 직접 클릭해도 모델에 사용자 입력을 전달하지 않습니다.
+- 3매치는 `Close`/`Lock` 셀을 선택 및 스왑 대상에서 제외합니다. 초기 빈칸이 있으면 첫 고정 틱에서 낙하·생성을 한 번 처리한 뒤 매칭으로 이동합니다. 생성기가 없어 채울 수 없는 빈칸은 무한 재시도하지 않습니다.
+- 3매치/탭 매치의 셔플은 100회 내 유효 배치를 찾지 못하면 원래 블럭 참조와 배치를 복원합니다. 성공했을 때만 새 배치의 뷰 액션을 전달합니다.
+- `PuzzleBlockView.UpdateVisual()`은 요청 세대를 비교하여 이전 이미지 완료 콜백을 무시합니다. `OnDisable()`에서도 세대를 증가시켜 풀 반환 전 요청을 무효화하며, 새 이미지 대기 중에는 이전 스프라이트를 표시하지 않습니다.
+
 ## 입력 처리 방식
 
 ### 3매치 (ThreeMatch)

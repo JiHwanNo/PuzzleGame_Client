@@ -45,6 +45,9 @@ public class PuzzleBoardView : MonoBehaviour
     /// <summary> 현재 연결된 보드 모델 데이터 </summary>
     private IPuzzleBoard _board;
 
+    /// <summary> 사용자 입력 전달 허용 여부입니다. 리플레이 보드는 비활성화합니다. </summary>
+    public bool InputEnabled { get; set; } = true;
+
     /// <summary> 캐싱된 보드 모양 (GetLocalPos 최적화용) </summary>
     private BoardShape _cachedBoardShape = BoardShape.None;
 
@@ -862,9 +865,11 @@ public class PuzzleBoardView : MonoBehaviour
         }
     }
 
+    /// <summary> 사용자 입력이 허용된 보드에만 좌표를 전달합니다. </summary>
+    /// <param name="pos">입력한 셀 좌표</param>
     public void OnBlockInput(GridPos pos)
     {
-        if (_board != null)
+        if (InputEnabled && _board != null)
         {
             _board.Input(pos);
         }

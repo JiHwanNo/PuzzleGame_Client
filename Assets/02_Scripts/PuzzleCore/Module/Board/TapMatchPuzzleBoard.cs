@@ -485,6 +485,8 @@ namespace Puzzle.Core
 
             if (blocks.Count == 0) return;
 
+            // 실패 시 원래 블럭 참조와 배치를 그대로 복원하여 뷰와 일치시킵니다.
+            List<Block> originalBlocks = new List<Block>(blocks);
             int maxAttempts = 100;
             bool success = false;
 
@@ -508,6 +510,15 @@ namespace Puzzle.Core
                     success = true;
                     break;
                 }
+            }
+
+            if (!success)
+            {
+                for (int i = 0; i < positions.Count; i++)
+                {
+                    GetCell(positions[i]).Block = originalBlocks[i];
+                }
+                return;
             }
 
             if (success)

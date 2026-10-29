@@ -125,8 +125,9 @@ namespace Puzzle.Core
                 }
             }
 
-            // 시작 시 매칭 체크부터 수행
-            State = BoardState.Matching;
+            // 초기 빈칸은 첫 고정 틱에서 낙하·생성을 처리한 뒤 매칭을 검사합니다.
+            // 생성 불가능한 빈칸이 남아도 Falling을 반복하지 않습니다.
+            State = HasEmptyCell() ? BoardState.Falling : BoardState.Matching;
         }
 
         /// <summary> 좌표 입력을 다음 고정 틱의 처리 대기열에 추가합니다. </summary>
@@ -156,6 +157,11 @@ namespace Puzzle.Core
         private void ProcessInput(GridPos input)
         {
             if (State != BoardState.Waiting)
+            {
+                return;
+            }
+
+            if (GetBlockIdAt(input) == null)
             {
                 return;
             }
@@ -253,6 +259,12 @@ namespace Puzzle.Core
             if (cellA?.Block == null || cellB?.Block == null)
             {
                 Log($"[ThreeMatchBoard] 스왑 대상 셀에 블럭이 없습니다. first=({first.X},{first.Y}), second=({second.X},{second.Y})");
+                return;
+            }
+
+            // 조작 중 셀 속성이 바뀌었어도 잠금/막힘 셀은 교환하지 않습니다.
+            if (GetBlockIdAt(first) == null || GetBlockIdAt(second) == null)
+            {
                 return;
             }
 
@@ -699,6 +711,8 @@ namespace Puzzle.Core
 
             if (blocks.Count == 0) return;
 
+            // 실패 시 원래 블럭 참조와 배치를 그대로 복원하여 뷰와 일치시킵니다.
+            List<Block> originalBlocks = new List<Block>(blocks);
             int maxAttempts = 100;
             bool success = false;
 
@@ -723,6 +737,15 @@ namespace Puzzle.Core
                     success = true;
                     break;
                 }
+            }
+
+            if (!success)
+            {
+                for (int i = 0; i < positions.Count; i++)
+                {
+                    GetCell(positions[i]).Block = originalBlocks[i];
+                }
+                return;
             }
 
             if (success)

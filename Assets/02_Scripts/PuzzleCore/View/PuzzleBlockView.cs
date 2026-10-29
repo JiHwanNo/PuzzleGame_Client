@@ -43,6 +43,18 @@ public class PuzzleBlockView : MonoBehaviour
     /// <summary> 이 블럭을 관리하는 보드 뷰 참조 </summary>
     private PuzzleBoardView _boardView;
 
+    /// <summary> 입력 소유권을 확인하기 위한 소속 보드입니다. </summary>
+    public PuzzleBoardView BoardView => _boardView;
+
+    /// <summary> 풀 반환과 새 요청마다 증가하여 이전 스프라이트 콜백을 무효화합니다. </summary>
+    private ulong _visualRequestVersion;
+
+    /// <summary> 풀 반환 또는 비활성화 시 대기 중인 이미지 요청을 무효화합니다. </summary>
+    private void OnDisable()
+    {
+        _visualRequestVersion++;
+    }
+
     /// <summary>
     /// 블럭 뷰를 특정 모델 데이터 및 좌표로 초기화합니다.
     /// </summary>
@@ -68,6 +80,7 @@ public class PuzzleBlockView : MonoBehaviour
     /// </summary>
     public void UpdateVisual()
     {
+        ulong requestVersion = ++_visualRequestVersion;
         if (_blockData == null)
         {
             return;
@@ -75,6 +88,8 @@ public class PuzzleBlockView : MonoBehaviour
 
         if (_spriteRenderer != null)
         {
+            // 새 이미지가 도착하기 전에는 이전 블럭 이미지를 노출하지 않습니다.
+            _spriteRenderer.sprite = null;
             string blockId = _blockData.GetBlockId();
             string address = $"Block_{blockId}";
 
@@ -88,7 +103,7 @@ public class PuzzleBlockView : MonoBehaviour
                 successCallback = (sprite) =>
                 {
                     // 비동기 로드 도중 블럭이 파괴되었을 수 있으므로 null 체크 필수
-                    if (this == null || _spriteRenderer == null)
+                    if (this == null || _spriteRenderer == null || requestVersion != _visualRequestVersion)
                     {
                         return;
                     }
@@ -102,7 +117,7 @@ public class PuzzleBlockView : MonoBehaviour
                 },
                 failedCallback = () =>
                 {
-                    if (this == null)
+                    if (this == null || requestVersion != _visualRequestVersion)
                     {
                         return;
                     }
@@ -200,7 +215,7 @@ public class PuzzleBlockView : MonoBehaviour
     public void OnClicked()
     {
         // 연출 중이면 입력 무시
-        if (_boardView != null && _boardView.IsAnimating)
+        if (_boardView == null || !_boardView.InputEnabled || _boardView.IsAnimating)
         {
             return;
         }

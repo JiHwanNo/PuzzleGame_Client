@@ -228,7 +228,7 @@ public class PuzzleGameController : MonoBehaviour
     private GridPos? GetGridPosFromCollider(Collider2D col)
     {
         var view = col.GetComponentInParent<PuzzleBlockView>();
-        if (view != null)
+        if (view != null && view.BoardView == boardView && boardView != null && boardView.InputEnabled)
         {
             return view.GridPos;
         }

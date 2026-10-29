@@ -107,6 +107,7 @@ public class ReplayController : MonoBehaviour
         // 뷰에 보드 그리기 (카메라 정렬 스킵, 보드 모양 직접 전달)
         if (replayBoardView != null)
         {
+            replayBoardView.InputEnabled = false;
             replayBoardView.skipCameraAlign = true;
             replayBoardView.DrawBoard(_board, replaySpec.rule.boardShape);
             AlignToTopRight();
