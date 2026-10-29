@@ -9,7 +9,17 @@ public class AssetManager
 {
     private static AssetManager _instance;
     /// <summary> 전역 에셋 관리자 </summary>
-    public static AssetManager Instance => _instance ?? (_instance = new AssetManager());
+    public static AssetManager Instance
+    {
+        get
+        {
+            if (_instance == null)
+            {
+                _instance = new AssetManager();
+            }
+            return _instance;
+        }
+    }
 
     /// <summary> 에셋 로드 주소와 완료 콜백입니다. </summary>
     /// <typeparam name="T">에셋 타입</typeparam>
@@ -43,25 +53,42 @@ public class AssetManager
         LoadRequest request = GetOrStartRequest<T>(args.address);
         if (request == null || request.Released)
         {
-            args.failedCallback?.Invoke();
+            if (args.failedCallback != null)
+            {
+                args.failedCallback.Invoke();
+            }
             return;
         }
         if (request.Completed)
         {
-            args.successCallback?.Invoke((T)request.Result);
+            if (args.successCallback != null)
+            {
+                args.successCallback.Invoke((T)request.Result);
+            }
             return;
         }
-        request.Callbacks.Add((success, result) =>
+        /// <summary> 공유 로드 결과를 해당 요청의 콜백에 전달합니다. </summary>
+        /// <param name="success">로드 성공 여부</param>
+        /// <param name="result">로드한 에셋</param>
+        void OnLoadCompleted(bool success, object result)
         {
             if (success)
             {
-                args.successCallback?.Invoke((T)result);
+                if (args.successCallback != null)
+                {
+                    args.successCallback.Invoke((T)result);
+                }
             }
             else
             {
-                args.failedCallback?.Invoke();
+                if (args.failedCallback != null)
+                {
+                    args.failedCallback.Invoke();
+                }
             }
-        });
+        }
+
+        request.Callbacks.Add(OnLoadCompleted);
         if (request.Handle.IsDone)
         {
             CompleteRequest(request);
@@ -236,24 +263,37 @@ public class AssetManager
         if (string.IsNullOrEmpty(args.address))
         {
             Debug.LogError("Addressable 주소가 비어 있습니다.");
-            args.failedCallback?.Invoke();
+            if (args.failedCallback != null)
+            {
+                args.failedCallback.Invoke();
+            }
             return;
         }
 
         Action<GameObject> originalSuccessCallback = args.successCallback;
-        args.successCallback = (loadedPrefab) =>
+        /// <summary> 로드한 프리팹의 인스턴스를 생성하여 전달합니다. </summary>
+        /// <param name="loadedPrefab">로드한 프리팹</param>
+        void OnPrefabLoaded(GameObject loadedPrefab)
         {
             if (loadedPrefab != null)
             {
                 GameObject instance = UnityEngine.Object.Instantiate(loadedPrefab, parent);
-                originalSuccessCallback?.Invoke(instance);
+                if (originalSuccessCallback != null)
+                {
+                    originalSuccessCallback.Invoke(instance);
+                }
             }
             else
             {
                 Debug.LogError($"프리팹 인스턴스화 실패! 주소: {args.address}");
-                args.failedCallback?.Invoke();
+                if (args.failedCallback != null)
+                {
+                    args.failedCallback.Invoke();
+                }
             }
-        };
+        }
+
+        args.successCallback = OnPrefabLoaded;
 
         LoadAssetAsync(args);
     }

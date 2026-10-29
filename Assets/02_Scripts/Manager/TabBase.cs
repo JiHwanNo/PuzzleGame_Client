@@ -12,22 +12,10 @@ public class TabBase : MonoBehaviour, IDomainNode
     public string TabName { get; private set; }
 
     /// <inheritdoc/>
-    public string DomainName
-    {
-        get
-        {
-            return TabName;
-        }
-    }
+    public string DomainName => TabName;
 
     /// <inheritdoc/>
-    public DomainType DomainType
-    {
-        get
-        {
-            return DomainType.Tab;
-        }
-    }
+    public DomainType DomainType => DomainType.Tab;
 
     /// <summary> 탭 활성 완료 시 발생하는 이벤트 </summary>
     public event Action<TabBase> OnActivated;
@@ -101,7 +89,10 @@ public class TabBase : MonoBehaviour, IDomainNode
         IsAnimating = false;
 
         OnActivateComplete();
-        OnActivated?.Invoke(this);
+        if (OnActivated != null)
+        {
+            OnActivated.Invoke(this);
+        }
     }
 
     /// <summary>
@@ -116,9 +107,15 @@ public class TabBase : MonoBehaviour, IDomainNode
         IsAnimating = false;
 
         OnDeactivateComplete();
-        OnDeactivated?.Invoke(this);
+        if (OnDeactivated != null)
+        {
+            OnDeactivated.Invoke(this);
+        }
         gameObject.SetActive(false);
-        onComplete?.Invoke();
+        if (onComplete != null)
+        {
+            onComplete.Invoke();
+        }
     }
 
     #region 하위 클래스 오버라이드 포인트

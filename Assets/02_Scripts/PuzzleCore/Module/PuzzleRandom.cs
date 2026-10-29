@@ -30,19 +30,13 @@ namespace Puzzle.Core
         /// <param name="minValue">최솟값 (포함)</param>
         /// <param name="maxValue">최댓값 (미포함)</param>
         /// <returns>랜덤 정수</returns>
-        public int Next(int minValue, int maxValue)
-        {
-            return _random.Next(minValue, maxValue);
-        }
+        public int Next(int minValue, int maxValue) => _random.Next(minValue, maxValue);
 
         /// <summary>
         /// 0.0 이상 1.0 미만의 부동 소수점 난수를 반환합니다.
         /// </summary>
         /// <returns>랜덤 소수</returns>
-        public double NextDouble()
-        {
-            return _random.NextDouble();
-        }
+        public double NextDouble() => _random.NextDouble();
 
         /// <summary>
         /// 시드를 재설정하여 난수 생성기를 초기화합니다.

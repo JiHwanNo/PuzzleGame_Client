@@ -8,13 +8,7 @@ public class UIManager : MonoBehaviour
     private static UIManager _instance;
 
     /// <summary> 전역 접근을 위한 싱글톤 인스턴스 </summary>
-    public static UIManager Instance
-    {
-        get
-        {
-            return _instance;
-        }
-    }
+    public static UIManager Instance => _instance;
 
     /// <summary>
     /// 싱글톤 인스턴스 등록 및 중복 방지

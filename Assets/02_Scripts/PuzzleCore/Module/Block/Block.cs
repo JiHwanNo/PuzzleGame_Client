@@ -59,10 +59,7 @@ namespace Puzzle.Core
         /// 이 블럭의 조작 방식(스왑/링크/터치 가능 여부) 플래그를 반환합니다.
         /// </summary>
         /// <returns>InputType 플래그</returns>
-        public InputType GetInputType()
-        {
-            return _inputType;
-        }
+        public InputType GetInputType() => _inputType;
 
         /// <summary>
         /// 블럭의 상태를 변경합니다.
@@ -79,7 +76,11 @@ namespace Puzzle.Core
         /// <returns>블럭 아이디</returns>
         public string GetBlockId()
         {
-            return _blockData?.blockId;
+            if (_blockData == null)
+            {
+                return null;
+            }
+            return _blockData.blockId;
         }
 
         /// <summary>

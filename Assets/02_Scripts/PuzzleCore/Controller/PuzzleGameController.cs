@@ -73,7 +73,10 @@ public class PuzzleGameController : MonoBehaviour
         if (gameSpec == null || gameSpec.stageData == null)
         {
             Debug.LogWarning("GameSpec이 주입되지 않았거나 비어 있습니다! 테스트용 더미 데이터로 초기화합니다.");
-            gameSpec = gameSpec ?? new GameSpec();
+            if (gameSpec == null)
+            {
+                gameSpec = new GameSpec();
+            }
         }
 
         // 게임 타입에 따라 적절한 보드 구현체 생성

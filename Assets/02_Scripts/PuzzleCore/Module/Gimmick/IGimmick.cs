@@ -73,15 +73,9 @@ namespace Puzzle.Core
         }
 
         /// <inheritdoc/>
-        public virtual bool OnTouched(IPuzzleBoard board, GridPos myPos)
-        {
-            return false;
-        }
+        public virtual bool OnTouched(IPuzzleBoard board, GridPos myPos) => false;
 
         /// <inheritdoc/>
-        public virtual bool OnSwapped(IPuzzleBoard board, GridPos myPos, GridPos targetPos)
-        {
-            return false;
-        }
+        public virtual bool OnSwapped(IPuzzleBoard board, GridPos myPos, GridPos targetPos) => false;
     }
 }

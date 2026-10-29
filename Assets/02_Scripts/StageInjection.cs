@@ -40,10 +40,7 @@ public class StageInjection
     /// 현재 보관 중인 게임 사양서 객체를 반환합니다.
     /// </summary>
     /// <returns>구성된 GameSpec 객체</returns>
-    public GameSpec GetGameSpec()
-    {
-        return _gameSpec;
-    }
+    public GameSpec GetGameSpec() => _gameSpec;
 
     /// <summary>
     /// 지정된 규칙과 스테이지 에셋 주소로부터 데이터를 로드하여 게임 사양서(GameSpec)를 완성합니다.
@@ -75,10 +72,7 @@ public class StageInjection
     /// 설정된 상대방 리플레이 데이터를 반환합니다.
     /// </summary>
     /// <returns>리플레이 데이터 (없으면 null)</returns>
-    public ReplayData GetReplayData()
-    {
-        return _replayData;
-    }
+    public ReplayData GetReplayData() => _replayData;
 
     /// <summary>
     /// 지정된 규칙과 스테이지 에셋 주소로부터 데이터를 로드하여 게임 사양서를 완성합니다.

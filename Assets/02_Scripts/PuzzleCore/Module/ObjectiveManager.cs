@@ -57,7 +57,11 @@ namespace Puzzle.Core
         /// <param name="mode">스테이지 또는 대전 종료 규칙</param>
         public ObjectiveManager(List<ObjectiveData> objectives, float timeLimit = 0, GameMode mode = GameMode.Stage)
         {
-            _objectives = objectives ?? new List<ObjectiveData>();
+            _objectives = objectives;
+            if (_objectives == null)
+            {
+                _objectives = new List<ObjectiveData>();
+            }
             _mode = mode;
             TotalLimitTime = mode == GameMode.Battle ? GameSpec.BattleDurationSeconds : timeLimit;
             _remainingFrames = (int)System.Math.Ceiling(System.Math.Max(0, TotalLimitTime) * GameSpec.LogicFramesPerSecond);
@@ -108,17 +112,11 @@ namespace Puzzle.Core
         /// <summary>
         /// 시간이 모두 소진되었는지 확인합니다.
         /// </summary>
-        public bool IsTimeOver()
-        {
-            return TotalLimitTime > 0 && _remainingFrames <= 0;
-        }
+        public bool IsTimeOver() => TotalLimitTime > 0 && _remainingFrames <= 0;
 
         /// <summary> 모드에 따라 목표 달성 또는 제한 시간 종료를 판정합니다. </summary>
         /// <returns>현재 게임을 종료할 수 있으면 true</returns>
-        public bool ShouldFinish()
-        {
-            return IsTimeOver() || (_mode == GameMode.Stage && IsAllObjectivesCleared());
-        }
+        public bool ShouldFinish() => IsTimeOver() || (_mode == GameMode.Stage && IsAllObjectivesCleared());
 
         /// <summary>
         /// 유저 조작 또는 연쇄 작용으로 매칭이 발생했을 때 호출되어 콤보를 갱신합니다.

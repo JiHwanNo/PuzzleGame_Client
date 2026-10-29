@@ -26,22 +26,36 @@ public class IdentityLayer
     /// <param name="onFailed">로드 실패 시 호출되는 콜백</param>
     public void Request(Action onComplete, Action<string> onFailed)
     {
+        /// <summary> 서버에서 받은 유저 정보를 적용합니다. </summary>
+        /// <param name="data">서버 유저 정보</param>
+        void OnIdentityLoaded(UserData data)
+        {
+            Data = data;
+            IsLoaded = true;
+            Debug.Log($"[IdentityLayer] 서버 로드 완료: uid={data.uid}, nickname={data.nickname}");
+            if (onComplete != null)
+            {
+                onComplete.Invoke();
+            }
+        }
+
+        /// <summary> 서버 요청 실패 시 더미 데이터를 적용합니다. </summary>
+        /// <param name="error">실패 사유</param>
+        void OnIdentityLoadFailed(string error)
+        {
+            Debug.LogWarning($"[IdentityLayer] 서버 연결 실패, 더미 데이터로 대체: {error}");
+            Data = CreateDummyData();
+            IsLoaded = true;
+            if (onComplete != null)
+            {
+                onComplete.Invoke();
+            }
+        }
+
         NetworkManager.Instance.Get<UserData>(
             ENDPOINT,
-            (data) =>
-            {
-                Data = data;
-                IsLoaded = true;
-                Debug.Log($"[IdentityLayer] 서버 로드 완료: uid={data.uid}, nickname={data.nickname}");
-                onComplete?.Invoke();
-            },
-            (error) =>
-            {
-                Debug.LogWarning($"[IdentityLayer] 서버 연결 실패, 더미 데이터로 대체: {error}");
-                Data = CreateDummyData();
-                IsLoaded = true;
-                onComplete?.Invoke();
-            }
+            OnIdentityLoaded,
+            OnIdentityLoadFailed
         );
     }
 

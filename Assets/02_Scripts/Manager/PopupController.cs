@@ -41,25 +41,29 @@ public abstract class PopupController : MonoBehaviour
     {
         string address = $"Popup/{popupName}";
 
+        /// <summary> 로드한 팝업을 초기화하고 완료를 알립니다. </summary>
+        /// <param name="instance">생성한 팝업 오브젝트</param>
+        void OnPopupLoaded(GameObject instance)
+        {
+            PopupBase popup = instance.GetComponent<PopupBase>();
+            if (popup == null)
+            {
+                popup = instance.AddComponent<PopupBase>();
+            }
+
+            popup.SetPopupName(popupName);
+            if (onCreated != null)
+            {
+                onCreated.Invoke(popup);
+            }
+        }
+
         AssetManager.Instance.LoadGameObjectAsync(
             new AssetManager.AssetArguments<GameObject>
             {
                 address = address,
-                successCallback = (instance) =>
-                {
-                    PopupBase popup = instance.GetComponent<PopupBase>();
-                    if (popup == null)
-                    {
-                        popup = instance.AddComponent<PopupBase>();
-                    }
-
-                    popup.SetPopupName(popupName);
-                    onCreated?.Invoke(popup);
-                },
-                failedCallback = () =>
-                {
-                    Debug.LogError($"[{ControllerName}PopupController] 팝업 로드 실패: {popupName} (주소: {address})");
-                }
+                successCallback = OnPopupLoaded,
+                failedCallback = () => Debug.LogError($"[{ControllerName}PopupController] 팝업 로드 실패: {popupName} (주소: {address})")
             },
             this.transform
         );
@@ -76,12 +80,15 @@ public abstract class PopupController : MonoBehaviour
             return;
         }
 
-        popup.Close(() =>
+        /// <summary> 닫힘 연출이 끝난 팝업을 파괴합니다. </summary>
+        void OnPopupClosed()
         {
             if (popup != null && popup.gameObject != null)
             {
                 Destroy(popup.gameObject);
             }
-        });
+        }
+
+        popup.Close(OnPopupClosed);
     }
 }

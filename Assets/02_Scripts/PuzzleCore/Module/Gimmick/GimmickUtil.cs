@@ -15,8 +15,12 @@
         /// <param name="pos">파괴할 좌표</param>
         public static void DestroyBlock(IPuzzleBoard board, GridPos pos)
         {
-            var cell = board?.GetCell(pos);
-            if (cell?.Block == null)
+            if (board == null)
+            {
+                return;
+            }
+            var cell = board.GetCell(pos);
+            if (cell == null || cell.Block == null)
             {
                 // 빈 칸 → 연쇄 종료
                 return;
@@ -29,7 +33,10 @@
             }
 
             Block destroyed = cell.Block;
-            board.Objective?.OnBlockDestroyed(destroyed.GetBlockId());
+            if (board.Objective != null)
+            {
+                board.Objective.OnBlockDestroyed(destroyed.GetBlockId());
+            }
 
             // 먼저 비워 재진입(중복 파괴/무한 연쇄)을 차단
             cell.Block = null;

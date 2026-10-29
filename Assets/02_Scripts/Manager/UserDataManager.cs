@@ -10,13 +10,7 @@ public class UserDataManager : MonoBehaviour
     private static UserDataManager _instance;
 
     /// <summary> 전역 접근을 위한 싱글톤 인스턴스 </summary>
-    public static UserDataManager Instance
-    {
-        get
-        {
-            return _instance;
-        }
-    }
+    public static UserDataManager Instance => _instance;
 
     /// <summary> 유저 기본 정보 레이어 </summary>
     public IdentityLayer Identity { get; private set; }
@@ -56,13 +50,19 @@ public class UserDataManager : MonoBehaviour
         {
             string error = "[UserDataManager] 초기화되지 않았습니다. Initialize()를 먼저 호출하세요.";
             Debug.LogError(error);
-            onFailed?.Invoke(error);
+            if (onFailed != null)
+            {
+                onFailed.Invoke(error);
+            }
             return;
         }
 
         if (Identity.IsLoaded && !forceRefresh)
         {
-            onComplete?.Invoke();
+            if (onComplete != null)
+            {
+                onComplete.Invoke();
+            }
             return;
         }
 
@@ -74,7 +74,10 @@ public class UserDataManager : MonoBehaviour
     /// </summary>
     public void ClearAll()
     {
-        Identity?.Clear();
+        if (Identity != null)
+        {
+            Identity.Clear();
+        }
         Debug.Log("[UserDataManager] 모든 데이터 초기화 완료");
     }
 }

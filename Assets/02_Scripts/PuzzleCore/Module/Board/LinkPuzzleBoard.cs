@@ -34,7 +34,15 @@ namespace Puzzle.Core
         internal GameSpec gameSpec;
         private uint _currentOrderIndex = 0;
 
-        private void Log(string message) => OnLog?.Invoke(message);
+        /// <summary> 외부 로깅 콜백에 메시지를 전달합니다. </summary>
+        /// <param name="message">전달할 로그 메시지</param>
+        private void Log(string message)
+        {
+            if (OnLog != null)
+            {
+                OnLog.Invoke(message);
+            }
+        }
 
         public void Initialize(GameSpec spec)
         {
@@ -50,9 +58,9 @@ namespace Puzzle.Core
             _currentOrderIndex = 0;
             gameSpec = spec;
             Random = new PuzzleRandom(spec.randomSeed);
-            Objective = new ObjectiveManager(gameSpec?.rule.objectives, gameSpec?.rule.timeLimit ?? 0, spec.mode);
+            Objective = new ObjectiveManager(gameSpec.rule.objectives, gameSpec.rule.timeLimit, spec.mode);
 
-            if (gameSpec?.stageData != null)
+            if (gameSpec != null && gameSpec.stageData != null)
             {
                 Width = gameSpec.stageData.stage_width;
                 Height = gameSpec.stageData.stage_height;
@@ -110,11 +118,20 @@ namespace Puzzle.Core
         /// <param name="input">입력한 셀 좌표</param>
         private void ProcessInput(GridPos input)
         {
-            if (State != BoardState.Waiting) return;
+            if (State != BoardState.Waiting)
+            {
+                return;
+            }
 
             var targetCell = GetCell(input);
-            if (targetCell?.Block == null) return;
-            if (targetCell.CellType != CellType.Normal && targetCell.CellType != CellType.Generator) return;
+            if (targetCell == null || targetCell.Block == null)
+            {
+                return;
+            }
+            if (targetCell.CellType != CellType.Normal && targetCell.CellType != CellType.Generator)
+            {
+                return;
+            }
 
             _recordedInputs.Add(new InputRecord(_frameCount, input, _inputSequence++));
 
@@ -137,7 +154,10 @@ namespace Puzzle.Core
                 {
                     GridPos lastPos = _linkPath[_linkPath.Count - 1];
                     var lastCell = GetCell(lastPos);
-                    lastCell?.Block?.SetState(BlockState.Idle);
+                    if (lastCell != null && lastCell.Block != null)
+                    {
+                        lastCell.Block.SetState(BlockState.Idle);
+                    }
                     _linkPath.RemoveAt(_linkPath.Count - 1);
                 }
                 return;
@@ -146,14 +166,17 @@ namespace Puzzle.Core
             // 3. 새 노드 연결 시도
             GridPos currentPos = _linkPath[_linkPath.Count - 1];
             var currentCell = GetCell(currentPos);
-            if (currentCell?.Block == null)
+            if (currentCell == null || currentCell.Block == null)
             {
                 Log($"[LinkPuzzleBoard] 링크 경로의 마지막 셀({currentPos.X},{currentPos.Y})에 블럭이 없습니다.");
                 return;
             }
 
             // 색상(ID) 동일 여부 체크
-            if (currentCell.Block.GetBlockId() != targetCell.Block.GetBlockId()) return;
+            if (currentCell.Block.GetBlockId() != targetCell.Block.GetBlockId())
+            {
+                return;
+            }
 
             // 인접 여부 체크 (육각형 or 사각형)
             bool isAdjacent = false;
@@ -166,7 +189,10 @@ namespace Puzzle.Core
                 isAdjacent = GridPos.IsAdjacentSquare(currentPos, input);
             }
 
-            if (!isAdjacent) return;
+            if (!isAdjacent)
+            {
+                return;
+            }
 
             // 블럭 능력 체크 (링크 가능 여부는 데이터 inputType로 판정)
             if (targetCell.Block.GetInputType().HasFlag(InputType.Link))
@@ -211,7 +237,10 @@ namespace Puzzle.Core
             foreach (var pos in _linkPath)
             {
                 var cell = GetCell(pos);
-                cell?.Block?.SetState(BlockState.Idle);
+                if (cell != null && cell.Block != null)
+                {
+                    cell.Block.SetState(BlockState.Idle);
+                }
             }
             _linkPath.Clear();
         }
@@ -284,7 +313,10 @@ namespace Puzzle.Core
                     ProcessInputEnd();
                 }
             }
-            Objective?.UpdateTimer(State == BoardState.Waiting);
+            if (Objective != null)
+            {
+                Objective.UpdateTimer(State == BoardState.Waiting);
+            }
             UpdateState();
             _frameCount++;
         }
@@ -293,13 +325,16 @@ namespace Puzzle.Core
         {
             if (_linkPath == null || _linkPath.Count < 3) return false;
 
-            Objective?.OnMatchEvent();
+            if (Objective != null)
+            {
+                Objective.OnMatchEvent();
+            }
             uint burstOrder = _currentOrderIndex++;
 
             foreach (var pos in _linkPath)
             {
                 var cell = GetCell(pos);
-                if (cell?.Block != null)
+                if (cell != null && cell.Block != null)
                 {
                     Block destroyed = cell.Block;
                     destroyed.SetState(BlockState.Matched);
@@ -420,7 +455,9 @@ namespace Puzzle.Core
 
         public void Pause(bool pause) { }
 
+        /// <summary> 기록한 좌표 입력 목록의 복사본을 반환합니다. </summary>
         public List<InputRecord> GetRecordedInputs() => new List<InputRecord>(_recordedInputs);
+        /// <summary> 기록한 입력 종료 목록의 복사본을 반환합니다. </summary>
         public List<InputEndRecord> GetRecordedInputEnds() => new List<InputEndRecord>(_recordedInputEnds);
 
         public List<BoardViewAction> FetchActions()
@@ -441,20 +478,33 @@ namespace Puzzle.Core
         {
             // 연출 프레임/순서는 큐 소유자(보드)가 스탬프한다. (Model의 연출 데이터 책임 분리)
             view.frame = (uint)_frameCount;
-            view.orderIndex = customOrder ?? _currentOrderIndex++;
+            if (customOrder.HasValue)
+            {
+                view.orderIndex = customOrder.Value;
+            }
+            else
+            {
+                view.orderIndex = _currentOrderIndex++;
+            }
             _views.Add(view);
         }
 
-        public PuzzleCell GetCell(GridPos pos) => Cells.TryGetValue(pos, out var c) ? c : null;
+        /// <summary> 지정한 좌표의 셀을 반환합니다. </summary>
+        /// <param name="pos">조회할 그리드 좌표</param>
+        public PuzzleCell GetCell(GridPos pos)
+        {
+            if (Cells.TryGetValue(pos, out var cell))
+            {
+                return cell;
+            }
+            return null;
+        }
         
         /// <summary>
         /// 뷰(View)에서 LineRenderer를 그리기 위해 현재 연결된 경로를 반환합니다.
         /// 원본 리스트의 읽기 전용 참조를 반환하여 매 프레임 새 리스트 할당을 방지합니다.
         /// 반환된 리스트를 외부에서 수정하지 않아야 합니다.
         /// </summary>
-        public IReadOnlyList<GridPos> GetCurrentLinkPath()
-        {
-            return _linkPath;
-        }
+        public IReadOnlyList<GridPos> GetCurrentLinkPath() => _linkPath;
     }
 }

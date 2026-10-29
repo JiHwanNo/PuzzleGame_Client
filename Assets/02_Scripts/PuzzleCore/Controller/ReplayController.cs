@@ -51,7 +51,17 @@ public class ReplayController : MonoBehaviour
     /// <summary> 종료 점수를 비교할 수 있는 완주 기록인지 여부입니다. </summary>
     public bool HasValidResult => _isComplete && _resultValid;
     /// <summary> 현재 리플레이 점수입니다. </summary>
-    public int CurrentScore => _board?.Objective?.CurrentScore ?? 0;
+    public int CurrentScore
+    {
+        get
+        {
+            if (_board == null || _board.Objective == null)
+            {
+                return 0;
+            }
+            return _board.Objective.CurrentScore;
+        }
+    }
 
     /// <summary>
     /// 리플레이 데이터를 기반으로 보드를 생성하고 재생을 시작합니다.

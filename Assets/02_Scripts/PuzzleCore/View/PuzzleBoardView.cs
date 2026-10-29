@@ -129,7 +129,17 @@ public class PuzzleBoardView : MonoBehaviour
 
             if (_blockViews.TryGetValue(pos, out PuzzleBlockView blockView))
             {
-                info += $"\nID: {blockView.GetBlockData()?.GetBlockId() ?? "NullData"}";
+                Block blockData = blockView.GetBlockData();
+                string blockId = null;
+                if (blockData != null)
+                {
+                    blockId = blockData.GetBlockId();
+                }
+                if (blockId == null)
+                {
+                    blockId = "NullData";
+                }
+                info += $"\nID: {blockId}";
             }
             else if (cell.Block != null)
             {
@@ -197,7 +207,11 @@ public class PuzzleBoardView : MonoBehaviour
         else
         {
             GameSpec spec = StageInjection.Instance.GetGameSpec();
-            _cachedBoardShape = spec?.rule.boardShape ?? BoardShape.None;
+            _cachedBoardShape = BoardShape.None;
+            if (spec != null)
+            {
+                _cachedBoardShape = spec.rule.boardShape;
+            }
         }
 
         if (_board.Cells == null)
@@ -766,7 +780,6 @@ public class PuzzleBoardView : MonoBehaviour
                 view.Initialize(view.GetBlockData(), to, this);
                 completedCount++;
             };
-
             if (action.type == ViewType.Move)
             {
                 view.PlayMoveAnimation(targetPos, onComplete);
@@ -797,15 +810,24 @@ public class PuzzleBoardView : MonoBehaviour
                 if (_blockViews.TryGetValue(action.position, out PuzzleBlockView dView))
                 {
                     _blockViews.Remove(action.position);
-                    dView.PlayDestroyAnimation(() => 
+                    /// <summary> 파괴 연출 후 뷰를 풀에 반환하고 완료를 알립니다. </summary>
+                    void OnDestroyCompleted()
                     {
                         PoolManager.Instance.Release(dView.gameObject);
-                        onComplete?.Invoke();
-                    });
+                        if (onComplete != null)
+                        {
+                            onComplete.Invoke();
+                        }
+                    }
+
+                    dView.PlayDestroyAnimation(OnDestroyCompleted);
                 }
                 else
                 {
-                    onComplete?.Invoke();
+                    if (onComplete != null)
+                    {
+                        onComplete.Invoke();
+                    }
                 }
                 break;
 
@@ -832,22 +854,34 @@ public class PuzzleBoardView : MonoBehaviour
                         }
                         else
                         {
-                            onComplete?.Invoke();
+                            if (onComplete != null)
+                            {
+                                onComplete.Invoke();
+                            }
                         }
                     }
                     else
                     {
-                        onComplete?.Invoke();
+                        if (onComplete != null)
+                        {
+                            onComplete.Invoke();
+                        }
                     }
                 }
                 else
                 {
-                    onComplete?.Invoke();
+                    if (onComplete != null)
+                    {
+                        onComplete.Invoke();
+                    }
                 }
                 break;
 
             default:
-                onComplete?.Invoke();
+                if (onComplete != null)
+                {
+                    onComplete.Invoke();
+                }
                 break;
         }
     }

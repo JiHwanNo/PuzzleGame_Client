@@ -71,15 +71,9 @@ namespace Puzzle.Core
         }
 
         // --- 연산자 오버로딩 ---
-        public static GridPos operator +(GridPos a, GridPos b)
-        {
-            return new GridPos(a.X + b.X, a.Y + b.Y);
-        }
+        public static GridPos operator +(GridPos a, GridPos b) => new GridPos(a.X + b.X, a.Y + b.Y);
 
-        public static GridPos operator -(GridPos a, GridPos b)
-        {
-            return new GridPos(a.X - b.X, a.Y - b.Y);
-        }
+        public static GridPos operator -(GridPos a, GridPos b) => new GridPos(a.X - b.X, a.Y - b.Y);
 
         public static bool operator ==(GridPos a, GridPos b)
         {
@@ -91,15 +85,9 @@ namespace Puzzle.Core
             return !(a == b);
         }
 
-        public bool Equals(GridPos other)
-        {
-            return X == other.X && Y == other.Y;
-        }
+        public bool Equals(GridPos other) => X == other.X && Y == other.Y;
 
-        public override bool Equals(object obj)
-        {
-            return obj is GridPos other && Equals(other);
-        }
+        public override bool Equals(object obj) => obj is GridPos other && Equals(other);
 
         public override int GetHashCode()
         {
@@ -110,10 +98,7 @@ namespace Puzzle.Core
             }
         }
 
-        public override string ToString()
-        {
-            return $"({X}, {Y})";
-        }
+        public override string ToString() => $"({X}, {Y})";
     }
 
     /// <summary>

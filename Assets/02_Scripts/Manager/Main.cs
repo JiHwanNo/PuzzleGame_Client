@@ -13,13 +13,7 @@ public class Main : MonoBehaviour
     private static Main _instance;
 
     /// <summary> 전역 접근을 위한 싱글톤 인스턴스 </summary>
-    public static Main Instance
-    {
-        get
-        {
-            return _instance;
-        }
-    }
+    public static Main Instance => _instance;
     #endregion
 
     /// <summary> SharedScene 이름 상수 </summary>

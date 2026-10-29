@@ -7,21 +7,15 @@ using UnityEngine;
 public class PuzzleCellView : MonoBehaviour
 {
     /// <summary> 셀 이미지를 렌더링할 컴포넌트 </summary>
-    [SerializeField] 
+    [SerializeField]
     private SpriteRenderer _spriteRenderer;
 
     /// <summary> 셀의 물리 충돌을 담당하는 컴포넌트 </summary>
-    [SerializeField] 
+    [SerializeField]
     private PuzzleCellCollider _boxCollider;
-    
+
     /// <summary> 외부(Collider 등)에서 스프라이트 정보를 얻기 위한 프로퍼티 </summary>
-    public SpriteRenderer SpriteRenderer
-    {
-        get
-        {
-            return _spriteRenderer;
-        }
-    }
+    public SpriteRenderer SpriteRenderer => _spriteRenderer;
 
     /// <summary> 연결된 셀 모델 데이터 </summary>
     private PuzzleCell _cellData;
@@ -77,23 +71,27 @@ public class PuzzleCellView : MonoBehaviour
                     {
                         string spriteAddress = spec.rule.boardShape == BoardShape.Hexagon ? "hexagonCell" : "squareCell";
 
-                        // Addressables 비동기 로드를 통해 스프라이트 교체
-                        AssetManager.Instance.LoadAssetAsync<Sprite>(new AssetManager.AssetArguments<Sprite>() 
-                        { 
-                            address = spriteAddress, 
-                            successCallback = (sprite) =>
+                        /// <summary> 셀 스프라이트와 충돌체 크기를 갱신합니다. </summary>
+                        /// <param name="sprite">로드한 셀 스프라이트</param>
+                        void OnCellSpriteLoaded(Sprite sprite)
+                        {
+                            if (_spriteRenderer != null && sprite != null)
                             {
-                                if (_spriteRenderer != null && sprite != null)
-                                {
-                                    _spriteRenderer.sprite = sprite;
+                                _spriteRenderer.sprite = sprite;
 
-                                    // 스프라이트 변경 후 콜라이더 크기 재조정
-                                    if (_boxCollider != null)
-                                    {
-                                        _boxCollider.AdjustColliderSize();
-                                    }
+                                // 스프라이트 변경 후 콜라이더 크기 재조정
+                                if (_boxCollider != null)
+                                {
+                                    _boxCollider.AdjustColliderSize();
                                 }
                             }
+                        }
+
+                        // Addressables 비동기 로드를 통해 스프라이트 교체
+                        AssetManager.Instance.LoadAssetAsync<Sprite>(new AssetManager.AssetArguments<Sprite>()
+                        {
+                            address = spriteAddress,
+                            successCallback = OnCellSpriteLoaded
                         });
                     }
                     else

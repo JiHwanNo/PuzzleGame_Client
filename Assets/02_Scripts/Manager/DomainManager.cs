@@ -13,13 +13,7 @@ public class DomainManager : MonoBehaviour
     private static DomainManager _instance;
 
     /// <summary> 전역 접근을 위한 싱글톤 인스턴스 </summary>
-    public static DomainManager Instance
-    {
-        get
-        {
-            return _instance;
-        }
-    }
+    public static DomainManager Instance => _instance;
 
     /// <summary> 도메인 항목을 순서대로 추적하는 스택 (팝업 + 탭) </summary>
     private readonly List<IDomainNode> _domainStack = new List<IDomainNode>();
@@ -49,22 +43,10 @@ public class DomainManager : MonoBehaviour
     private bool _pathDirty = true;
 
     /// <summary> 현재 도메인 항목이 존재하는지 여부 </summary>
-    public bool HasDomain
-    {
-        get
-        {
-            return _domainStack.Count > 0;
-        }
-    }
+    public bool HasDomain => _domainStack.Count > 0;
 
     /// <summary> 현재 도메인 깊이 (스택에 쌓인 항목 수) </summary>
-    public int DomainDepth
-    {
-        get
-        {
-            return _domainStack.Count;
-        }
-    }
+    public int DomainDepth => _domainStack.Count;
 
     /// <summary>
     /// 현재 도메인 경로를 URL 형태로 반환합니다.
@@ -125,15 +107,22 @@ public class DomainManager : MonoBehaviour
             return;
         }
 
-        _activePopupController.CreatePopup(popupName, (popup) =>
+        /// <summary> 생성한 팝업을 스택에 등록하고 엽니다. </summary>
+        /// <param name="popup">생성한 팝업</param>
+        void OnPopupCreated(PopupBase popup)
         {
             _domainStack.Add(popup);
             _pathDirty = true;
             popup.Open();
 
             Debug.Log($"[DomainManager] 팝업 열림: {popupName} | 경로: {CurrentPath}");
-            onOpened?.Invoke(popup);
-        });
+            if (onOpened != null)
+            {
+                onOpened.Invoke(popup);
+            }
+        }
+
+        _activePopupController.CreatePopup(popupName, OnPopupCreated);
     }
 
     /// <summary>
@@ -153,14 +142,21 @@ public class DomainManager : MonoBehaviour
         // 스택 최상단에서 팝업들을 제거하고 마지막 탭도 비활성화
         CloseAboveLastTab();
 
-        _activeTabController.ActivateTab(tabName, (tab) =>
+        /// <summary> 활성화한 탭을 스택에 등록합니다. </summary>
+        /// <param name="tab">활성화한 탭</param>
+        void OnTabActivated(TabBase tab)
         {
             _domainStack.Add(tab);
             _pathDirty = true;
 
             Debug.Log($"[DomainManager] 탭 열림: {tabName} | 경로: {CurrentPath}");
-            onOpened?.Invoke(tab);
-        });
+            if (onOpened != null)
+            {
+                onOpened.Invoke(tab);
+            }
+        }
+
+        _activeTabController.ActivateTab(tabName, OnTabActivated);
     }
 
     /// <summary>
@@ -239,10 +235,7 @@ public class DomainManager : MonoBehaviour
     /// </summary>
     /// <param name="domainName">확인할 도메인 이름</param>
     /// <returns>열려있으면 true</returns>
-    public bool IsOpen(string domainName)
-    {
-        return FindDomainIndex(domainName) >= 0;
-    }
+    public bool IsOpen(string domainName) => FindDomainIndex(domainName) >= 0;
 
     /// <summary>
     /// 특정 이름의 도메인 항목 인스턴스를 가져옵니다.

@@ -8,13 +8,7 @@ public class LocalizationManager : MonoBehaviour
     private static LocalizationManager _instance;
 
     /// <summary> 전역 접근을 위한 싱글톤 인스턴스 </summary>
-    public static LocalizationManager Instance
-    {
-        get
-        {
-            return _instance;
-        }
-    }
+    public static LocalizationManager Instance => _instance;
 
     /// <summary>
     /// 싱글톤 인스턴스 등록 및 중복 방지

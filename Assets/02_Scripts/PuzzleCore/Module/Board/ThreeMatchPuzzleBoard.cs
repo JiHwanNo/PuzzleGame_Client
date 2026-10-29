@@ -72,7 +72,10 @@ namespace Puzzle.Core
         /// </summary>
         private void Log(string message)
         {
-            OnLog?.Invoke(message);
+            if (OnLog != null)
+            {
+                OnLog.Invoke(message);
+            }
         }
 
         /// <summary>
@@ -94,9 +97,9 @@ namespace Puzzle.Core
             _currentOrderIndex = 0;
             gameSpec = spec;
             Random = new PuzzleRandom(spec.randomSeed);
-            Objective = new ObjectiveManager(gameSpec?.rule.objectives, gameSpec?.rule.timeLimit ?? 0, spec.mode);
+            Objective = new ObjectiveManager(gameSpec.rule.objectives, gameSpec.rule.timeLimit, spec.mode);
 
-            if (gameSpec?.stageData != null)
+            if (gameSpec != null && gameSpec.stageData != null)
             {
                 Width = gameSpec.stageData.stage_width;
                 Height = gameSpec.stageData.stage_height;
@@ -178,7 +181,7 @@ namespace Puzzle.Core
 
             // 개별 블럭 조작 로직 (스테이트 기반)
             var targetCell = GetCell(input);
-            if (targetCell?.Block == null)
+            if (targetCell == null || targetCell.Block == null)
             {
                 return;
             }
@@ -204,7 +207,10 @@ namespace Puzzle.Core
                 {
                     // 인접하지 않은 블럭 클릭 시 이전 선택 취소 후 새로 선택
                     var prevCell = GetCell(prev);
-                    prevCell?.Block?.SetState(BlockState.Idle);
+                    if (prevCell != null && prevCell.Block != null)
+                    {
+                        prevCell.Block.SetState(BlockState.Idle);
+                    }
 
                     _selectedPos = input;
                     targetCell.Block.SetState(BlockState.Selected);
@@ -260,12 +266,16 @@ namespace Puzzle.Core
             // 권한이나 셀 상태 때문에 조기 반환해도 이전 선택 표시를 남기지 않습니다.
             if (_selectedPos.HasValue)
             {
-                GetCell(_selectedPos.Value)?.Block?.SetState(BlockState.Idle);
+                var selectedCell = GetCell(_selectedPos.Value);
+                if (selectedCell != null && selectedCell.Block != null)
+                {
+                    selectedCell.Block.SetState(BlockState.Idle);
+                }
                 _selectedPos = null;
             }
             var cellA = GetCell(first);
             var cellB = GetCell(second);
-            if (cellA?.Block == null || cellB?.Block == null)
+            if ((cellA == null || cellA.Block == null) || (cellB == null || cellB.Block == null))
             {
                 Log($"[ThreeMatchBoard] 스왑 대상 셀에 블럭이 없습니다. first=({first.X},{first.Y}), second=({second.X},{second.Y})");
                 return;
@@ -342,7 +352,10 @@ namespace Puzzle.Core
 
                         foreach (var cell in Cells.Values)
                         {
-                            cell.Block?.SetState(BlockState.Idle);
+                            if (cell.Block != null)
+                            {
+                                cell.Block.SetState(BlockState.Idle);
+                            }
                         }
 
                         CheckAndShuffleIfNoMoves();
@@ -386,7 +399,10 @@ namespace Puzzle.Core
                     ProcessInputEnd();
                 }
             }
-            Objective?.UpdateTimer(State == BoardState.Waiting);
+            if (Objective != null)
+            {
+                Objective.UpdateTimer(State == BoardState.Waiting);
+            }
             UpdateState();
             _frameCount++;
         }
@@ -411,14 +427,17 @@ namespace Puzzle.Core
                 return false;
             }
 
-            Objective?.OnMatchEvent();
+            if (Objective != null)
+            {
+                Objective.OnMatchEvent();
+            }
 
             // 이번 매칭 시퀀스의 터지는 연출을 하나의 그룹으로 묶음
             uint burstOrder = _currentOrderIndex++;
             foreach (var pos in matches)
             {
                 var cell = GetCell(pos);
-                if (cell?.Block != null)
+                if (cell != null && cell.Block != null)
                 {
                     Block destroyed = cell.Block;
                     destroyed.SetState(BlockState.Matched);
@@ -494,7 +513,7 @@ namespace Puzzle.Core
         private string GetBlockIdAt(GridPos pos)
         {
             var cell = GetCell(pos);
-            bool isMatchable = cell?.Block != null && (cell.CellType == CellType.Normal || cell.CellType == CellType.Generator);
+            bool isMatchable = (cell != null && cell.Block != null) && (cell.CellType == CellType.Normal || cell.CellType == CellType.Generator);
             return isMatchable ? cell.Block.GetBlockId() : null;
         }
 
@@ -621,7 +640,9 @@ namespace Puzzle.Core
         }
 
         public void Pause(bool pause) { }
+        /// <summary> 기록한 좌표 입력 목록의 복사본을 반환합니다. </summary>
         public List<InputRecord> GetRecordedInputs() => new List<InputRecord>(_recordedInputs);
+        /// <summary> 기록한 입력 종료 목록의 복사본을 반환합니다. </summary>
         public List<InputEndRecord> GetRecordedInputEnds() => new List<InputEndRecord>(_recordedInputEnds);
 
         public List<BoardViewAction> FetchActions()
@@ -646,13 +667,32 @@ namespace Puzzle.Core
         {
             // 연출 프레임/순서는 큐 소유자(보드)가 스탬프한다. (Model의 연출 데이터 책임 분리)
             view.frame = (uint)_frameCount;
-            view.orderIndex = customOrder ?? _currentOrderIndex++;
+            if (customOrder.HasValue)
+            {
+                view.orderIndex = customOrder.Value;
+            }
+            else
+            {
+                view.orderIndex = _currentOrderIndex++;
+            }
             _views.Add(view);
         }
         
 
 
-        public PuzzleCell GetCell(GridPos pos) => Cells.TryGetValue(pos, out var c) ? c : null;
+        /// <summary> 지정한 좌표의 셀을 반환합니다. </summary>
+        /// <param name="pos">조회할 그리드 좌표</param>
+        public PuzzleCell GetCell(GridPos pos)
+        {
+            if (Cells.TryGetValue(pos, out var cell))
+            {
+                return cell;
+            }
+            return null;
+        }
+        /// <summary> 두 좌표가 가로 또는 세로로 인접하는지 확인합니다. </summary>
+        /// <param name="a">첫 번째 좌표</param>
+        /// <param name="b">두 번째 좌표</param>
         private bool IsAdjacent(GridPos a, GridPos b) => (Math.Abs(a.X - b.X) == 1 && a.Y == b.Y) || (Math.Abs(a.Y - b.Y) == 1 && a.X == b.X);
 
         // 스왑 동작을 동일한 orderIndex로 묶음
@@ -690,7 +730,10 @@ namespace Puzzle.Core
                 {
                     GridPos current = new GridPos(x, y);
                     var cell = GetCell(current);
-                    if (cell?.Block == null || (cell.CellType != CellType.Normal && cell.CellType != CellType.Generator)) continue;
+                    if (cell == null || cell.Block == null || (cell.CellType != CellType.Normal && cell.CellType != CellType.Generator))
+                    {
+                        continue;
+                    }
 
                     if (!cell.Block.GetInputType().HasFlag(InputType.Swap))
                     {
@@ -702,7 +745,7 @@ namespace Puzzle.Core
                     {
                         GridPos right = new GridPos(x + 1, y);
                         var rCell = GetCell(right);
-                        if (rCell?.Block != null && (rCell.CellType == CellType.Normal || rCell.CellType == CellType.Generator) &&
+                        if ((rCell != null && rCell.Block != null) && (rCell.CellType == CellType.Normal || rCell.CellType == CellType.Generator) &&
                             rCell.Block.GetInputType().HasFlag(InputType.Swap))
                         {
                             SwapBlocksDataOnly(current, right);
@@ -717,7 +760,7 @@ namespace Puzzle.Core
                     {
                         GridPos up = new GridPos(x, y + 1);
                         var uCell = GetCell(up);
-                        if (uCell?.Block != null && (uCell.CellType == CellType.Normal || uCell.CellType == CellType.Generator) &&
+                        if ((uCell != null && uCell.Block != null) && (uCell.CellType == CellType.Normal || uCell.CellType == CellType.Generator) &&
                             uCell.Block.GetInputType().HasFlag(InputType.Swap))
                         {
                             SwapBlocksDataOnly(current, up);
@@ -743,7 +786,7 @@ namespace Puzzle.Core
                 for (int x = 0; x < Width; x++)
                 {
                     var cell = GetCell(new GridPos(x, y));
-                    if (cell?.Block != null && (cell.CellType == CellType.Normal || cell.CellType == CellType.Generator))
+                    if ((cell != null && cell.Block != null) && (cell.CellType == CellType.Normal || cell.CellType == CellType.Generator))
                     {
                         blocks.Add(cell.Block);
                         positions.Add(new GridPos(x, y));
@@ -796,7 +839,7 @@ namespace Puzzle.Core
                 foreach (var pos in positions)
                 {
                     var cell = GetCell(pos);
-                    if (cell?.Block != null)
+                    if (cell != null && cell.Block != null)
                     {
                         AddView(new BoardViewAction
                         {

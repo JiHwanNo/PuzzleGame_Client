@@ -38,10 +38,7 @@ namespace Puzzle.Core
         /// 현재 설정된 게임 규칙 데이터를 반환합니다.
         /// </summary>
         /// <returns>적용 중인 RuleData 객체</returns>
-        public RuleData GetRule()
-        {
-            return rule;
-        }
+        public RuleData GetRule() => rule;
 
         /// <summary>
         /// 특정 블록 ID에 해당하는 블록 정보를 검색하여 반환합니다.
