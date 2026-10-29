@@ -14,8 +14,8 @@
 | 입력, 게임 루프, 종료 후 저장, 점수/타이머 UI | [PuzzleGameController.cs](../Assets/02_Scripts/PuzzleCore/Controller/PuzzleGameController.cs) | `Start`, `Update`(입력 수집/UI), `FixedUpdate`(양쪽 공통 틱), `SaveReplay`, `ShowBattleResult`, `UpdateTimerUI` |
 | 보드 공통 계약 | [IPuzzleBoard.cs](../Assets/02_Scripts/PuzzleCore/Module/Board/IPuzzleBoard.cs) | `IPuzzleBoard`, `BoardViewAction` |
 | 3매치 스왑·매칭·낙하·셔플 | [ThreeMatchPuzzleBoard.cs](../Assets/02_Scripts/PuzzleCore/Module/Board/ThreeMatchPuzzleBoard.cs) | `ProcessSwapInput`, `FindMatches`, `ProcessFallingAndFilling`, `FillFromGenerator`, `CheckAndShuffleIfNoMoves` |
-| 드래그 링크 연결·해제·낙하 | [LinkPuzzleBoard.cs](../Assets/02_Scripts/PuzzleCore/Module/Board/LinkPuzzleBoard.cs) | `Input`, `InputEnd`(큐 등록), `FixedUpdate`, `UpdateState`, `ProcessFallingAndFilling` |
-| 탭 매치 연결 블럭 탐색·파괴 | [TapMatchPuzzleBoard.cs](../Assets/02_Scripts/PuzzleCore/Module/Board/TapMatchPuzzleBoard.cs) | `Input`, `InputEnd`(큐 등록), `FixedUpdate`, `UpdateState`, `GetConnectedBlocks` |
+| 드래그 링크 연결·해제·낙하 | [LinkPuzzleBoard.cs](../Assets/02_Scripts/PuzzleCore/Module/Board/LinkPuzzleBoard.cs) | `Input`, `InputEnd`(큐 등록), `FixedUpdate`, `UpdateState`, `ProcessFallingAndFilling`, `FillFromGenerator`, `HasEmptyCell` |
+| 탭 매치 연결 블럭 탐색·파괴 | [TapMatchPuzzleBoard.cs](../Assets/02_Scripts/PuzzleCore/Module/Board/TapMatchPuzzleBoard.cs) | `Input`, `InputEnd`(큐 등록), `FixedUpdate`, `UpdateState`, `GetConnectedBlocks`, `FillFromGenerator`, `CheckAndShuffleIfNoMoves` |
 | 블럭 상태·입력 플래그·기믹 발화 | [Block.cs](../Assets/02_Scripts/PuzzleCore/Module/Block/Block.cs) | `Block`, `GetInputType`, `FireDestroyed` |
 | 블럭 생성·기믹 부착 | [PuzzleBlockFactory.cs](../Assets/02_Scripts/PuzzleCore/Module/Block/PuzzleBlockFactory.cs) | `PuzzleBlockFactory` |
 | 기믹 계약·호스트·기본 클래스 | [IGimmick.cs](../Assets/02_Scripts/PuzzleCore/Module/Gimmick/IGimmick.cs) | `IGimmick`, `IGimmickHost`, `GimmickBase` |
@@ -25,7 +25,7 @@
 | 셀 상태와 블럭 보관 | [PuzzleCell.cs](../Assets/02_Scripts/PuzzleCore/Module/PuzzleCell.cs) | `PuzzleCell` |
 | 바닥 패널 기본 타입 | [PuzzlePanel.cs](../Assets/02_Scripts/PuzzleCore/Module/PuzzlePanel.cs) | `PuzzlePanel`, `NormalPanel` |
 | 점수·콤보·피버·시간 제한·목표 판정 | [ObjectiveManager.cs](../Assets/02_Scripts/PuzzleCore/Module/ObjectiveManager.cs) | `OnMatchEvent`, `OnBlockDestroyed`, `UpdateTimer`, `ShouldFinish`, `IsAllObjectivesCleared` |
-| 보드 배치·좌표 변환·뷰 액션 순서·링크 선 | [PuzzleBoardView.cs](../Assets/02_Scripts/PuzzleCore/View/PuzzleBoardView.cs) | `DrawBoard`, `GetLocalPos`, `ExecuteBatchMovement`, `UpdateLineRenderer` |
+| 보드 배치·좌표 변환·뷰 액션 순서·링크 선 | [PuzzleBoardView.cs](../Assets/02_Scripts/PuzzleCore/View/PuzzleBoardView.cs) | `DrawBoard`, `GetLocalPos`, `ExecuteBatchMovement`, `UpdateLineRenderer`, `CacheLinkPathIfChanged` |
 | 블럭 스프라이트·클릭/이동/낙하/파괴 연출 | [PuzzleBlockView.cs](../Assets/02_Scripts/PuzzleCore/View/PuzzleBlockView.cs) | `UpdateVisual`, `PlayMoveAnimation`, `PlayFallAnimation`, `PlayDestroyAnimation` |
 | 셀 색상·상태 시각화 | [PuzzleCellView.cs](../Assets/02_Scripts/PuzzleCore/View/PuzzleCellView.cs) | `Initialize`, `UpdateVisual` |
 | 입력 충돌체와 블럭 뷰 연결 | [PuzzleBlockCollider.cs](../Assets/02_Scripts/PuzzleCore/PuzzleBlockCollider.cs) | `PuzzleBlockCollider` |
@@ -157,11 +157,17 @@ Block : IGimmickHost — State: Idle, Selected, Moving, Matched, Falling, None
 2. **드래그**: 홀드 후 드래그 → 첫-마지막 인접 블럭 스왑
 
 ### 링크 (Link)
+- 초기 빈칸이 있으면 첫 고정 틱에서 낙하·생성을 한 번 처리한 뒤 입력 대기로 이동합니다. 생성기 없는 빈칸은 반복 재시도하지 않습니다.
+- `ProcessFallingAndFilling()` → `FillFromGenerator()`는 3매치와 동일하게 각 생성기 자신의 목록으로 아래 공급 구간을 채웁니다. `Close`/`Lock`/누락 셀과 이전 생성기가 구간을 나눕니다.
+- `PuzzleBoardView.CacheLinkPathIfChanged()`는 전체 경로의 좌표 복사본을 비교합니다. 길이와 끝점이 같아도 중간 경로가 바뀌면 선과 마커를 갱신하며, 보드를 다시 그릴 때 캐시를 비웁니다.
 - 드래그로 같은 종류 블럭 연결 → 릴리즈 시 경로상 블럭 파괴
 - `LineRenderer`로 경로 시각화
 - 매칭을 확정한 뒤 같은 고정 틱에 종료 입력이 다시 들어와도 확정된 링크 경로는 유지한다.
 
 ### 탭 매치 (TapMatch)
+- `Initialize()`는 `Falling`으로 시작합니다. 첫 고정 틱에서 빈칸 보충과 `CheckAndShuffleIfNoMoves()`를 한 번 수행한 뒤 입력 대기로 이동합니다. 불가능한 셔플/빈 생성 목록을 매 틱 반복하지 않습니다. 첫 초기화 틱 이전 입력은 처리하지 않습니다.
+- `ProcessInputEnd()`는 첫 입력 셀의 선택 상태를 먼저 해제합니다. `Touch` 권한 부족이나 셀 상태 변경으로 거절되어도 선택 표시가 남지 않습니다.
+- `ProcessFallingAndFilling()` → `FillFromGenerator()`는 각 생성기의 목록으로 아래 공급 구간을 채웁니다. `Close`/`Lock`/누락 셀과 이전 생성기가 경계이며, 생성기 없는 구간은 보충하지 않습니다. 성공한 셔플은 보충 이후 순서로 화면에 반영합니다.
 - 블럭 터치/릴리즈를 큐에 저장하고 고정 틱에서 파괴 판정.
 - `Close`(막힌 구역)와 `Lock`(로직상 잠긴 셀)은 탭 선택과 연결 탐색에서 제외한다. 같은 색이어도 이 셀을 통과해 연결하지 않는다.
 

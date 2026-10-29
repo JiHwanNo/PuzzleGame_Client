@@ -84,12 +84,8 @@ public class PuzzleBoardView : MonoBehaviour
     /// <summary> 포인트 마커용 스프라이트 </summary>
     private Sprite _circleSprite;
 
-    /// <summary> LineRenderer 갱신 판단을 위한 이전 링크 경로 수 </summary>
-    private int _prevLinkPathCount = 0;
-
-    /// <summary> LineRenderer 갱신 판단을 위한 이전 링크 경로 마지막 좌표 </summary>
-    private GridPos _prevLinkPathLast;
-
+    /// <summary> 마지막으로 화면에 반영한 링크 경로의 좌표 복사본입니다. </summary>
+    private readonly List<GridPos> _previousLinkPath = new List<GridPos>();
 
     /// <summary> 현재 보드가 애니메이션 연출 중인지 여부를 반환합니다. </summary>
     public bool IsAnimating => _isAnimating;
@@ -428,6 +424,8 @@ public class PuzzleBoardView : MonoBehaviour
         _blockViews.Clear();
         _actionQueue.Clear();
         _isAnimating = false;
+        _previousLinkPath.Clear();
+        HideAllLinkPointMarkers();
 
         if (_lineRenderer != null)
         {
@@ -505,6 +503,33 @@ public class PuzzleBoardView : MonoBehaviour
         }
     }
 
+    /// <summary> 링크의 전체 좌표를 비교하고 변경된 경로를 별도 버퍼에 복사합니다. </summary>
+    /// <param name="path">현재 모델의 읽기 전용 링크 경로</param>
+    /// <returns>화면에 반영할 경로가 변경되었으면 참</returns>
+    private bool CacheLinkPathIfChanged(IReadOnlyList<GridPos> path)
+    {
+        bool changed = path.Count != _previousLinkPath.Count;
+        for (int i = 0; !changed && i < path.Count; i++)
+        {
+            if (path[i] != _previousLinkPath[i])
+            {
+                changed = true;
+            }
+        }
+        if (!changed)
+        {
+            return false;
+        }
+
+        _previousLinkPath.Clear();
+        for (int i = 0; i < path.Count; i++)
+        {
+            _previousLinkPath.Add(path[i]);
+        }
+        return true;
+    }
+
+    /// <summary> 변경된 링크 경로를 선과 포인트 마커에 반영합니다. </summary>
     private void UpdateLineRenderer()
     {
         if (_lineRenderer == null) return;
@@ -514,14 +539,11 @@ public class PuzzleBoardView : MonoBehaviour
             IReadOnlyList<GridPos> path = linkBoard.GetCurrentLinkPath();
             if (path != null && path.Count > 0)
             {
-                // 경로가 변경되지 않았으면 갱신 생략
-                GridPos lastPos = path[path.Count - 1];
-                if (path.Count == _prevLinkPathCount && lastPos == _prevLinkPathLast)
+                // 길이와 끝점이 같아도 중간 경로가 달라졌으면 다시 그립니다.
+                if (!CacheLinkPathIfChanged(path))
                 {
                     return;
                 }
-                _prevLinkPathCount = path.Count;
-                _prevLinkPathLast = lastPos;
 
                 // LineRenderer는 최소 2개 포인트가 필요하므로,
                 // 포인트가 1개일 때는 같은 위치에 2개를 찍어 점으로 표시
@@ -547,9 +569,9 @@ public class PuzzleBoardView : MonoBehaviour
             }
             else
             {
-                if (_prevLinkPathCount != 0)
+                if (_previousLinkPath.Count != 0)
                 {
-                    _prevLinkPathCount = 0;
+                    _previousLinkPath.Clear();
                     _lineRenderer.positionCount = 0;
                     HideAllLinkPointMarkers();
                 }
@@ -557,9 +579,9 @@ public class PuzzleBoardView : MonoBehaviour
         }
         else
         {
-            if (_prevLinkPathCount != 0)
+            if (_previousLinkPath.Count != 0)
             {
-                _prevLinkPathCount = 0;
+                _previousLinkPath.Clear();
                 _lineRenderer.positionCount = 0;
                 HideAllLinkPointMarkers();
             }
