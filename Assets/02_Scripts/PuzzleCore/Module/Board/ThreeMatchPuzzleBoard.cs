@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace Puzzle.Core
@@ -53,6 +53,10 @@ namespace Puzzle.Core
 
         /// <summary> 현재 보드 프레임 번호 (리플레이용) </summary>
         private ulong _frameCount;
+        /// <summary> 좌표 입력과 종료 입력을 수신 순서대로 보관합니다. null은 입력 종료입니다. </summary>
+        private readonly Queue<GridPos?> _pendingInputs = new Queue<GridPos?>();
+        /// <summary> 좌표 입력과 종료 입력에 공통으로 부여하는 기록 순서입니다. </summary>
+        private ulong _inputSequence;
 
         /// <summary> 현재 보드에 적용된 게임 사양서 </summary>
         internal GameSpec gameSpec;
@@ -85,6 +89,8 @@ namespace Puzzle.Core
             _recordedInputs = new List<InputRecord>();
             _recordedInputEnds = new List<InputEndRecord>();
             _frameCount = 0;
+            _pendingInputs.Clear();
+            _inputSequence = 0;
             _currentOrderIndex = 0;
             gameSpec = spec;
             Random = new PuzzleRandom(spec.randomSeed);
@@ -123,7 +129,31 @@ namespace Puzzle.Core
             State = BoardState.Matching;
         }
 
+        /// <summary> 좌표 입력을 다음 고정 틱의 처리 대기열에 추가합니다. </summary>
+        /// <param name="input">입력한 셀 좌표</param>
         public void Input(GridPos input)
+        {
+            if (State != BoardState.Finish)
+            {
+                _pendingInputs.Enqueue(input);
+            }
+        }
+
+        /// <summary> 입력 종료를 다음 고정 틱의 처리 대기열에 추가합니다. </summary>
+        /// <returns>종료 이벤트가 대기열에 등록되었는지 여부입니다. 매칭 결과가 아닙니다.</returns>
+        public bool InputEnd()
+        {
+            if (State == BoardState.Finish)
+            {
+                return false;
+            }
+            _pendingInputs.Enqueue(null);
+            return true;
+        }
+
+        /// <summary> 고정 틱에서 좌표 입력을 판정합니다. </summary>
+        /// <param name="input">입력한 셀 좌표</param>
+        private void ProcessInput(GridPos input)
         {
             if (State != BoardState.Waiting)
             {
@@ -138,7 +168,7 @@ namespace Puzzle.Core
 
             _inputQueue.Enqueue(input);
             _lastEnqueuedInput = input;
-            _recordedInputs.Add(new InputRecord(_frameCount, input));
+            _recordedInputs.Add(new InputRecord(_frameCount, input, _inputSequence++));
 
             // 개별 블럭 조작 로직 (스테이트 기반)
             var targetCell = GetCell(input);
@@ -182,9 +212,10 @@ namespace Puzzle.Core
             }
         }
 
-        public bool InputEnd()
+        /// <summary> 고정 틱에서 입력 종료와 매칭 여부를 판정합니다. </summary>
+        private bool ProcessInputEnd()
         {
-            _recordedInputEnds.Add(new InputEndRecord(_frameCount));
+            _recordedInputEnds.Add(new InputEndRecord(_frameCount, _inputSequence++));
 
             if (State != BoardState.Waiting || _inputQueue.Count == 0)
             {
@@ -257,9 +288,10 @@ namespace Puzzle.Core
 
         /// <summary>
         /// 보드의 논리 상태를 순차적으로 업데이트합니다.
-        /// 모바일 환경의 가변 프레임(Variable FPS)에 대응하여 최대한 부드러운 연출과 입력을 처리합니다.
+        /// 고정 틱에서만 호출하여 렌더링 프레임 수와 관계없이 동일한 판정을 수행합니다.
         /// </summary>
-        public void Update()
+        /// <summary> 고정 틱에서 셀과 보드 상태를 갱신합니다. </summary>
+        private void UpdateState()
         {
             foreach (var cell in Cells.Values)
             {
@@ -311,11 +343,31 @@ namespace Puzzle.Core
         /// 고정 프레임 간격(Fixed FPS)으로 논리 프레임을 전진시킵니다.
         /// 리플레이 재현 시 기준점이 되는 시간축 역할을 하며, 결정론적 동작을 보장하기 위해 반드시 여기서만 프레임이 증가해야 합니다.
         /// </summary>
+        /// <summary> 입력 판정, 상태 전환, 타이머 갱신을 한 논리 틱에서 처리합니다. </summary>
         public void FixedUpdate()
         {
+            if (State == BoardState.Finish)
+            {
+                _pendingInputs.Clear();
+                return;
+            }
+
+            // 첫 틱은 0번이며, 입력을 기록한 틱의 상태 전환을 마친 뒤 프레임을 증가시킵니다.
+            while (_pendingInputs.Count > 0)
+            {
+                GridPos? input = _pendingInputs.Dequeue();
+                if (input.HasValue)
+                {
+                    ProcessInput(input.Value);
+                }
+                else
+                {
+                    ProcessInputEnd();
+                }
+            }
+            Objective?.UpdateTimer(State == BoardState.Waiting);
+            UpdateState();
             _frameCount++;
-            bool isWaiting = (State == BoardState.Waiting);
-            Objective?.UpdateTimer(isWaiting);
         }
 
         private bool HasEmptyCell()

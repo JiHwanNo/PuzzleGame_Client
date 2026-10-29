@@ -1,4 +1,4 @@
-using Puzzle.Core;
+﻿using Puzzle.Core;
 using System;
 using System.Collections.Generic;
 using TMPro;
@@ -149,9 +149,6 @@ public class PuzzleGameController : MonoBehaviour
             _board.InputEnd();
             _lastHoveredPos = null; // 포인터를 떼면 초기화
         }
-
-        // 3. 보드 논리 업데이트
-        _board.Update();
 
         // 4. UI 갱신
         UpdateTimerUI();

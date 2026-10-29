@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace Puzzle.Core
@@ -168,9 +168,7 @@ namespace Puzzle.Core
         /// <summary> 특정 점수 도달 </summary>
         Score = 0,
         /// <summary> 특정 ID의 블럭 수집(파괴) </summary>
-        CollectBlock = 1,
-        /// <summary> 특정 셀 모두 제거 </summary>
-        ClearCell = 2
+        CollectBlock = 1
     }
 
     /// <summary>
@@ -364,6 +362,8 @@ namespace Puzzle.Core
     {
         /// <summary> 조작이 발생한 게임 로직 프레임 </summary>
         public ulong frame;
+        /// <summary> 같은 프레임의 좌표 입력과 종료 입력 사이의 처리 순서 </summary>
+        public ulong sequence;
         /// <summary> 클릭/터치된 그리드 좌표 </summary>
         public GridPos position;
 
@@ -372,9 +372,11 @@ namespace Puzzle.Core
         /// </summary>
         /// <param name="frame">조작이 발생한 프레임</param>
         /// <param name="pos">클릭/터치된 그리드 좌표</param>
-        public InputRecord(ulong frame, GridPos pos)
+        /// <param name="sequence">입력 이벤트의 기록 순서</param>
+        public InputRecord(ulong frame, GridPos pos, ulong sequence = 0)
         {
             this.frame = frame;
+            this.sequence = sequence;
             this.position = pos;
         }
     }
@@ -387,14 +389,18 @@ namespace Puzzle.Core
     {
         /// <summary> 입력 종료가 발생한 게임 로직 프레임 </summary>
         public ulong frame;
+        /// <summary> 같은 프레임의 좌표 입력과 종료 입력 사이의 처리 순서 </summary>
+        public ulong sequence;
 
         /// <summary>
         /// 입력 종료 기록을 생성합니다.
         /// </summary>
         /// <param name="frame">입력 종료가 발생한 프레임</param>
-        public InputEndRecord(ulong frame)
+        /// <param name="sequence">입력 이벤트의 기록 순서</param>
+        public InputEndRecord(ulong frame, ulong sequence = 0)
         {
             this.frame = frame;
+            this.sequence = sequence;
         }
     }
 }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace Puzzle.Core
@@ -24,6 +24,10 @@ namespace Puzzle.Core
         private List<InputRecord> _recordedInputs = new List<InputRecord>();
         private List<InputEndRecord> _recordedInputEnds = new List<InputEndRecord>();
         private ulong _frameCount;
+        /// <summary> 좌표 입력과 종료 입력을 수신 순서대로 보관합니다. null은 입력 종료입니다. </summary>
+        private readonly Queue<GridPos?> _pendingInputs = new Queue<GridPos?>();
+        /// <summary> 좌표 입력과 종료 입력에 공통으로 부여하는 기록 순서입니다. </summary>
+        private ulong _inputSequence;
         internal GameSpec gameSpec;
         private uint _currentOrderIndex = 0;
 
@@ -46,6 +50,8 @@ namespace Puzzle.Core
             _recordedInputs = new List<InputRecord>();
             _recordedInputEnds = new List<InputEndRecord>();
             _frameCount = 0;
+            _pendingInputs.Clear();
+            _inputSequence = 0;
             _currentOrderIndex = 0;
             gameSpec = spec;
             Random = new PuzzleRandom(spec.randomSeed);
@@ -84,9 +90,39 @@ namespace Puzzle.Core
             State = BoardState.Waiting;
         }
 
+        /// <summary> 좌표 입력을 다음 고정 틱의 처리 대기열에 추가합니다. </summary>
+        /// <param name="input">입력한 셀 좌표</param>
         public void Input(GridPos input)
         {
+            if (State != BoardState.Finish)
+            {
+                _pendingInputs.Enqueue(input);
+            }
+        }
+
+        /// <summary> 입력 종료를 다음 고정 틱의 처리 대기열에 추가합니다. </summary>
+        /// <returns>종료 이벤트가 대기열에 등록되었는지 여부입니다. 매칭 결과가 아닙니다.</returns>
+        public bool InputEnd()
+        {
+            if (State == BoardState.Finish)
+            {
+                return false;
+            }
+            _pendingInputs.Enqueue(null);
+            return true;
+        }
+
+        /// <summary> 고정 틱에서 좌표 입력을 판정합니다. </summary>
+        /// <param name="input">입력한 셀 좌표</param>
+        private void ProcessInput(GridPos input)
+        {
             if (State != BoardState.Waiting)
+            {
+                return;
+            }
+
+            // 막힘/잠금 셀은 선택과 연결의 시작점으로 사용할 수 없습니다.
+            if (GetBlockIdAt(input) == null)
             {
                 return;
             }
@@ -98,7 +134,7 @@ namespace Puzzle.Core
 
             _inputQueue.Enqueue(input);
             _lastEnqueuedInput = input;
-            _recordedInputs.Add(new InputRecord(_frameCount, input));
+            _recordedInputs.Add(new InputRecord(_frameCount, input, _inputSequence++));
             
             var cell = GetCell(input);
             if (cell?.Block != null)
@@ -108,9 +144,10 @@ namespace Puzzle.Core
             }
         }
 
-        public bool InputEnd()
+        /// <summary> 고정 틱에서 입력 종료와 매칭 여부를 판정합니다. </summary>
+        private bool ProcessInputEnd()
         {
-            _recordedInputEnds.Add(new InputEndRecord(_frameCount));
+            _recordedInputEnds.Add(new InputEndRecord(_frameCount, _inputSequence++));
 
             if (State != BoardState.Waiting || _inputQueue.Count == 0)
             {
@@ -135,7 +172,7 @@ namespace Puzzle.Core
             _lastEnqueuedInput = null; // 탭 매치는 첫 클릭 위치만 사용
 
             var cell = GetCell(targetPos);
-            if (cell?.Block == null)
+            if (GetBlockIdAt(targetPos) == null)
             {
                 return false;
             }
@@ -210,8 +247,8 @@ namespace Puzzle.Core
                     GridPos next = curr + _adjacentDirs[i];
                     if (!_connectedBuffer.Contains(next))
                     {
-                        var nextCell = GetCell(next);
-                        if (nextCell?.Block != null && nextCell.Block.GetBlockId() == targetId)
+                        // 막힘/잠금 셀을 연결 경로에서 제외하여 그 너머로도 탐색하지 않습니다.
+                        if (GetBlockIdAt(next) == targetId)
                         {
                             _connectedBuffer.Add(next);
                             _floodFillQueue.Enqueue(next);
@@ -223,7 +260,8 @@ namespace Puzzle.Core
             return _connectedBuffer;
         }
 
-        public void Update()
+        /// <summary> 고정 틱에서 셀과 보드 상태를 갱신합니다. </summary>
+        private void UpdateState()
         {
             foreach (var cell in Cells.Values)
             {
@@ -258,11 +296,31 @@ namespace Puzzle.Core
             }
         }
 
+        /// <summary> 입력 판정, 상태 전환, 타이머 갱신을 한 논리 틱에서 처리합니다. </summary>
         public void FixedUpdate()
         {
+            if (State == BoardState.Finish)
+            {
+                _pendingInputs.Clear();
+                return;
+            }
+
+            // 첫 틱은 0번이며, 입력을 기록한 틱의 상태 전환을 마친 뒤 프레임을 증가시킵니다.
+            while (_pendingInputs.Count > 0)
+            {
+                GridPos? input = _pendingInputs.Dequeue();
+                if (input.HasValue)
+                {
+                    ProcessInput(input.Value);
+                }
+                else
+                {
+                    ProcessInputEnd();
+                }
+            }
+            Objective?.UpdateTimer(State == BoardState.Waiting);
+            UpdateState();
             _frameCount++;
-            bool isWaiting = (State == BoardState.Waiting);
-            Objective?.UpdateTimer(isWaiting);
         }
 
         private void ProcessFallingAndFilling()

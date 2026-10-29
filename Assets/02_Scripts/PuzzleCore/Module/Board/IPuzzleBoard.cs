@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace Puzzle.Core
 {
@@ -51,11 +51,8 @@ namespace Puzzle.Core
         /// <summary> 외부에서 입력 좌표를 전달받아 처리 대기열에 추가합니다. </summary>
         void Input(GridPos input);
 
-        /// <summary> 대기열에 쌓인 입력들을 모두 처리합니다. </summary>
+        /// <summary> 입력 종료를 대기열에 추가합니다. 반환값은 등록 성공 여부이며 매칭 결과가 아닙니다. </summary>
         bool InputEnd();
-
-        /// <summary> 매 프레임마다 보드의 상태를 업데이트합니다. </summary>
-        void Update();
 
         /// <summary> 고정 프레임 간격으로 논리 프레임 및 결정론적 로직을 업데이트합니다. </summary>
         void FixedUpdate();

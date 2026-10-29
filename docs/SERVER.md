@@ -2,6 +2,21 @@
 
 서버 API 연동, 공유 DTO, 네트워크 레이어 작업 시 참고.
 
+## 콘텐츠와 C# 매핑
+
+[전체 작업 지도](MAP.md) · [문서 목록](README.md)
+
+파일 링크는 이 문서 기준 상대 경로이며, 마지막 열의 이름을 파일 안에서 검색하면 구현 위치를 찾을 수 있습니다.
+
+| 찾는 콘텐츠 | 담당 C# 파일 | 주요 메서드·타입·멤버 |
+|---|---|---|
+| 서버 URL·HTTP 초기화·GET/POST 진입점 | [NetworkManager.cs](../Assets/02_Scripts/Manager/NetworkManager.cs) | `Initialize`, `Get`, `Post` |
+| UnityWebRequest·JSON 직렬화·응답/오류 처리 | [HttpNetworkClient.cs](../Assets/02_Scripts/Manager/Network/HttpNetworkClient.cs) | `CoGet`, `CoPost`, `HandleResponse`, `BuildUrl` |
+| 유저 데이터 레이어 초기화·로드·초기화 해제 | [UserDataManager.cs](../Assets/02_Scripts/Manager/UserDataManager.cs) | `Initialize`, `LoadIdentity`, `ClearAll` |
+| user/identity 요청·실패 시 더미 데이터 | [IdentityLayer.cs](../Assets/02_Scripts/Manager/UserData/IdentityLayer.cs) | `Request`, `CreateDummyData`, `Clear` |
+
+공유 DTO의 소스는 이 저장소의 C# 파일에 없습니다. 클라이언트는 [PuzleBattleShared.dll](../Assets/Plugins/PuzleBattleShared.dll)을 참조하며, DTO 수정은 서버의 공유 프로젝트에서 진행합니다.
+
 ---
 
 ## 환경

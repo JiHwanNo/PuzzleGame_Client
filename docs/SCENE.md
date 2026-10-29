@@ -2,6 +2,27 @@
 
 씬 전환, SharedScene, 매니저, AssetManager, PoolManager 관련 작업 시 참고.
 
+## 콘텐츠와 C# 매핑
+
+[전체 작업 지도](MAP.md) · [문서 목록](README.md)
+
+파일 링크는 이 문서 기준 상대 경로이며, 마지막 열의 이름을 파일 안에서 검색하면 구현 위치를 찾을 수 있습니다.
+
+| 찾는 콘텐츠 | 담당 C# 파일 | 주요 메서드·타입·멤버 |
+|---|---|---|
+| SharedScene 자동 로드·중복 정리·씬 전환 | [Main.cs](../Assets/02_Scripts/Manager/Main.cs) | `SceneEnum`, `AutoCreate`, `MoveScene`, `CoMoveScene` |
+| 타이틀 CI 연출·로비 진입 | [TitleMain.cs](../Assets/02_Scripts/Title/TitleMain.cs) | `Start` |
+| 로비 시작 버튼·준비 팝업 열기 | [LobbyMain.cs](../Assets/02_Scripts/Lobby/LobbyMain.cs) | `OnClickStartStage` |
+| 에셋 로딩 요청 공유·캐시·해제 | [AssetManager.cs](../Assets/02_Scripts/Manager/AssetManager.cs) | `AssetArguments`, `LoadAsset`, `LoadAssetAsync`, `MarkPersistent`, `ReleaseAll` |
+| 오브젝트 풀 대여·반환·정리 | [PoolManager.cs](../Assets/02_Scripts/Manager/PoolManager.cs) | `Get`, `Release`, `Clear` |
+| 메인 카메라 접근·중복 처리 | [CameraController.cs](../Assets/02_Scripts/CameraController.cs) | `MainCamera` |
+| 사운드 매니저 틀 (스텁) | [SoundManager.cs](../Assets/02_Scripts/Manager/SoundManager.cs) | `Awake` |
+| 게임 데이터 매니저 틀 (스텁; 실제 사양 로드는 StageInjection) | [GameDataManager.cs](../Assets/02_Scripts/Manager/GameDataManager.cs) | `Awake` |
+| 공통 UI 매니저 틀 (스텁; 팝업/탭은 DomainManager) | [UIManager.cs](../Assets/02_Scripts/Manager/UIManager.cs) | `Awake` |
+| 다국어 매니저 틀 (스텁) | [LocalizationManager.cs](../Assets/02_Scripts/Manager/LocalizationManager.cs) | `Awake` |
+
+게임 씬의 Controller는 [INGAME.md](INGAME.md), 팝업/탭 매니저는 [UI.md](UI.md), 네트워크/유저 데이터 매니저는 [SERVER.md](SERVER.md)에 매핑되어 있습니다.
+
 ---
 
 ## 씬 구성
@@ -67,14 +88,14 @@ Main.MoveScene(preScene, nextScene)
 | DomainManager | 팝업/탭 도메인 관리 | `UI.md` 참고 |
 | CameraController | 메인 카메라 싱글톤 | `MainCamera` 정적 접근 |
 
+네트워크와 유저 데이터는 구현되어 있습니다. `NetworkManager` → `HttpNetworkClient`, `UserDataManager` → `IdentityLayer`의 API와 초기화 순서는 [SERVER.md](SERVER.md)를 참고하세요.
+
 ### 스텁 (미구현)
 | 매니저 | 예정 역할 |
 |--------|----------|
 | SoundManager | 사운드 재생/정지 |
 | GameDataManager | 게임 설정 데이터 관리 |
-| UserDataManager | 유저 프로필/진행 상태 저장 |
 | UIManager | 공통 UI 연출 (토스트, 로딩 등) |
-| NetworkManager | 서버 통신 |
 | LocalizationManager | 다국어 지원 |
 
 **스텁 매니저 패턴**: Awake에서 싱글톤 등록 + DontDestroyOnLoad. 구현 시 이 패턴 유지.
@@ -94,10 +115,10 @@ Addressables 래핑 싱글톤. 모든 에셋 로드는 이 매니저를 통해 �
 | `MarkPersistent(address)` | 씬 전환 시에도 캐시 유지할 에셋 등록 |
 | `ReleaseAll()` | Persistent 제외 전체 에셋 캐시 해제 (씬 전환 시 Main에서 호출) |
 
-- 캐시: `_addressablePacket` (주소 → 에셋), `_handlePacket` (주소 → 핸들)
+- 공유 요청: `_requests` (주소 → 로딩 핸들·완료 결과·대기 콜백). 동기/비동기 호출이 같은 주소의 핸들을 공유하며 타입 불일치는 오류로 반환한다.
 - `AssetArguments<T>`: `address`, `successCallback`, `failedCallback` 구조체
 - `LoadAsset<T>`: 빈 주소 전달 시 `Debug.LogError` 출력 후 `default` 반환
-- `ReleaseAll()`: 내부 `_releaseBuffer` 리스트를 재사용하여 LINQ/리스트 할당 방지
+- `ReleaseAll()`: 영구 주소를 제외한 완료 캐시와 진행 중인 요청을 분리·해제하고, 취소된 요청에는 실패 콜백을 전달한다. 실패한 로드는 핸들을 해제하여 재시도할 수 있다.
 - **직접 `Addressables.LoadAssetAsync` 호출 금지** — 반드시 AssetManager 경유.
 
 ### 주요 Addressable 주소 패턴

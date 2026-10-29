@@ -44,6 +44,12 @@ public class ReplayController : MonoBehaviour
     /// <param name="replayData">재생할 리플레이 데이터</param>
     public void Initialize(ReplayData replayData)
     {
+        _isInitialized = false;
+        if (replayData == null || replayData.inputs == null || replayData.inputEnds == null)
+        {
+            Debug.LogError("[ReplayController] 리플레이 입력 데이터가 없습니다.");
+            return;
+        }
         _replayData = replayData;
         _frameCount = 0;
         _inputIndex = 0;
@@ -139,22 +145,7 @@ public class ReplayController : MonoBehaviour
         replayBoardView.transform.position = new Vector3(posX, posY, 0f);
     }
 
-    /// <summary>
-    /// 매 프레임 리플레이 입력을 주입하고 보드를 업데이트합니다.
-    /// </summary>
-    private void Update()
-    {
-        if (!_isInitialized || _board == null || _board.State == BoardState.Finish)
-        {
-            return;
-        }
-
-        _board.Update();
-    }
-
-    /// <summary>
-    /// 고정 프레임 간격으로 논리 프레임을 전진시키고, 해당 프레임의 입력을 주입합니다.
-    /// </summary>
+    /// <summary> 현재 논리 프레임의 입력을 수신 순서대로 주입한 뒤 보드를 한 틱 진행합니다. </summary>
     private void FixedUpdate()
     {
         if (!_isInitialized || _board == null || _board.State == BoardState.Finish)
@@ -162,23 +153,40 @@ public class ReplayController : MonoBehaviour
             return;
         }
 
-        _frameCount++;
+        // 증가 전에 0번 프레임부터 처리합니다. 오래된 기록도 큐를 막지 않도록 소비합니다.
+        while (true)
+        {
+            bool hasInput = _inputIndex < _replayData.inputs.Count &&
+                _replayData.inputs[_inputIndex].frame <= _frameCount;
+            bool hasEnd = _inputEndIndex < _replayData.inputEnds.Count &&
+                _replayData.inputEnds[_inputEndIndex].frame <= _frameCount;
+            if (!hasInput && !hasEnd)
+            {
+                break;
+            }
+
+            bool inputFirst = hasInput;
+            if (hasInput && hasEnd)
+            {
+                InputRecord input = _replayData.inputs[_inputIndex];
+                InputEndRecord end = _replayData.inputEnds[_inputEndIndex];
+                // 순서 필드가 없는 기존 기록은 동일 프레임의 좌표 입력을 먼저 처리합니다.
+                inputFirst = input.frame < end.frame ||
+                    (input.frame == end.frame && input.sequence <= end.sequence);
+            }
+
+            if (inputFirst)
+            {
+                _board.Input(_replayData.inputs[_inputIndex++].position);
+            }
+            else
+            {
+                _board.InputEnd();
+                _inputEndIndex++;
+            }
+        }
+
         _board.FixedUpdate();
-
-        // 현재 프레임에 해당하는 모든 Input 기록 주입
-        while (_inputIndex < _replayData.inputs.Count &&
-               _replayData.inputs[_inputIndex].frame == _frameCount)
-        {
-            _board.Input(_replayData.inputs[_inputIndex].position);
-            _inputIndex++;
-        }
-
-        // 현재 프레임에 해당하는 모든 InputEnd 기록 주입
-        while (_inputEndIndex < _replayData.inputEnds.Count &&
-               _replayData.inputEnds[_inputEndIndex].frame == _frameCount)
-        {
-            _board.InputEnd();
-            _inputEndIndex++;
-        }
+        _frameCount++;
     }
 }

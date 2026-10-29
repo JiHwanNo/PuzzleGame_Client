@@ -2,6 +2,20 @@
 
 JSON 규칙, 스테이지, GameSpec, 블럭 데이터 관련 작업 시 참고.
 
+## 콘텐츠와 C# 매핑
+
+[전체 작업 지도](MAP.md) · [문서 목록](README.md)
+
+파일 링크는 이 문서 기준 상대 경로이며, 마지막 열의 이름을 파일 안에서 검색하면 구현 위치를 찾을 수 있습니다.
+
+| 찾는 콘텐츠 | 담당 C# 파일 | 주요 메서드·타입·멤버 |
+|---|---|---|
+| Rule/Stage 로드·사양 병합·시드 생성 | [StageInjection.cs](../Assets/02_Scripts/StageInjection.cs) | `MakeGameSpec`, `GetGameSpec`, `SetReplayData` |
+| 게임 사양·스테이지·셀 데이터 정의 | [GameSpec.cs](../Assets/02_Scripts/PuzzleCore/Module/GameSpec.cs) | `GameSpec`, `StageData`, `CellData`, `GetBlock` |
+| 규칙·블럭·목표 데이터, enum, 좌표, 입력 기록 | [PuzzleDefine.cs](../Assets/02_Scripts/PuzzleCore/Module/PuzzleDefine.cs) | `GameRuleContainer`, `RuleData`, `BlockData`, `ObjectiveData`, `GridPos`, `InputRecord`, `InputEndRecord` |
+| 리플레이 저장 형식 | [ReplayData.cs](../Assets/02_Scripts/PuzzleCore/Module/ReplayData.cs) | `ReplayData` |
+| 리플레이 JSON 저장·로드·저장 경로 | [ReplayStorage.cs](../Assets/02_Scripts/PuzzleCore/Module/ReplayStorage.cs) | `Save`, `Load`, `GetReplayDirectoryPath` |
+
 ---
 
 ## 데이터 흐름
@@ -55,7 +69,7 @@ GameSpec
 │   ├─ boardShape      (int) — 1:Quadrangle, 2:Hexagon
 │   ├─ timeLimit       (float) — 제한 시간 (초), 0이면 무제한
 │   └─ List<ObjectiveData>
-│       ├─ type         (int) — 0:Score, 1:CollectBlock, 2:ClearCell
+│       ├─ type         (int) — 0:Score, 1:CollectBlock
 │       ├─ targetId     (string) — 대상 blockId (CollectBlock일 때)
 │       └─ count        (int) — 목표 값
 │
@@ -238,3 +252,11 @@ JSON에는 **가독성을 위해 문자열 목록**으로 두고, 게임 로직�
 | `inputs` | List | 유저 입력 기록 (프레임 + 그리드 좌표) |
 | `inputEnds` | List | 유저 입력 종료 기록 (프레임) |
 | `recordedAt` | string | 기록 일시 (ISO 8601) |
+
+### 리플레이 입력 순서
+- 새 `InputRecord`와 `InputEndRecord`는 공통 증가 순서인 `ulong sequence`를 저장한다. 같은 고정 틱 안에서 좌표 입력과 손 떼기 이벤트가 섞여도 원래 순서로 복원한다.
+- 기록 프레임은 입력 판정을 실행한 고정 틱이며 0부터 시작한다. 이전 형식의 기록은 읽을 수 있지만 이전 가변 프레임 게임 결과의 완전한 재현은 보장하지 않는다.
+
+### 목표 종류와 셀 속성
+- 목표는 `Score`(0), `CollectBlock`(1)을 지원한다. 그 외 목표 값은 달성으로 판정하지 않는다.
+- 맵의 비활성 영역은 `CellType.Close`(0), 로직상 잠긴 셀은 `CellType.Lock`(2)이다. 셀 속성과 목표 종류는 별개의 데이터다.

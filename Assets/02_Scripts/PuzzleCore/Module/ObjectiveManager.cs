@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace Puzzle.Core
 {
@@ -192,6 +192,10 @@ namespace Puzzle.Core
                             return false;
                         }
                         break;
+
+                    default:
+                        // 알 수 없는 목표 종류도 검사 없이 성공 처리하지 않습니다.
+                        return false;
                 }
             }
             // 모든 루프를 통과하면 모든 목표 달성
