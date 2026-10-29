@@ -55,7 +55,7 @@ namespace Puzzle.Core
             _currentOrderIndex = 0;
             gameSpec = spec;
             Random = new PuzzleRandom(spec.randomSeed);
-            Objective = new ObjectiveManager(gameSpec?.rule.objectives, gameSpec?.rule.timeLimit ?? 0);
+            Objective = new ObjectiveManager(gameSpec?.rule.objectives, gameSpec?.rule.timeLimit ?? 0, spec.mode);
 
             if (gameSpec?.stageData != null)
             {
@@ -268,7 +268,7 @@ namespace Puzzle.Core
                 cell.Update(this);
             }
 
-            if (Objective != null && (Objective.IsAllObjectivesCleared() || Objective.IsTimeOver()))
+            if (Objective != null && Objective.ShouldFinish())
             {
                 State = BoardState.Finish;
                 return;
@@ -284,14 +284,15 @@ namespace Puzzle.Core
                     
                     // 탭 매치에서는 연쇄 폭발(Cascade) 없이 바로 대기 상태로 돌아감
                     State = BoardState.Waiting;
-                    _currentOrderIndex = 0;
 
                     foreach (var cell in Cells.Values)
                     {
                         cell.Block?.SetState(BlockState.Idle);
                     }
 
+                    // 같은 논리 틱의 파괴·낙하보다 셔플이 뒤에 실행되도록 순서를 유지합니다.
                     CheckAndShuffleIfNoMoves();
+                    _currentOrderIndex = 0;
                     break;
             }
         }
@@ -334,7 +335,12 @@ namespace Puzzle.Core
                 for (int y = 0; y < Height; y++)
                 {
                     var cell = GetCell(new GridPos(x, y));
-                    if (cell == null) continue;
+                    if (cell == null)
+                    {
+                        // 누락된 셀은 낙하 경계로 취급하여 그 위 블럭이 기존 블럭을 덮어쓰지 않게 합니다.
+                        writeY = y + 1;
+                        continue;
+                    }
 
                     if (cell.CellType == CellType.Close || cell.CellType == CellType.Lock)
                     {
@@ -454,10 +460,20 @@ namespace Puzzle.Core
                 for (int x = 0; x < Width; x++)
                 {
                     string id = GetBlockIdAt(new GridPos(x, y));
-                    if (id == null) continue;
+                    if (id == null || !GetCell(new GridPos(x, y)).Block.GetInputType().HasFlag(InputType.Touch))
+                    {
+                        continue;
+                    }
 
-                    if (x < Width - 1 && id == GetBlockIdAt(new GridPos(x + 1, y))) return true;
-                    if (y < Height - 1 && id == GetBlockIdAt(new GridPos(x, y + 1))) return true;
+                    // 실제 탭 판정처럼 시작 블럭만 Touch가 필요하며 연결 대상은 색상으로 판정합니다.
+                    // 조작 가능한 블럭이 쌍의 오른쪽/위쪽에 있을 수도 있으므로 네 방향을 확인합니다.
+                    for (int i = 0; i < _adjacentDirs.Length; i++)
+                    {
+                        if (id == GetBlockIdAt(new GridPos(x, y) + _adjacentDirs[i]))
+                        {
+                            return true;
+                        }
+                    }
                 }
             }
             return false;

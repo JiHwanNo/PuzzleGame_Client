@@ -50,7 +50,7 @@ namespace Puzzle.Core
             _currentOrderIndex = 0;
             gameSpec = spec;
             Random = new PuzzleRandom(spec.randomSeed);
-            Objective = new ObjectiveManager(gameSpec?.rule.objectives, gameSpec?.rule.timeLimit ?? 0);
+            Objective = new ObjectiveManager(gameSpec?.rule.objectives, gameSpec?.rule.timeLimit ?? 0, spec.mode);
 
             if (gameSpec?.stageData != null)
             {
@@ -224,7 +224,7 @@ namespace Puzzle.Core
                 cell.Update(this);
             }
 
-            if (Objective != null && (Objective.IsAllObjectivesCleared() || Objective.IsTimeOver()))
+            if (Objective != null && Objective.ShouldFinish())
             {
                 State = BoardState.Finish;
                 return;
@@ -334,7 +334,12 @@ namespace Puzzle.Core
                 for (int y = 0; y < Height; y++)
                 {
                     var cell = GetCell(new GridPos(x, y));
-                    if (cell == null) continue;
+                    if (cell == null)
+                    {
+                        // 누락된 셀은 낙하 경계로 취급하여 그 위 블럭이 기존 블럭을 덮어쓰지 않게 합니다.
+                        writeY = y + 1;
+                        continue;
+                    }
 
                     if (cell.CellType == CellType.Close || cell.CellType == CellType.Lock)
                     {

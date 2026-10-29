@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace Puzzle.Core
@@ -10,6 +10,14 @@ namespace Puzzle.Core
     [Serializable]
     public class GameSpec
     {
+        /// <summary> 초당 논리 틱 수입니다. Unity의 고정 간격은 0.02초로 설정합니다. </summary>
+        public const int LogicFramesPerSecond = 50;
+        /// <summary> 대전 한 판의 공통 제한 시간입니다. </summary>
+        public const int BattleDurationSeconds = 60;
+        /// <summary> 대전 한 판의 총 논리 틱 수입니다. </summary>
+        public const int BattleFrameCount = LogicFramesPerSecond * BattleDurationSeconds;
+        /// <summary> 게임 종료 규칙입니다. 기존 데이터의 기본값은 스테이지입니다. </summary>
+        public GameMode mode;
         /// <summary> 현재 스테이지의 세부 구성 데이터 </summary>
         public StageData stageData;
         

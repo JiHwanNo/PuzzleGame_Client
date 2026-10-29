@@ -160,6 +160,15 @@ namespace Puzzle.Core
         public int count;
     }
 
+    /// <summary> 스테이지 공략과 제한 시간 점수 대전의 종료 규칙을 구분합니다. </summary>
+    public enum GameMode
+    {
+        /// <summary> 목표 달성 또는 제한 시간 종료 </summary>
+        Stage = 0,
+        /// <summary> 목표 달성과 무관하게 공통 제한 시간까지 진행 </summary>
+        Battle = 1
+    }
+
     /// <summary>
     /// 게임 클리어 목표의 종류를 정의합니다.
     /// </summary>

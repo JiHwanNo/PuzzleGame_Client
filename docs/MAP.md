@@ -41,7 +41,7 @@
 
 | 찾는 기능·수정할 내용 | 먼저 볼 C# 파일 | 관련 코드 전체 표 |
 |---|---|---|
-| 게임 시작·랜덤 퍼즐 모드 선택 | [PopupReady.cs](../Assets/02_Scripts/UI/Popup/PopupReady.cs) | [UI.md](UI.md#콘텐츠와-c-매핑) |
+| 게임 시작·스테이지/60초 대전·랜덤 퍼즐 모드 선택 | [PopupReady.cs](../Assets/02_Scripts/UI/Popup/PopupReady.cs) | [UI.md](UI.md#콘텐츠와-c-매핑) |
 | 퍼즐 입력·게임 루프·종료 처리 | [PuzzleGameController.cs](../Assets/02_Scripts/PuzzleCore/Controller/PuzzleGameController.cs) | [INGAME.md](INGAME.md#콘텐츠와-c-매핑) |
 | 3매치·스왑·자동 셔플 | [ThreeMatchPuzzleBoard.cs](../Assets/02_Scripts/PuzzleCore/Module/Board/ThreeMatchPuzzleBoard.cs) | [INGAME.md](INGAME.md#콘텐츠와-c-매핑) |
 | 링크 연결 | [LinkPuzzleBoard.cs](../Assets/02_Scripts/PuzzleCore/Module/Board/LinkPuzzleBoard.cs) | [INGAME.md](INGAME.md#콘텐츠와-c-매핑) |

@@ -1,6 +1,7 @@
 ﻿using Puzzle.Core;
 using System;
 using System.Collections.Generic;
+using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -25,6 +26,15 @@ public class PuzzleGameController : MonoBehaviour
     /// <summary> 현재 점수를 표시하는 텍스트 (인스펙터에서 연결) </summary>
     [SerializeField]
     private TMP_Text _scoreText;
+
+    /// <summary> 대전 진행 안내와 최종 점수 비교를 표시합니다. </summary>
+    [SerializeField] private TMP_Text _resultText;
+    /// <summary> 이번 플레이의 종료 규칙입니다. </summary>
+    private GameMode _mode;
+    /// <summary> 두 보드를 함께 진행한 총 논리 틱 수입니다. </summary>
+    private ulong _elapsedFrames;
+    /// <summary> 상대 기록이 있는 대전인지 여부입니다. </summary>
+    private bool _hasOpponent;
 
     /// <summary> 퍼즐 보드의 핵심 로직을 처리하는 모델 인터페이스 </summary>
     private IPuzzleBoard _board;
@@ -83,6 +93,8 @@ public class PuzzleGameController : MonoBehaviour
                 break;
         }
 
+        _mode = gameSpec.mode;
+        _elapsedFrames = 0;
         _board.Initialize(gameSpec);
 
         if (boardView != null)
@@ -95,6 +107,12 @@ public class PuzzleGameController : MonoBehaviour
 
         // 상대방 리플레이 데이터가 있으면 리플레이 컨트롤러 초기화
         ReplayData replayData = StageInjection.Instance.GetReplayData();
+        _hasOpponent = replayData != null;
+        if (_resultText != null)
+        {
+            _resultText.text = _mode == GameMode.Battle ?
+                (_hasOpponent ? "60초 대전" : "60초 대전 · 첫 기록 도전") : "";
+        }
         if (replayData != null && replayController != null)
         {
             replayController.Initialize(replayData);
@@ -113,7 +131,7 @@ public class PuzzleGameController : MonoBehaviour
         }
 
         // 1. 마우스/터치를 누르고 있는 중인가?
-        if (IsPointerHeld())
+        if (_board.State != BoardState.Finish && IsPointerHeld())
         {
             // 뷰가 애니메이션 연출 중일 때는 어떠한 입력도 받지 않도록 차단합니다!
             if (boardView == null || !boardView.IsAnimating)
@@ -154,12 +172,20 @@ public class PuzzleGameController : MonoBehaviour
         UpdateTimerUI();
         UpdateScoreUI();
 
-        // 5. 게임 종료 시 리플레이 자동 저장 후 로비로 이동
+        // 게임 종료 시 기록을 저장하고, 대전이면 점수 비교를 표시한 뒤 로비로 이동합니다.
         if (_board.State == BoardState.Finish && !_replaySaved)
         {
             _replaySaved = true;
             SaveReplay();
-            Main.Instance.MoveScene(SceneEnum.GameScene, SceneEnum.LobbyScene);
+            if (_mode == GameMode.Battle)
+            {
+                ShowBattleResult();
+                StartCoroutine(ReturnToLobbyAfterResult());
+            }
+            else
+            {
+                Main.Instance.MoveScene(SceneEnum.GameScene, SceneEnum.LobbyScene);
+            }
         }
     }
 
@@ -168,12 +194,52 @@ public class PuzzleGameController : MonoBehaviour
     /// </summary>
     private void FixedUpdate()
     {
-        if (!_isInitialized || _board == null)
+        if (!_isInitialized || _board == null || _board.State == BoardState.Finish)
         {
             return;
         }
 
+        // Unity의 컴포넌트 실행 순서와 무관하게 두 보드를 같은 공통 틱에서 진행합니다.
         _board.FixedUpdate();
+        if (_hasOpponent && replayController != null && replayController.IsInitialized)
+        {
+            replayController.AdvanceFrame();
+        }
+        _elapsedFrames++;
+    }
+
+    /// <summary> 공통 제한 시간이 끝난 뒤 점수와 승패를 표시합니다. </summary>
+    private void ShowBattleResult()
+    {
+        int score = _board.Objective.CurrentScore;
+        string result;
+        if (!_hasOpponent)
+        {
+            result = $"대전 기록 완료 · {score}점";
+        }
+        else if (replayController == null || !replayController.HasValidResult)
+        {
+            result = $"대전 종료 · 내 점수 {score}\n상대 기록 확인 실패 · 승패 비교 제외";
+        }
+        else
+        {
+            int opponentScore = replayController.CurrentScore;
+            string verdict = score > opponentScore ? "승리" : (score < opponentScore ? "패배" : "무승부");
+            result = $"{verdict}\n내 점수 {score} : 상대 점수 {opponentScore}";
+        }
+        if (_resultText != null)
+        {
+            _resultText.text = result + "\n잠시 후 로비로 이동합니다";
+        }
+        Debug.Log($"[PuzzleGameController] {result}");
+    }
+
+    /// <summary> 최종 점수 비교를 읽을 수 있도록 표시한 후 로비로 이동합니다. </summary>
+    /// <returns>결과 표시 대기 코루틴</returns>
+    private IEnumerator ReturnToLobbyAfterResult()
+    {
+        yield return new WaitForSecondsRealtime(4f);
+        Main.Instance.MoveScene(SceneEnum.GameScene, SceneEnum.LobbyScene);
     }
 
     /// <summary>
@@ -283,6 +349,11 @@ public class PuzzleGameController : MonoBehaviour
 
         var replayData = new ReplayData
         {
+            formatVersion = ReplayData.CurrentFormatVersion,
+            mode = _mode,
+            timeLimit = _board.Objective.TotalLimitTime,
+            frameCount = _elapsedFrames,
+            finalScore = _board.Objective.CurrentScore,
             ruleAddress = StageInjection.Instance.GetRuleAddress(),
             stageAddress = StageInjection.Instance.GetStageAddress(),
             randomSeed = spec.randomSeed,

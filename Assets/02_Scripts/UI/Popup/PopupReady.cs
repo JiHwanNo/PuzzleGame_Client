@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using Puzzle.Core;
 using UnityEngine;
 using UnityEngine.UI;
@@ -22,7 +22,7 @@ public class PopupReady : PopupHandler
 
     /// <summary>
     /// 시작 버튼 클릭 시 랜덤 퍼즐 모드로 게임 데이터를 준비하고 게임 씬으로 이동합니다.
-    /// Link, 3매치, 탭 블라스트 중 하나가 랜덤 선택되며, 제한 시간은 100초입니다.
+    /// Link, 3매치, 탭 블라스트 중 하나를 선택하고 스테이지의 목표/제한 시간을 적용합니다.
     /// </summary>
     private void OnClickStart()
     {
@@ -79,8 +79,54 @@ public class PopupReady : PopupHandler
             return;
         }
 
-        // 상대방 리플레이 데이터 세팅
+        GameSpec spec = StageInjection.Instance.GetGameSpec();
+        spec.randomSeed = replayData.randomSeed;
+        spec.mode = replayData.formatVersion == ReplayData.CurrentFormatVersion ? replayData.mode : GameMode.Stage;
+        if (replayData.formatVersion == ReplayData.CurrentFormatVersion)
+        {
+            spec.rule.timeLimit = replayData.timeLimit;
+        }
+
+        // 이전 스테이지 기록은 원래 종료 규칙으로 재생하며 대전 기록으로 바꾸지 않습니다.
         StageInjection.Instance.SetReplayData(replayData);
+        Main.Instance.MoveScene(SceneEnum.LobbyScene, SceneEnum.GameScene);
+    }
+
+    /// <summary> 완주한 60초 기록과 대전하거나, 기록이 없으면 첫 대전 기록을 만듭니다. </summary>
+    private void OnClickBattle()
+    {
+        ReplayData opponent = null;
+        string directory = ReplayStorage.GetReplayDirectoryPath();
+        if (Directory.Exists(directory))
+        {
+            string[] files = Directory.GetFiles(directory, "replay_*.json");
+            System.Array.Sort(files, System.StringComparer.Ordinal);
+            for (int i = files.Length - 1; i >= 0; i--)
+            {
+                ReplayData candidate = ReplayStorage.Load(files[i]);
+                if (candidate != null && candidate.IsCompleteBattleRecord())
+                {
+                    opponent = candidate;
+                    break;
+                }
+            }
+        }
+
+        string ruleAddress = opponent != null ? opponent.ruleAddress : RulePaths[Random.Range(0, RulePaths.Length)];
+        string stageAddress = opponent != null ? opponent.stageAddress : "Stage";
+        if (!StageInjection.Instance.MakeGameSpec(ruleAddress, stageAddress))
+        {
+            Debug.LogError("[PopupReady] 대전용 데이터를 준비하지 못했습니다.");
+            return;
+        }
+        GameSpec spec = StageInjection.Instance.GetGameSpec();
+        spec.mode = GameMode.Battle;
+        spec.rule.timeLimit = GameSpec.BattleDurationSeconds;
+        if (opponent != null)
+        {
+            spec.randomSeed = opponent.randomSeed;
+        }
+        StageInjection.Instance.SetReplayData(opponent);
         Main.Instance.MoveScene(SceneEnum.LobbyScene, SceneEnum.GameScene);
     }
 

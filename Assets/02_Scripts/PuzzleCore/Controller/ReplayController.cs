@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using Puzzle.Core;
 using UnityEngine;
+using TMPro;
 
 /// <summary>
 /// 상대방의 리플레이 데이터를 기반으로 보드를 자동 재생하는 컨트롤러입니다.
@@ -37,6 +38,20 @@ public class ReplayController : MonoBehaviour
 
     /// <summary> 초기화 완료 여부 </summary>
     private bool _isInitialized = false;
+    /// <summary> 기록 재생을 끝냈는지 여부입니다. </summary>
+    private bool _isComplete;
+    /// <summary> 기록된 종료 틱과 점수가 실제 재생 결과와 일치하는지 여부입니다. </summary>
+    private bool _resultValid;
+    /// <summary> 리플레이 보드의 남은 시간과 재생 상태를 표시합니다. </summary>
+    [SerializeField] private TMP_Text _statusText;
+    /// <summary> 마지막으로 표시한 상태입니다. </summary>
+    private string _lastStatus;
+    /// <summary> 메인 게임에서 공동 틱 진행을 시작할 수 있는지 여부입니다. </summary>
+    public bool IsInitialized => _isInitialized;
+    /// <summary> 종료 점수를 비교할 수 있는 완주 기록인지 여부입니다. </summary>
+    public bool HasValidResult => _isComplete && _resultValid;
+    /// <summary> 현재 리플레이 점수입니다. </summary>
+    public int CurrentScore => _board?.Objective?.CurrentScore ?? 0;
 
     /// <summary>
     /// 리플레이 데이터를 기반으로 보드를 생성하고 재생을 시작합니다.
@@ -45,6 +60,9 @@ public class ReplayController : MonoBehaviour
     public void Initialize(ReplayData replayData)
     {
         _isInitialized = false;
+        _isComplete = false;
+        _resultValid = false;
+        _lastStatus = null;
         if (replayData == null || replayData.inputs == null || replayData.inputEnds == null)
         {
             Debug.LogError("[ReplayController] 리플레이 입력 데이터가 없습니다.");
@@ -62,6 +80,11 @@ public class ReplayController : MonoBehaviour
         if (ruleAsset != null)
         {
             GameRuleContainer ruleContainer = JsonUtility.FromJson<GameRuleContainer>(ruleAsset.text);
+            if (ruleContainer == null)
+            {
+                Debug.LogError("[ReplayController] 규칙 데이터가 없습니다.");
+                return;
+            }
             replaySpec.rule = ruleContainer.rule;
             replaySpec.blocks = ruleContainer.blocks;
         }
@@ -84,6 +107,11 @@ public class ReplayController : MonoBehaviour
 
         // 기록된 시드를 적용하여 동일한 난수 시퀀스 재현
         replaySpec.randomSeed = _replayData.randomSeed;
+        if (_replayData.formatVersion == ReplayData.CurrentFormatVersion)
+        {
+            replaySpec.mode = _replayData.mode;
+            replaySpec.rule.timeLimit = _replayData.timeLimit;
+        }
 
         // 퍼즐 타입에 맞는 보드 생성
         switch (replaySpec.rule.puzzleType)
@@ -147,9 +175,9 @@ public class ReplayController : MonoBehaviour
     }
 
     /// <summary> 현재 논리 프레임의 입력을 수신 순서대로 주입한 뒤 보드를 한 틱 진행합니다. </summary>
-    private void FixedUpdate()
+    public void AdvanceFrame()
     {
-        if (!_isInitialized || _board == null || _board.State == BoardState.Finish)
+        if (!_isInitialized || _board == null || _isComplete)
         {
             return;
         }
@@ -189,5 +217,78 @@ public class ReplayController : MonoBehaviour
 
         _board.FixedUpdate();
         _frameCount++;
+        bool hasEndFrame = _replayData.formatVersion == ReplayData.CurrentFormatVersion;
+        if (_board.State == BoardState.Finish || (hasEndFrame && _frameCount >= _replayData.frameCount))
+        {
+            _isComplete = true;
+            _resultValid = hasEndFrame && _board.State == BoardState.Finish &&
+                _frameCount == _replayData.frameCount && CurrentScore == _replayData.finalScore;
+            if (hasEndFrame && !_resultValid)
+            {
+                Debug.LogError("[ReplayController] 기록된 종료 틱 또는 점수와 재생 결과가 다릅니다.");
+            }
+        }
     }
+
+    /// <summary> 논리 판정과 독립적으로 리플레이 상태를 화면에 표시합니다. </summary>
+    private void Update()
+    {
+        if (_statusText == null)
+        {
+            return;
+        }
+        _statusText.gameObject.SetActive(_replayData != null);
+        if (_replayData == null)
+        {
+            return;
+        }
+
+        UpdateStatusPosition();
+        string status;
+        if (!_isInitialized)
+        {
+            status = "리플레이를 불러오지 못했습니다";
+        }
+        else if (_isComplete)
+        {
+            status = _replayData.formatVersion == 0 ? "이전 기록 · 재생 완료" :
+                (_resultValid ? "재생 완료" : "기록 불일치 · 점수 비교 제외");
+        }
+        else
+        {
+            int seconds = Mathf.CeilToInt(_board.Objective.RemainingTime);
+            bool waiting = _inputIndex >= _replayData.inputs.Count && _inputEndIndex >= _replayData.inputEnds.Count;
+            string label = waiting ? "남은 입력 없음" : "재생 중";
+            status = $"{label} · {seconds / 60}:{seconds % 60:00}";
+        }
+        string text = $"상대 리플레이\n{status}\n점수 {CurrentScore}";
+        if (_lastStatus != text)
+        {
+            _statusText.text = text;
+            _lastStatus = text;
+        }
+    }
+    /// <summary> 화면 비율에 관계없이 상태 텍스트를 작은 보드 바로 아래에 배치합니다. </summary>
+    private void UpdateStatusPosition()
+    {
+        if (_board == null || replayBoardView == null || Camera.main == null)
+        {
+            return;
+        }
+        RectTransform parent = _statusText.rectTransform.parent as RectTransform;
+        Canvas canvas = _statusText.GetComponentInParent<Canvas>();
+        if (parent == null || canvas == null)
+        {
+            return;
+        }
+        float halfHeight = (_board.Height + 0.5f) * replayBoardView.cellSize * viewScale * 0.5f;
+        Vector3 world = replayBoardView.transform.position - Vector3.up * (halfHeight + margin);
+        Vector2 screen = Camera.main.WorldToScreenPoint(world);
+        Camera uiCamera = canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera;
+        if (RectTransformUtility.ScreenPointToLocalPointInRectangle(parent, screen, uiCamera, out Vector2 local))
+        {
+            _statusText.rectTransform.localPosition = new Vector3(local.x, local.y, 0f);
+        }
+    }
+
 }

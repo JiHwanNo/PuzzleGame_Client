@@ -94,7 +94,7 @@ namespace Puzzle.Core
             _currentOrderIndex = 0;
             gameSpec = spec;
             Random = new PuzzleRandom(spec.randomSeed);
-            Objective = new ObjectiveManager(gameSpec?.rule.objectives, gameSpec?.rule.timeLimit ?? 0);
+            Objective = new ObjectiveManager(gameSpec?.rule.objectives, gameSpec?.rule.timeLimit ?? 0, spec.mode);
 
             if (gameSpec?.stageData != null)
             {
@@ -310,7 +310,7 @@ namespace Puzzle.Core
                 cell.Update(this);
             }
 
-            if (Objective != null && (Objective.IsAllObjectivesCleared() || Objective.IsTimeOver()))
+            if (Objective != null && Objective.ShouldFinish())
             {
                 State = BoardState.Finish;
                 return;
@@ -502,7 +502,12 @@ namespace Puzzle.Core
                 for (int y = 0; y < Height; y++)
                 {
                     var cell = GetCell(new GridPos(x, y));
-                    if (cell == null) continue;
+                    if (cell == null)
+                    {
+                        // 누락된 셀은 낙하 경계로 취급하여 그 위 블럭이 기존 블럭을 덮어쓰지 않게 합니다.
+                        writeY = y + 1;
+                        continue;
+                    }
 
                     // 장애물 셀 처리 (장애물이 있으면 그 위로만 쌓이게 하려면 추가 로직이 필요하나, 일단 기본 흐름 구현)
                     if (cell.CellType == CellType.Close || cell.CellType == CellType.Lock)
@@ -657,12 +662,18 @@ namespace Puzzle.Core
                     var cell = GetCell(current);
                     if (cell?.Block == null || (cell.CellType != CellType.Normal && cell.CellType != CellType.Generator)) continue;
 
+                    if (!cell.Block.GetInputType().HasFlag(InputType.Swap))
+                    {
+                        continue;
+                    }
+
                     // 오른쪽 스왑 체크
                     if (x < Width - 1)
                     {
                         GridPos right = new GridPos(x + 1, y);
                         var rCell = GetCell(right);
-                        if (rCell?.Block != null && (rCell.CellType == CellType.Normal || rCell.CellType == CellType.Generator))
+                        if (rCell?.Block != null && (rCell.CellType == CellType.Normal || rCell.CellType == CellType.Generator) &&
+                            rCell.Block.GetInputType().HasFlag(InputType.Swap))
                         {
                             SwapBlocksDataOnly(current, right);
                             bool hasMatch = FindMatches().Count > 0;
@@ -676,7 +687,8 @@ namespace Puzzle.Core
                     {
                         GridPos up = new GridPos(x, y + 1);
                         var uCell = GetCell(up);
-                        if (uCell?.Block != null && (uCell.CellType == CellType.Normal || uCell.CellType == CellType.Generator))
+                        if (uCell?.Block != null && (uCell.CellType == CellType.Normal || uCell.CellType == CellType.Generator) &&
+                            uCell.Block.GetInputType().HasFlag(InputType.Swap))
                         {
                             SwapBlocksDataOnly(current, up);
                             bool hasMatch = FindMatches().Count > 0;

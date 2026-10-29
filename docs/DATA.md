@@ -11,9 +11,9 @@ JSON 규칙, 스테이지, GameSpec, 블럭 데이터 관련 작업 시 참고.
 | 찾는 콘텐츠 | 담당 C# 파일 | 주요 메서드·타입·멤버 |
 |---|---|---|
 | Rule/Stage 로드·사양 병합·시드 생성 | [StageInjection.cs](../Assets/02_Scripts/StageInjection.cs) | `MakeGameSpec`, `GetGameSpec`, `SetReplayData` |
-| 게임 사양·스테이지·셀 데이터 정의 | [GameSpec.cs](../Assets/02_Scripts/PuzzleCore/Module/GameSpec.cs) | `GameSpec`, `StageData`, `CellData`, `GetBlock` |
+| 게임 사양·스테이지·셀 데이터 정의 | [GameSpec.cs](../Assets/02_Scripts/PuzzleCore/Module/GameSpec.cs) | `GameSpec`, `GameSpec.mode`, `BattleFrameCount`, `StageData`, `CellData`, `GetBlock` |
 | 규칙·블럭·목표 데이터, enum, 좌표, 입력 기록 | [PuzzleDefine.cs](../Assets/02_Scripts/PuzzleCore/Module/PuzzleDefine.cs) | `GameRuleContainer`, `RuleData`, `BlockData`, `ObjectiveData`, `GridPos`, `InputRecord`, `InputEndRecord` |
-| 리플레이 저장 형식 | [ReplayData.cs](../Assets/02_Scripts/PuzzleCore/Module/ReplayData.cs) | `ReplayData` |
+| 리플레이 저장 형식 | [ReplayData.cs](../Assets/02_Scripts/PuzzleCore/Module/ReplayData.cs) | `ReplayData`, `IsCompleteBattleRecord` |
 | 리플레이 JSON 저장·로드·저장 경로 | [ReplayStorage.cs](../Assets/02_Scripts/PuzzleCore/Module/ReplayStorage.cs) | `Save`, `Load`, `GetReplayDirectoryPath` |
 
 ---
@@ -52,6 +52,7 @@ Rule JSON + Stage JSON
 
 ```
 GameSpec
+├─ mode (GameMode: 0=Stage, 1=Battle)
 ├─ StageData
 │   ├─ stage_id        (int) — 스테이지 번호
 │   ├─ stage_width     (int) — 보드 가로 크기
@@ -229,6 +230,11 @@ JSON에는 **가독성을 위해 문자열 목록**으로 두고, 게임 로직�
 
 ```json
 {
+    "formatVersion": 1,
+    "mode": 1,
+    "timeLimit": 60,
+    "frameCount": 3000,
+    "finalScore": 30,
     "ruleAddress": "LinkMatchRule",
     "stageAddress": "Stage",
     "randomSeed": 2095364872,
@@ -246,6 +252,11 @@ JSON에는 **가독성을 위해 문자열 목록**으로 두고, 게임 로직�
 
 | 필드 | 타입 | 설명 |
 |------|------|------|
+| `formatVersion` | int | 현재 1. 없으면 이전 형식 0으로 읽음 |
+| `mode` | GameMode | Stage(0), Battle(1) |
+| `timeLimit` | float | 기록 당시 제한 시간(초) |
+| `frameCount` | ulong | 실제 완료한 총 틱 수. 대전은 3,000 |
+| `finalScore` | int | 재생 결과와 비교할 최종 점수 |
 | `ruleAddress` | string | 규칙 JSON의 Addressable 에셋 주소 |
 | `stageAddress` | string | 스테이지 JSON의 Addressable 에셋 주소 |
 | `randomSeed` | int | 게임에 사용된 난수 시드 |
@@ -260,3 +271,9 @@ JSON에는 **가독성을 위해 문자열 목록**으로 두고, 게임 로직�
 ### 목표 종류와 셀 속성
 - 목표는 `Score`(0), `CollectBlock`(1)을 지원한다. 그 외 목표 값은 달성으로 판정하지 않는다.
 - 맵의 비활성 영역은 `CellType.Close`(0), 로직상 잠긴 셀은 `CellType.Lock`(2)이다. 셀 속성과 목표 종류는 별개의 데이터다.
+
+### 대전 기록 호환성
+- `Battle`은 제한 시간 60초, 완료 틱 수 3,000인 현재 형식의 기록만 상대로 선택한다. `Stage` 기록이나 이전 형식은 대전 기록으로 변환하지 않는다.
+- `ReplayStorage.Load()`에서 형식 버전, 모드, 시간, 완료 기록을 검사한다. 향후 알 수 없는 버전은 거부한다.
+- 동일 주소의 Rule/Stage가 바뀌면 기존 결과와 달라질 수 있다. 종료 틱/점수 검증 실패 시 승패를 비교하지 않는다. 현재 형식은 Rule/Stage 전체 스냅샷을 저장하지 않는다.
+- 문서 JSON 예제의 입력과 점수는 필드 설명용이며 실제 대전 상대는 게임에서 완주하여 저장한 기록을 사용한다.

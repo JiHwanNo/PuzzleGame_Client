@@ -11,7 +11,7 @@
 
 | 찾는 콘텐츠 | 담당 C# 파일 | 주요 메서드·타입·멤버 |
 |---|---|---|
-| 입력, 게임 루프, 종료 후 저장, 점수/타이머 UI | [PuzzleGameController.cs](../Assets/02_Scripts/PuzzleCore/Controller/PuzzleGameController.cs) | `Start`, `Update`(입력 수집/UI), `FixedUpdate`(모델 틱), `SaveReplay`, `UpdateScoreUI`, `UpdateTimerUI` |
+| 입력, 게임 루프, 종료 후 저장, 점수/타이머 UI | [PuzzleGameController.cs](../Assets/02_Scripts/PuzzleCore/Controller/PuzzleGameController.cs) | `Start`, `Update`(입력 수집/UI), `FixedUpdate`(양쪽 공통 틱), `SaveReplay`, `ShowBattleResult`, `UpdateTimerUI` |
 | 보드 공통 계약 | [IPuzzleBoard.cs](../Assets/02_Scripts/PuzzleCore/Module/Board/IPuzzleBoard.cs) | `IPuzzleBoard`, `BoardViewAction` |
 | 3매치 스왑·매칭·낙하·셔플 | [ThreeMatchPuzzleBoard.cs](../Assets/02_Scripts/PuzzleCore/Module/Board/ThreeMatchPuzzleBoard.cs) | `ProcessSwapInput`, `FindMatches`, `ProcessFallingAndFilling`, `CheckAndShuffleIfNoMoves` |
 | 드래그 링크 연결·해제·낙하 | [LinkPuzzleBoard.cs](../Assets/02_Scripts/PuzzleCore/Module/Board/LinkPuzzleBoard.cs) | `Input`, `InputEnd`(큐 등록), `FixedUpdate`, `UpdateState`, `ProcessFallingAndFilling` |
@@ -24,13 +24,13 @@
 | 공통 파괴·목표 갱신·뷰 액션 등록 | [GimmickUtil.cs](../Assets/02_Scripts/PuzzleCore/Module/Gimmick/GimmickUtil.cs) | `DestroyBlock` |
 | 셀 상태와 블럭 보관 | [PuzzleCell.cs](../Assets/02_Scripts/PuzzleCore/Module/PuzzleCell.cs) | `PuzzleCell` |
 | 바닥 패널 기본 타입 | [PuzzlePanel.cs](../Assets/02_Scripts/PuzzleCore/Module/PuzzlePanel.cs) | `PuzzlePanel`, `NormalPanel` |
-| 점수·콤보·피버·시간 제한·목표 판정 | [ObjectiveManager.cs](../Assets/02_Scripts/PuzzleCore/Module/ObjectiveManager.cs) | `OnMatchEvent`, `OnBlockDestroyed`, `UpdateTimer`, `IsAllObjectivesCleared` |
+| 점수·콤보·피버·시간 제한·목표 판정 | [ObjectiveManager.cs](../Assets/02_Scripts/PuzzleCore/Module/ObjectiveManager.cs) | `OnMatchEvent`, `OnBlockDestroyed`, `UpdateTimer`, `ShouldFinish`, `IsAllObjectivesCleared` |
 | 보드 배치·좌표 변환·뷰 액션 순서·링크 선 | [PuzzleBoardView.cs](../Assets/02_Scripts/PuzzleCore/View/PuzzleBoardView.cs) | `DrawBoard`, `GetLocalPos`, `ExecuteBatchMovement`, `UpdateLineRenderer` |
 | 블럭 스프라이트·클릭/이동/낙하/파괴 연출 | [PuzzleBlockView.cs](../Assets/02_Scripts/PuzzleCore/View/PuzzleBlockView.cs) | `UpdateVisual`, `PlayMoveAnimation`, `PlayFallAnimation`, `PlayDestroyAnimation` |
 | 셀 색상·상태 시각화 | [PuzzleCellView.cs](../Assets/02_Scripts/PuzzleCore/View/PuzzleCellView.cs) | `Initialize`, `UpdateVisual` |
 | 입력 충돌체와 블럭 뷰 연결 | [PuzzleBlockCollider.cs](../Assets/02_Scripts/PuzzleCore/PuzzleBlockCollider.cs) | `PuzzleBlockCollider` |
 | 입력 충돌체와 셀 뷰 연결 | [PuzzleCellCollider.cs](../Assets/02_Scripts/PuzzleCore/PuzzleCellCollider.cs) | `PuzzleCellCollider` |
-| 리플레이 보드 생성·프레임 입력 재생·축소 배치 | [ReplayController.cs](../Assets/02_Scripts/PuzzleCore/Controller/ReplayController.cs) | `Initialize`, `FixedUpdate`, `AlignToTopRight` |
+| 리플레이 보드 생성·프레임 입력 재생·축소 배치 | [ReplayController.cs](../Assets/02_Scripts/PuzzleCore/Controller/ReplayController.cs) | `Initialize`, `AdvanceFrame`, `HasValidResult`, `UpdateStatusPosition`, `AlignToTopRight` |
 | 시드 기반 난수 | [PuzzleRandom.cs](../Assets/02_Scripts/PuzzleCore/Module/PuzzleRandom.cs) | `Next`, `NextDouble`, `SetSeed` |
 
 규칙/좌표/입력 기록 타입과 리플레이 파일 저장은 [DATA.md](DATA.md)의 코드 표를 함께 확인하세요.
@@ -42,7 +42,7 @@
 ### Controller (PuzzleGameController)
 - `Update()`: 마우스/터치 입력 → `Physics2D.OverlapPoint` → `PuzzleBlockCollider` → `board.Input(gridPos)`
 - 포인터 릴리즈 시 `board.InputEnd()` 호출
-- `FixedUpdate()`: `board.FixedUpdate()` (입력 판정 → 타이머/매칭/낙하/종료 판정 → 논리 프레임 전진)
+- `FixedUpdate()`: `board.FixedUpdate()` 후 `replayController.AdvanceFrame()` 호출. 양쪽 입력 판정·타이머·상태 전환을 동일한 공통 틱에서 진행
 - `boardView.IsAnimating`이 true이면 입력 차단
 
 ### Board 상태 머신 (FixedUpdate 내부 UpdateState)
@@ -141,6 +141,9 @@ Block : IGimmickHost — State: Idle, Selected, Moving, Matched, Falling, None
 - `PuzzleGameController.GetGridPosFromCollider()`는 `PuzzleBlockView.BoardView`가 플레이어 보드인 경우만 입력을 받습니다. 리플레이의 `PuzzleBoardView.InputEnabled`는 꺼 두며, 뷰를 직접 클릭해도 모델에 사용자 입력을 전달하지 않습니다.
 - 3매치는 `Close`/`Lock` 셀을 선택 및 스왑 대상에서 제외합니다. 초기 빈칸이 있으면 첫 고정 틱에서 낙하·생성을 한 번 처리한 뒤 매칭으로 이동합니다. 생성기가 없어 채울 수 없는 빈칸은 무한 재시도하지 않습니다.
 - 3매치/탭 매치의 셔플은 100회 내 유효 배치를 찾지 못하면 원래 블럭 참조와 배치를 복원합니다. 성공했을 때만 새 배치의 뷰 액션을 전달합니다.
+- 탭 매치의 셔플 성공 시 같은 논리 틱의 연출 순서는 **파괴 → 낙하/생성 낙하 → 셔플 생성**입니다. 순서 인덱스는 셔플 등록 후 초기화합니다.
+- 이동 가능 여부 검사도 실제 입력 규칙을 따릅니다. 3매치는 교환 양쪽에 `Swap`, 탭 매치는 시작 블럭에 `Touch`가 있어야 합니다. 탭의 같은 색 연결 대상은 `Touch`가 없어도 실제 파괴 판정과 동일하게 인정합니다.
+- 세 보드의 낙하 처리에서 누락된 셀 좌표는 낙하 경계로 취급합니다. 맵은 모든 셀을 작성하는 것이 원칙이며, 누락 데이터에서도 블럭 참조를 덮어쓰지 않도록 방어합니다.
 - `PuzzleBlockView.UpdateVisual()`은 요청 세대를 비교하여 이전 이미지 완료 콜백을 무시합니다. `OnDisable()`에서도 세대를 증가시켜 풀 반환 전 요청을 무효화하며, 새 이미지 대기 중에는 이전 스프라이트를 표시하지 않습니다.
 
 ## 입력 처리 방식
@@ -271,16 +274,26 @@ board.FetchActions()
 ```
 ReplayData 로드 → GameSpec 복원 (동일 Rule/Stage + 동일 시드)
   → IPuzzleBoard 생성 + Initialize
-    → 0번 프레임부터 Input/InputEnd를 frame + sequence 순서로 큐에 주입
+    → 메인 컨트롤러의 공통 틱에서 AdvanceFrame 호출
+      → 0번 프레임부터 Input/InputEnd를 frame + sequence 순서로 큐에 주입
       → board.FixedUpdate에서 입력과 상태 머신 판정
         → 프레임 카운터 증가
 ```
 
 ### ReplayController 배치
-- 메인 보드와 독립적으로 동작 (별도 IPuzzleBoard + PuzzleBoardView)
+- 별도 모델/뷰를 사용하지만 논리 틱은 `PuzzleGameController.FixedUpdate()`가 함께 진행한다. `ReplayController`는 자체 `FixedUpdate()`를 실행하지 않는다.
 - `viewScale`, `margin` 파라미터로 우측 상단에 축소 자동 배치
 - `PuzzleBoardView.skipCameraAlign = true`로 카메라 간섭 방지
 
 ### 고정 틱 전환과 기존 리플레이
 - 매칭·낙하·입력에 따른 블럭 상태 변경은 모두 모델의 `FixedUpdate()`에서 실행한다. `Update()`에서는 입력 수집과 UI/뷰 연출만 실행한다.
 - 기존 리플레이에 `sequence`가 없으면 같은 프레임의 좌표 입력을 종료 입력보다 먼저 처리한다. 과거 가변 프레임 판정 결과와의 완전한 일치는 보장하지 않는다.
+
+## 스테이지와 60초 대전
+- `GameSpec.mode`의 기본값은 `Stage`. 목표 전체 달성 또는 Rule의 제한 시간 종료 시 끝난다.
+- `Battle`은 목표 달성으로 끝나지 않으며, 50틱/초 × 60초 = 3,000틱을 정확히 진행한다. 양쪽 보드는 동일한 규칙·맵·시드를 사용한다.
+- `ObjectiveManager`는 시간을 정수 틱으로 관리하고 표시할 때만 초로 변환한다. 콤보/피버도 기존처럼 논리 틱을 사용한다.
+- `GameScene`의 작은 보드 아래에 남은 시간, 입력이 없는 대기 상태, 재생 완료 및 점수를 표시한다. 기존 기록은 `이전 기록`으로 구분한다.
+- 대전 종료 시 현재 점수를 비교해 승리/패배/무승부를 4초간 표시한 뒤 로비로 돌아간다. 첫 기록 도전이면 본인 점수만 표시한다.
+- 기록의 종료 틱·최종 점수가 재생 결과와 다르면 오류 상태를 표시하고 승패 비교에서 제외한다.
+- 결과 UI와 리플레이 상태 UI는 `GameScene.unity`의 `BattleResult`, `ReplayStatus`이며 기존 한글 폰트 에셋을 사용한다.

@@ -81,6 +81,21 @@ namespace Puzzle.Core
                     return null;
                 }
 
+                if (replayData.formatVersion < 0 || replayData.formatVersion > ReplayData.CurrentFormatVersion)
+                {
+                    Debug.LogError($"[ReplayStorage] 지원하지 않는 리플레이 형식입니다: {replayData.formatVersion}");
+                    return null;
+                }
+                if (replayData.formatVersion == ReplayData.CurrentFormatVersion &&
+                    (replayData.frameCount == 0 || replayData.finalScore < 0 ||
+                     float.IsNaN(replayData.timeLimit) || float.IsInfinity(replayData.timeLimit) || replayData.timeLimit < 0 ||
+                     (replayData.mode != GameMode.Stage && replayData.mode != GameMode.Battle) ||
+                     (replayData.mode == GameMode.Battle && !replayData.IsCompleteBattleRecord())))
+                {
+                    Debug.LogError($"[ReplayStorage] 종료 규칙 또는 완료 기록이 올바르지 않습니다: {filePath}");
+                    return null;
+                }
+
                 Debug.Log($"리플레이 로드 완료: {filePath}");
                 return replayData;
             }

@@ -18,7 +18,7 @@ UI, 팝업, 탭 관련 작업 시 이 문서를 참고.
 | 탭 검색·활성화·비활성화 | [TabController.cs](../Assets/02_Scripts/Manager/TabController.cs) | `ActivateTab`, `DeactivateTab` |
 | 탭 생명주기·애니메이션 확장 | [TabBase.cs](../Assets/02_Scripts/Manager/TabBase.cs) | `Activate`, `Deactivate`, `ActivateAnimation`, `DeactivateAnimation` |
 | Inspector 버튼 콜백 연결 | [UIButton.cs](../Assets/02_Scripts/UI/UIButton.cs) | `OnClickEvent` |
-| 게임 준비·랜덤 모드 선택·최근 리플레이 진입 | [PopupReady.cs](../Assets/02_Scripts/UI/Popup/PopupReady.cs) | `OnClickStart`, `OnClickReplay`, `OnClickClose` |
+| 게임 준비·스테이지·60초 대전·최근 리플레이 진입 | [PopupReady.cs](../Assets/02_Scripts/UI/Popup/PopupReady.cs) | `OnClickStart`, `OnClickBattle`, `OnClickReplay`, `OnClickClose` |
 | Shared 공용 팝업 등록 | [SharedPopupController.cs](../Assets/02_Scripts/Manager/SharedPopupController.cs) | `ControllerName` |
 | 로비 팝업 등록 | [LobbyPopupController.cs](../Assets/02_Scripts/Lobby/LobbyPopupController.cs) | `ControllerName` |
 | 게임 팝업 등록 | [GamePopupController.cs](../Assets/02_Scripts/PuzzleCore/Controller/GamePopupController.cs) | `ControllerName` |
@@ -200,3 +200,10 @@ Inspector에서 설정하는 범용 버튼 컴포넌트.
 3. `TabName` 설정 (또는 GameObject 이름 사용)
 4. 필요 시 `ActivateAnimation()` / `DeactivateAnimation()` 오버라이드
 5. 호출: `DomainManager.Instance.OpenTab("탭이름")`
+
+## 준비 팝업의 플레이 진입
+- `Stage`: 기존 스테이지 시작. 퍼즐 종류를 랜덤 선택하고 목표 달성 또는 제한 시간으로 종료한다.
+- `Battle 60s`: 가장 최근의 유효한 60초 완주 대전 기록을 상대로 선택한다. 기록이 없으면 혼자 60초를 플레이하여 첫 대전 기록을 만든다.
+- `Replay`: 가장 최근 기록을 원래 종료 규칙으로 재생한다. 이전/스테이지 기록도 볼 수 있으며 대전 기록으로 변경하지 않는다.
+- 버튼은 `PopupReady.prefab`의 기존 `UIButton` 메시지 연결 방식을 사용한다.
+- 대전 점수 비교와 상대 상태 표시는 `GameScene.unity`에 연결된 TMP UI이며 상세는 [INGAME.md](INGAME.md#스테이지와-60초-대전)를 참고한다.

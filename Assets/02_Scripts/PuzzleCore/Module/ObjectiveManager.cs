@@ -25,7 +25,12 @@ namespace Puzzle.Core
         public int FeverTimerFrames { get; private set; }
 
         /// <summary> 스테이지 종료까지 남은 시간 (초) </summary>
-        public float RemainingTime { get; private set; }
+        public float RemainingTime => (float)_remainingFrames / GameSpec.LogicFramesPerSecond;
+
+        /// <summary> 실수 누적 오차 없이 차감하는 남은 논리 틱 수입니다. </summary>
+        private int _remainingFrames;
+        /// <summary> 목표 달성으로 조기 종료할 수 있는지 결정하는 모드입니다. </summary>
+        private readonly GameMode _mode;
 
         /// <summary> 초기 설정된 제한 시간 (초) </summary>
         public float TotalLimitTime { get; private set; }
@@ -49,11 +54,13 @@ namespace Puzzle.Core
         /// </summary>
         /// <param name="objectives">RuleData로부터 전달받은 목표 리스트</param>
         /// <param name="timeLimit">스테이지 제한 시간 (초)</param>
-        public ObjectiveManager(List<ObjectiveData> objectives, float timeLimit = 0)
+        /// <param name="mode">스테이지 또는 대전 종료 규칙</param>
+        public ObjectiveManager(List<ObjectiveData> objectives, float timeLimit = 0, GameMode mode = GameMode.Stage)
         {
             _objectives = objectives ?? new List<ObjectiveData>();
-            TotalLimitTime = timeLimit;
-            RemainingTime = timeLimit;
+            _mode = mode;
+            TotalLimitTime = mode == GameMode.Battle ? GameSpec.BattleDurationSeconds : timeLimit;
+            _remainingFrames = (int)System.Math.Ceiling(System.Math.Max(0, TotalLimitTime) * GameSpec.LogicFramesPerSecond);
             CurrentScore = 0;
             ComboCount = 0;
             ComboTimerFrames = 0;
@@ -68,11 +75,10 @@ namespace Puzzle.Core
         /// <param name="isWaiting">보드가 현재 유저의 입력을 대기(Waiting) 중인지 여부</param>
         public void UpdateTimer(bool isWaiting)
         {
-            // 1. 전체 스테이지 제한 시간 감소 (초 단위 계산을 위해 1/50초씩 차감)
-            if (TotalLimitTime > 0 && RemainingTime > 0)
+            // 정수 틱을 차감하여 두 보드가 정확히 같은 3,000번째 틱에 종료되도록 합니다.
+            if (_remainingFrames > 0)
             {
-                RemainingTime -= 0.02f;
-                if (RemainingTime < 0) RemainingTime = 0;
+                _remainingFrames--;
             }
 
             // 2. 피버 타임 및 콤보 타이머 갱신
@@ -104,7 +110,14 @@ namespace Puzzle.Core
         /// </summary>
         public bool IsTimeOver()
         {
-            return TotalLimitTime > 0 && RemainingTime <= 0;
+            return TotalLimitTime > 0 && _remainingFrames <= 0;
+        }
+
+        /// <summary> 모드에 따라 목표 달성 또는 제한 시간 종료를 판정합니다. </summary>
+        /// <returns>현재 게임을 종료할 수 있으면 true</returns>
+        public bool ShouldFinish()
+        {
+            return IsTimeOver() || (_mode == GameMode.Stage && IsAllObjectivesCleared());
         }
 
         /// <summary>

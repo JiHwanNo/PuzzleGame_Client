@@ -193,8 +193,8 @@ PuzzleGameController.Start()
 
 PuzzleGameController.Update()
   → BoardState.Finish 감지
-    → ReplayStorage.Save(replayData) — 리플레이 JSON 자동 저장
-      → Main.MoveScene(GameScene, LobbyScene)
+    → ReplayStorage.Save(replayData) — 모드/시간/완료 틱/점수 포함
+      → Stage: 즉시 로비 이동 / Battle: 점수 비교를 4초간 표시 후 로비 이동
 ```
 
 ---

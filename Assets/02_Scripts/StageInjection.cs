@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using Puzzle.Core;
 
 /// <summary>
@@ -131,6 +131,8 @@ public class StageInjection
             _gameSpec = null;
             return false;
         }
+
+        _replayData = null;
 
         // 3. 결정론적 리플레이를 위한 랜덤 시드 생성
         _gameSpec.randomSeed = new System.Random().Next();
