@@ -13,7 +13,7 @@
 |---|---|---|
 | 입력, 게임 루프, 종료 후 저장, 점수/타이머 UI | [PuzzleGameController.cs](../Assets/02_Scripts/PuzzleCore/Controller/PuzzleGameController.cs) | `Start`, `Update`(입력 수집/UI), `FixedUpdate`(양쪽 공통 틱), `SaveReplay`, `ShowBattleResult`, `UpdateTimerUI` |
 | 보드 공통 계약 | [IPuzzleBoard.cs](../Assets/02_Scripts/PuzzleCore/Module/Board/IPuzzleBoard.cs) | `IPuzzleBoard`, `BoardViewAction` |
-| 3매치 스왑·매칭·낙하·셔플 | [ThreeMatchPuzzleBoard.cs](../Assets/02_Scripts/PuzzleCore/Module/Board/ThreeMatchPuzzleBoard.cs) | `ProcessSwapInput`, `FindMatches`, `ProcessFallingAndFilling`, `CheckAndShuffleIfNoMoves` |
+| 3매치 스왑·매칭·낙하·셔플 | [ThreeMatchPuzzleBoard.cs](../Assets/02_Scripts/PuzzleCore/Module/Board/ThreeMatchPuzzleBoard.cs) | `ProcessSwapInput`, `FindMatches`, `ProcessFallingAndFilling`, `FillFromGenerator`, `CheckAndShuffleIfNoMoves` |
 | 드래그 링크 연결·해제·낙하 | [LinkPuzzleBoard.cs](../Assets/02_Scripts/PuzzleCore/Module/Board/LinkPuzzleBoard.cs) | `Input`, `InputEnd`(큐 등록), `FixedUpdate`, `UpdateState`, `ProcessFallingAndFilling` |
 | 탭 매치 연결 블럭 탐색·파괴 | [TapMatchPuzzleBoard.cs](../Assets/02_Scripts/PuzzleCore/Module/Board/TapMatchPuzzleBoard.cs) | `Input`, `InputEnd`(큐 등록), `FixedUpdate`, `UpdateState`, `GetConnectedBlocks` |
 | 블럭 상태·입력 플래그·기믹 발화 | [Block.cs](../Assets/02_Scripts/PuzzleCore/Module/Block/Block.cs) | `Block`, `GetInputType`, `FireDestroyed` |
@@ -149,6 +149,10 @@ Block : IGimmickHost — State: Idle, Selected, Moving, Matched, Falling, None
 ## 입력 처리 방식
 
 ### 3매치 (ThreeMatch)
+- `ProcessSwapInput()`은 교환 판정 전에 선택 좌표와 선택 표시를 함께 해제합니다. `Swap` 권한 부족 등으로 거절되어도 이전 선택 표시가 남지 않습니다.
+- `ProcessFallingAndFilling()` → `FillFromGenerator()`는 아래에서 위로 생성기를 찾으며, 각 생성기 자신의 목록으로 아래 구간부터 자신의 셀까지 빈칸을 채웁니다. `Close`/`Lock`/누락 셀과 이전 생성기가 공급 구간을 나눕니다. 생성기 없는 구간과 생성기 위쪽은 채우지 않습니다.
+- 단일 최상단 생성기의 생성 순서(열 순서, 아래→위)는 유지합니다. 생성 연출은 해당 생성기 바로 위에서 시작합니다.
+
 1. **탭-탭**: 첫 블럭 선택 → 인접 블럭 선택 → 스왑
 2. **드래그**: 홀드 후 드래그 → 첫-마지막 인접 블럭 스왑
 

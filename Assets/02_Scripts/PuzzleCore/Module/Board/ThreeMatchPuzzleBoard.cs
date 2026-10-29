@@ -252,8 +252,17 @@ namespace Puzzle.Core
             return true;
         }
 
+        /// <summary> 선택을 해제한 뒤 두 셀의 교환 가능 여부와 매칭을 판정합니다. </summary>
+        /// <param name="first">첫 번째 셀 좌표</param>
+        /// <param name="second">두 번째 셀 좌표</param>
         private void ProcessSwapInput(GridPos first, GridPos second)
         {
+            // 권한이나 셀 상태 때문에 조기 반환해도 이전 선택 표시를 남기지 않습니다.
+            if (_selectedPos.HasValue)
+            {
+                GetCell(_selectedPos.Value)?.Block?.SetState(BlockState.Idle);
+                _selectedPos = null;
+            }
             var cellA = GetCell(first);
             var cellB = GetCell(second);
             if (cellA?.Block == null || cellB?.Block == null)
@@ -544,50 +553,71 @@ namespace Puzzle.Core
                     }
                 }
 
-                // 2단계: 남은 위쪽 빈칸들에 새 블럭 보충
-                PuzzleCell generator = null;
-                for (int y = Height - 1; y >= 0; y--)
+                // 아래에서 위로 생성기를 만나면 해당 생성기까지의 구간만 채웁니다.
+                // 막힘/잠금/누락 셀과 이전 생성기는 다음 생성기의 공급 구간을 분리합니다.
+                int fillStartY = 0;
+                for (int y = 0; y < Height; y++)
                 {
-                    var c = GetCell(new GridPos(x, y));
-                    if (c?.CellType == CellType.Generator) { generator = c; break; }
-                }
-
-                if (generator != null)
-                {
-                    int spawnSeq = 0;
-                    for (int y = 0; y < Height; y++)
+                    var cell = GetCell(new GridPos(x, y));
+                    if (cell == null || cell.CellType == CellType.Close || cell.CellType == CellType.Lock)
                     {
-                        var cell = GetCell(new GridPos(x, y));
-                        if (cell != null && cell.Block == null && 
-                            (cell.CellType == CellType.Normal || cell.CellType == CellType.Generator))
+                        fillStartY = y + 1;
+                        continue;
+                    }
+
+                    if (cell.CellType == CellType.Generator)
+                    {
+                        if (FillFromGenerator(x, fillStartY, y, cell, fallOrder))
                         {
-                            cell.Block = generator.GenerateBlock(gameSpec, Random, _blockFactory);
-                            if (cell.Block != null)
-                            {
-                                cell.Block.SetState(BlockState.Falling);
-                                
-                                // 화면 밖에서 줄지어 내려오도록 설정
-                                GridPos spawnPos = new GridPos(x, Height + spawnSeq);
-                                spawnSeq++;
-
-                                AddView(new BoardViewAction
-                                {
-                                    type = ViewType.CreateAndFall,
-                                    frame = (uint)_frameCount,
-                                    position = spawnPos,
-                                    targetPosition = new GridPos(x, y),
-                                    blockData = cell.Block
-                                }, fallOrder);
-
-                                anyChanged = true;
-                            }
+                            anyChanged = true;
                         }
+                        fillStartY = y + 1;
                     }
                 }
             }
 
             if (!anyChanged) _currentOrderIndex--;
             return anyChanged;
+        }
+
+        /// <summary> 생성기의 설정으로 바로 아래 공급 구간의 빈 셀을 채웁니다. </summary>
+        /// <param name="x">처리할 열 좌표</param>
+        /// <param name="startY">공급 구간의 아래쪽 경계</param>
+        /// <param name="generatorY">생성기 셀의 높이</param>
+        /// <param name="generator">블럭 목록을 제공하는 생성기</param>
+        /// <param name="fallOrder">이번 낙하 연출의 공통 순서</param>
+        /// <returns>블럭을 하나 이상 생성했으면 참</returns>
+        private bool FillFromGenerator(int x, int startY, int generatorY, PuzzleCell generator, uint fallOrder)
+        {
+            bool changed = false;
+            int spawnSequence = 0;
+            for (int y = startY; y <= generatorY; y++)
+            {
+                var cell = GetCell(new GridPos(x, y));
+                if (cell == null || cell.Block != null ||
+                    (cell.CellType != CellType.Normal && cell.CellType != CellType.Generator))
+                {
+                    continue;
+                }
+
+                cell.Block = generator.GenerateBlock(gameSpec, Random, _blockFactory);
+                if (cell.Block == null)
+                {
+                    continue;
+                }
+
+                cell.Block.SetState(BlockState.Falling);
+                AddView(new BoardViewAction
+                {
+                    type = ViewType.CreateAndFall,
+                    position = new GridPos(x, generatorY + 1 + spawnSequence),
+                    targetPosition = new GridPos(x, y),
+                    blockData = cell.Block
+                }, fallOrder);
+                spawnSequence++;
+                changed = true;
+            }
+            return changed;
         }
 
         public void Pause(bool pause) { }
