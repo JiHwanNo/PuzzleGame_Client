@@ -40,6 +40,8 @@ namespace Puzzle.Core
         /// <summary> GetConnectedBlocks() 인접 방향 배열 (매 호출마다 할당 방지) </summary>
         private static readonly GridPos[] _adjacentDirs = { GridPos.Up, GridPos.Down, GridPos.Left, GridPos.Right };
 
+        /// <summary> 게임 사양에 따라 보드와 입력 기록, 난수 및 목표 상태를 초기화합니다. </summary>
+        /// <param name="spec">보드 초기화에 사용할 게임 사양</param>
         public void Initialize(GameSpec spec)
         {
             _blockFactory = new PuzzleBlockFactory();
@@ -61,7 +63,7 @@ namespace Puzzle.Core
             {
                 Width = gameSpec.stageData.stage_width;
                 Height = gameSpec.stageData.stage_height;
-                foreach (var cellData in gameSpec.stageData.cells)
+                foreach (CellData cellData in gameSpec.stageData.cells)
                 {
                     GridPos pos = new GridPos(cellData.x, cellData.y);
                     PuzzleCell cell = new PuzzleCell(pos)
@@ -137,7 +139,7 @@ namespace Puzzle.Core
             _lastEnqueuedInput = input;
             _recordedInputs.Add(new InputRecord(_frameCount, input, _inputSequence++));
             
-            var cell = GetCell(input);
+            PuzzleCell cell = GetCell(input);
             if (cell != null && cell.Block != null)
             {
                 // 클릭 피드백
@@ -152,9 +154,9 @@ namespace Puzzle.Core
 
             if (State != BoardState.Waiting || _inputQueue.Count == 0)
             {
-                foreach (var pos in _inputQueue)
+                foreach (GridPos pos in _inputQueue)
                 {
-                    var c = GetCell(pos);
+                    PuzzleCell c = GetCell(pos);
                     if (c != null && c.Block != null)
                     {
                         c.Block.SetState(BlockState.Idle);
@@ -167,9 +169,9 @@ namespace Puzzle.Core
 
             GridPos targetPos = _inputQueue.Dequeue();
 
-            foreach (var pos in _inputQueue)
+            foreach (GridPos pos in _inputQueue)
             {
-                var c = GetCell(pos);
+                PuzzleCell c = GetCell(pos);
                 if (c != null && c.Block != null)
                 {
                     c.Block.SetState(BlockState.Idle);
@@ -196,7 +198,7 @@ namespace Puzzle.Core
             }
 
             string targetId = cell.Block.GetBlockId();
-            var matched = GetConnectedBlocks(targetPos, targetId);
+            HashSet<GridPos> matched = GetConnectedBlocks(targetPos, targetId);
 
             // 툰 블라스트 룰: 2개 이상일 때만 파괴 가능
             if (matched.Count >= 2)
@@ -207,9 +209,9 @@ namespace Puzzle.Core
                 }
 
                 uint burstOrder = _currentOrderIndex++;
-                foreach (var pos in matched)
+                foreach (GridPos pos in matched)
                 {
-                    var mCell = GetCell(pos);
+                    PuzzleCell mCell = GetCell(pos);
                     if (mCell != null && mCell.Block != null)
                     {
                         Block destroyed = mCell.Block;
@@ -243,6 +245,8 @@ namespace Puzzle.Core
         /// Flood Fill 알고리즘을 사용하여 인접한 동일 블럭들을 모두 찾습니다.
         /// 사전 할당된 컬렉션을 재사용하여 GC 할당을 방지합니다.
         /// </summary>
+        /// <param name="start">연결 탐색을 시작할 좌표</param>
+        /// <param name="targetId">연결할 블럭의 식별자</param>
         private HashSet<GridPos> GetConnectedBlocks(GridPos start, string targetId)
         {
             _connectedBuffer.Clear();
@@ -276,7 +280,7 @@ namespace Puzzle.Core
         /// <summary> 고정 틱에서 셀과 보드 상태를 갱신합니다. </summary>
         private void UpdateState()
         {
-            foreach (var cell in Cells.Values)
+            foreach (PuzzleCell cell in Cells.Values)
             {
                 cell.Update(this);
             }
@@ -298,7 +302,7 @@ namespace Puzzle.Core
                     // 탭 매치에서는 연쇄 폭발(Cascade) 없이 바로 대기 상태로 돌아감
                     State = BoardState.Waiting;
 
-                    foreach (var cell in Cells.Values)
+                    foreach (PuzzleCell cell in Cells.Values)
                     {
                         if (cell.Block != null)
                         {
@@ -343,6 +347,7 @@ namespace Puzzle.Core
             _frameCount++;
         }
 
+        /// <summary> 블럭을 아래로 이동하고 각 생성기의 공급 구간에 빈칸을 채웁니다. </summary>
         private void ProcessFallingAndFilling()
         {
             bool anyChanged = false;
@@ -353,7 +358,7 @@ namespace Puzzle.Core
                 int writeY = 0;
                 for (int y = 0; y < Height; y++)
                 {
-                    var cell = GetCell(new GridPos(x, y));
+                    PuzzleCell cell = GetCell(new GridPos(x, y));
                     if (cell == null)
                     {
                         // 누락된 셀은 낙하 경계로 취급하여 그 위 블럭이 기존 블럭을 덮어쓰지 않게 합니다.
@@ -371,7 +376,7 @@ namespace Puzzle.Core
                     {
                         if (writeY != y)
                         {
-                            var targetCell = GetCell(new GridPos(x, writeY));
+                            PuzzleCell targetCell = GetCell(new GridPos(x, writeY));
                             if (targetCell != null)
                             {
                                 Block movingBlock = cell.Block;
@@ -417,7 +422,10 @@ namespace Puzzle.Core
                 }
             }
 
-            if (!anyChanged) _currentOrderIndex--;
+            if (!anyChanged)
+            {
+                _currentOrderIndex--;
+            }
         }
 
         /// <summary> 생성기의 설정으로 바로 아래 공급 구간의 빈 셀을 채웁니다. </summary>
@@ -460,12 +468,17 @@ namespace Puzzle.Core
             return changed;
         }
 
-        public void Pause(bool pause) { }
+        /// <summary> 일시정지 요청을 받습니다. 현재 구현에서는 보드 상태를 변경하지 않습니다. </summary>
+        /// <param name="pause">일시정지 요청 여부</param>
+        public void Pause(bool pause)
+        {
+        }
         /// <summary> 기록한 좌표 입력 목록의 복사본을 반환합니다. </summary>
         public List<InputRecord> GetRecordedInputs() => new List<InputRecord>(_recordedInputs);
         /// <summary> 기록한 입력 종료 목록의 복사본을 반환합니다. </summary>
         public List<InputEndRecord> GetRecordedInputEnds() => new List<InputEndRecord>(_recordedInputEnds);
 
+        /// <summary> 연출 액션을 프레임과 순서로 정렬하고 목록의 소유권을 호출자에게 넘깁니다. </summary>
         public List<BoardViewAction> FetchActions()
         {
             // LINQ 대신 List.Sort로 GC 할당 방지
@@ -475,11 +488,14 @@ namespace Puzzle.Core
                 return cmp != 0 ? cmp : a.orderIndex.CompareTo(b.orderIndex);
             });
             // 리스트 복사 대신 참조 스왑으로 GC 할당 방지
-            var res = _views;
+            List<BoardViewAction> res = _views;
             _views = new List<BoardViewAction>();
             return res;
         }
 
+        /// <summary> 연출 액션에 현재 프레임과 처리 순서를 부여해 등록합니다. </summary>
+        /// <param name="view">등록할 연출 액션</param>
+        /// <param name="customOrder">직접 지정할 연출 순서이며 생략하면 내부 순서를 사용</param>
         public void AddView(BoardViewAction view, uint? customOrder = null)
         {
             // 연출 프레임/순서는 큐 소유자(보드)가 스탬프한다. (Model의 연출 데이터 책임 분리)
@@ -499,20 +515,23 @@ namespace Puzzle.Core
         /// <param name="pos">조회할 그리드 좌표</param>
         public PuzzleCell GetCell(GridPos pos)
         {
-            if (Cells.TryGetValue(pos, out var cell))
+            if (Cells.TryGetValue(pos, out PuzzleCell cell))
             {
                 return cell;
             }
             return null;
         }
 
+        /// <summary> 조작 가능한 셀에 있는 블럭의 식별자를 반환합니다. </summary>
+        /// <param name="pos">대상 격자 좌표</param>
         private string GetBlockIdAt(GridPos pos)
         {
-            var cell = GetCell(pos);
+            PuzzleCell cell = GetCell(pos);
             bool isMatchable = (cell != null && cell.Block != null) && (cell.CellType == CellType.Normal || cell.CellType == CellType.Generator);
             return isMatchable ? cell.Block.GetBlockId() : null;
         }
 
+        /// <summary> 현재 입력 규칙으로 매칭 가능한 조작이 있는지 확인합니다. </summary>
         private bool HasPossibleMoves()
         {
             for (int y = 0; y < Height; y++)
@@ -539,9 +558,13 @@ namespace Puzzle.Core
             return false;
         }
 
+        /// <summary> 가능한 조작이 없으면 재배치를 시도하고 실패 시 기존 배치를 복원합니다. </summary>
         private void CheckAndShuffleIfNoMoves()
         {
-            if (HasPossibleMoves()) return;
+            if (HasPossibleMoves())
+            {
+                return;
+            }
 
             List<Block> blocks = new List<Block>();
             List<GridPos> positions = new List<GridPos>();
@@ -550,7 +573,7 @@ namespace Puzzle.Core
             {
                 for (int x = 0; x < Width; x++)
                 {
-                    var cell = GetCell(new GridPos(x, y));
+                    PuzzleCell cell = GetCell(new GridPos(x, y));
                     if ((cell != null && cell.Block != null) && (cell.CellType == CellType.Normal || cell.CellType == CellType.Generator))
                     {
                         blocks.Add(cell.Block);
@@ -559,7 +582,10 @@ namespace Puzzle.Core
                 }
             }
 
-            if (blocks.Count == 0) return;
+            if (blocks.Count == 0)
+            {
+                return;
+            }
 
             // 실패 시 원래 블럭 참조와 배치를 그대로 복원하여 뷰와 일치시킵니다.
             List<Block> originalBlocks = new List<Block>(blocks);
@@ -571,7 +597,7 @@ namespace Puzzle.Core
                 for (int i = blocks.Count - 1; i > 0; i--)
                 {
                     int j = Random.Next(0, i + 1);
-                    var temp = blocks[i];
+                    Block temp = blocks[i];
                     blocks[i] = blocks[j];
                     blocks[j] = temp;
                 }
@@ -600,9 +626,9 @@ namespace Puzzle.Core
             if (success)
             {
                 uint shuffleOrder = _currentOrderIndex++;
-                foreach (var pos in positions)
+                foreach (GridPos pos in positions)
                 {
-                    var cell = GetCell(pos);
+                    PuzzleCell cell = GetCell(pos);
                     if (cell != null && cell.Block != null)
                     {
                         AddView(new BoardViewAction

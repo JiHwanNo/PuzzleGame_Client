@@ -152,14 +152,19 @@ namespace Puzzle.Core
             {
                 // 1콤보 = 1.0x, 2콤보 = 1.2x, 3콤보 = 1.4x ... 최대 3.0x
                 multiplier = 1.0f + (ComboCount - 1) * 0.2f;
-                if (multiplier > 3.0f) multiplier = 3.0f;
+                if (multiplier > 3.0f)
+                {
+                    multiplier = 3.0f;
+                }
             }
 
             // 1. 전체 점수 누적 (배율 적용)
             CurrentScore += (int)(score * multiplier);
 
             if (string.IsNullOrEmpty(blockId))
+            {
                 return;
+            }
 
             // 2. 특정 블럭 수집 카운트 갱신
             if (_currentCounts.ContainsKey(blockId))
@@ -183,7 +188,7 @@ namespace Puzzle.Core
                 return false;
             }
 
-            foreach (var obj in _objectives)
+            foreach (ObjectiveData obj in _objectives)
             {
                 switch (obj.type)
                 {

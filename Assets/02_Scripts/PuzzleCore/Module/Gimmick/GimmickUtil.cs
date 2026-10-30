@@ -19,7 +19,7 @@
             {
                 return;
             }
-            var cell = board.GetCell(pos);
+            PuzzleCell cell = board.GetCell(pos);
             if (cell == null || cell.Block == null)
             {
                 // 빈 칸 → 연쇄 종료

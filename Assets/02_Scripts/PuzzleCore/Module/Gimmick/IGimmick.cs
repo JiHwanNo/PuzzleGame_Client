@@ -63,19 +63,31 @@ namespace Puzzle.Core
     public abstract class GimmickBase : IGimmick
     {
         /// <inheritdoc/>
+        /// <summary> 호스트 부착 시 호출되는 기본 훅입니다. 기본 구현은 추가 작업을 하지 않습니다. </summary>
+        /// <param name="owner">기믹을 부착한 블럭</param>
         public virtual void OnAttach(Block owner)
         {
         }
 
         /// <inheritdoc/>
+        /// <summary> 호스트 파괴 시 호출되는 기본 훅입니다. 기본 구현은 추가 작업을 하지 않습니다. </summary>
+        /// <param name="board">현재 퍼즐 보드</param>
+        /// <param name="myPos">호스트의 현재 격자 좌표</param>
         public virtual void OnDestroyed(IPuzzleBoard board, GridPos myPos)
         {
         }
 
         /// <inheritdoc/>
+        /// <summary> 터치 입력을 처리하지 않는 기본 훅입니다. </summary>
+        /// <param name="board">현재 퍼즐 보드</param>
+        /// <param name="myPos">호스트의 현재 격자 좌표</param>
         public virtual bool OnTouched(IPuzzleBoard board, GridPos myPos) => false;
 
         /// <inheritdoc/>
+        /// <summary> 스왑 입력을 처리하지 않는 기본 훅입니다. </summary>
+        /// <param name="board">현재 퍼즐 보드</param>
+        /// <param name="myPos">호스트의 현재 격자 좌표</param>
+        /// <param name="targetPos">스왑 대상 격자 좌표</param>
         public virtual bool OnSwapped(IPuzzleBoard board, GridPos myPos, GridPos targetPos) => false;
     }
 }

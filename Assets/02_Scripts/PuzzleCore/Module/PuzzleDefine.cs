@@ -14,6 +14,9 @@ namespace Puzzle.Core
         /// <summary> 세로 좌표 (Y축) </summary>
         public int Y;
 
+        /// <summary> 지정한 가로와 세로 좌표로 격자 위치를 생성합니다. </summary>
+        /// <param name="x">가로 좌표</param>
+        /// <param name="y">세로 좌표</param>
         public GridPos(int x, int y)
         {
             X = x;
@@ -34,6 +37,8 @@ namespace Puzzle.Core
         /// <summary>
         /// 일반 사각형 그리드에서 두 좌표가 상하좌우로 인접해 있는지 확인합니다.
         /// </summary>
+        /// <param name="a">첫 번째 격자 좌표</param>
+        /// <param name="b">두 번째 격자 좌표</param>
         public static bool IsAdjacentSquare(GridPos a, GridPos b)
         {
             int dx = Math.Abs(a.X - b.X);
@@ -45,6 +50,8 @@ namespace Puzzle.Core
         /// Flat-Top(Even-Q) 육각형 그리드에서 두 좌표가 6방향으로 인접해 있는지 확인합니다.
         /// 짝수 열(Column)이 반 칸 아래로 내려가 있는 형태를 기준으로 합니다.
         /// </summary>
+        /// <param name="a">첫 번째 격자 좌표</param>
+        /// <param name="b">두 번째 격자 좌표</param>
         public static bool IsAdjacentHexagon(GridPos a, GridPos b)
         {
             int dx = b.X - a.X;
@@ -71,24 +78,35 @@ namespace Puzzle.Core
         }
 
         // --- 연산자 오버로딩 ---
+        /// <summary> 두 격자 좌표의 각 성분을 더합니다. </summary>
+        /// <param name="a">첫 번째 격자 좌표</param>
+        /// <param name="b">두 번째 격자 좌표</param>
         public static GridPos operator +(GridPos a, GridPos b) => new GridPos(a.X + b.X, a.Y + b.Y);
 
+        /// <summary> 두 격자 좌표의 각 성분을 뺍니다. </summary>
+        /// <param name="a">첫 번째 격자 좌표</param>
+        /// <param name="b">두 번째 격자 좌표</param>
         public static GridPos operator -(GridPos a, GridPos b) => new GridPos(a.X - b.X, a.Y - b.Y);
 
-        public static bool operator ==(GridPos a, GridPos b)
-        {
-            return a.X == b.X && a.Y == b.Y;
-        }
+        /// <summary> 두 격자 좌표가 같은지 확인합니다. </summary>
+        /// <param name="a">첫 번째 격자 좌표</param>
+        /// <param name="b">두 번째 격자 좌표</param>
+        public static bool operator ==(GridPos a, GridPos b) => a.X == b.X && a.Y == b.Y;
 
-        public static bool operator !=(GridPos a, GridPos b)
-        {
-            return !(a == b);
-        }
+        /// <summary> 두 격자 좌표가 다른지 확인합니다. </summary>
+        /// <param name="a">첫 번째 격자 좌표</param>
+        /// <param name="b">두 번째 격자 좌표</param>
+        public static bool operator !=(GridPos a, GridPos b) => !(a == b);
 
+        /// <summary> 대상과 현재 격자 좌표가 같은지 확인합니다. </summary>
+        /// <param name="other">비교할 격자 좌표</param>
         public bool Equals(GridPos other) => X == other.X && Y == other.Y;
 
+        /// <summary> 대상과 현재 격자 좌표가 같은지 확인합니다. </summary>
+        /// <param name="obj">비교할 객체</param>
         public override bool Equals(object obj) => obj is GridPos other && Equals(other);
 
+        /// <summary> 격자 좌표의 해시 코드를 반환합니다. </summary>
         public override int GetHashCode()
         {
             // 구버전 닷넷 호환성을 고려한 해시 생성
@@ -98,6 +116,7 @@ namespace Puzzle.Core
             }
         }
 
+        /// <summary> 격자 좌표를 문자열로 반환합니다. </summary>
         public override string ToString() => $"({X}, {Y})";
     }
 

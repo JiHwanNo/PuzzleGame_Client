@@ -44,6 +44,8 @@ namespace Puzzle.Core
             }
         }
 
+        /// <summary> 게임 사양에 따라 보드와 입력 기록, 난수 및 목표 상태를 초기화합니다. </summary>
+        /// <param name="spec">보드 초기화에 사용할 게임 사양</param>
         public void Initialize(GameSpec spec)
         {
             _blockFactory = new PuzzleBlockFactory();
@@ -64,7 +66,7 @@ namespace Puzzle.Core
             {
                 Width = gameSpec.stageData.stage_width;
                 Height = gameSpec.stageData.stage_height;
-                foreach (var cellData in gameSpec.stageData.cells)
+                foreach (CellData cellData in gameSpec.stageData.cells)
                 {
                     GridPos pos = new GridPos(cellData.x, cellData.y);
                     PuzzleCell cell = new PuzzleCell(pos)
@@ -124,7 +126,7 @@ namespace Puzzle.Core
                 return;
             }
 
-            var targetCell = GetCell(input);
+            PuzzleCell targetCell = GetCell(input);
             if (targetCell == null || targetCell.Block == null)
             {
                 return;
@@ -154,7 +156,7 @@ namespace Puzzle.Core
                 if (_linkPath.Count > 1 && _linkPath[_linkPath.Count - 2] == input)
                 {
                     GridPos lastPos = _linkPath[_linkPath.Count - 1];
-                    var lastCell = GetCell(lastPos);
+                    PuzzleCell lastCell = GetCell(lastPos);
                     if (lastCell != null && lastCell.Block != null)
                     {
                         lastCell.Block.SetState(BlockState.Idle);
@@ -166,7 +168,7 @@ namespace Puzzle.Core
 
             // 3. 새 노드 연결 시도
             GridPos currentPos = _linkPath[_linkPath.Count - 1];
-            var currentCell = GetCell(currentPos);
+            PuzzleCell currentCell = GetCell(currentPos);
             if (currentCell == null || currentCell.Block == null)
             {
                 Log($"[LinkPuzzleBoard] 링크 경로의 마지막 셀({currentPos.X},{currentPos.Y})에 블럭이 없습니다.");
@@ -233,11 +235,12 @@ namespace Puzzle.Core
             }
         }
 
+        /// <summary> 링크 경로의 선택 표시를 해제하고 경로를 비웁니다. </summary>
         private void ClearPath()
         {
-            foreach (var pos in _linkPath)
+            foreach (GridPos pos in _linkPath)
             {
-                var cell = GetCell(pos);
+                PuzzleCell cell = GetCell(pos);
                 if (cell != null && cell.Block != null)
                 {
                     cell.Block.SetState(BlockState.Idle);
@@ -249,7 +252,7 @@ namespace Puzzle.Core
         /// <summary> 고정 틱에서 셀과 보드 상태를 갱신합니다. </summary>
         private void UpdateState()
         {
-            foreach (var cell in Cells.Values)
+            foreach (PuzzleCell cell in Cells.Values)
             {
                 cell.Update(this);
             }
@@ -322,9 +325,13 @@ namespace Puzzle.Core
             _frameCount++;
         }
 
+        /// <summary> 매칭된 블럭을 파괴하고 점수와 기믹 및 연출 액션을 갱신합니다. </summary>
         private bool ProcessMatching()
         {
-            if (_linkPath == null || _linkPath.Count < 3) return false;
+            if (_linkPath == null || _linkPath.Count < 3)
+            {
+                return false;
+            }
 
             if (Objective != null)
             {
@@ -332,9 +339,9 @@ namespace Puzzle.Core
             }
             uint burstOrder = _currentOrderIndex++;
 
-            foreach (var pos in _linkPath)
+            foreach (GridPos pos in _linkPath)
             {
-                var cell = GetCell(pos);
+                PuzzleCell cell = GetCell(pos);
                 if (cell != null && cell.Block != null)
                 {
                     Block destroyed = cell.Block;
@@ -358,6 +365,7 @@ namespace Puzzle.Core
             return true;
         }
 
+        /// <summary> 블럭을 아래로 이동하고 각 생성기의 공급 구간에 빈칸을 채웁니다. </summary>
         private bool ProcessFallingAndFilling()
         {
             bool anyChanged = false;
@@ -369,7 +377,7 @@ namespace Puzzle.Core
                 int writeY = 0;
                 for (int y = 0; y < Height; y++)
                 {
-                    var cell = GetCell(new GridPos(x, y));
+                    PuzzleCell cell = GetCell(new GridPos(x, y));
                     if (cell == null)
                     {
                         // 누락된 셀은 낙하 경계로 취급하여 그 위 블럭이 기존 블럭을 덮어쓰지 않게 합니다.
@@ -387,7 +395,7 @@ namespace Puzzle.Core
                     {
                         if (writeY != y)
                         {
-                            var targetCell = GetCell(new GridPos(x, writeY));
+                            PuzzleCell targetCell = GetCell(new GridPos(x, writeY));
                             if (targetCell != null)
                             {
                                 Block movingBlock = cell.Block;
@@ -433,7 +441,10 @@ namespace Puzzle.Core
                 }
             }
 
-            if (!anyChanged) _currentOrderIndex--;
+            if (!anyChanged)
+            {
+                _currentOrderIndex--;
+            }
             return anyChanged;
         }
 
@@ -491,13 +502,18 @@ namespace Puzzle.Core
             return false;
         }
 
-        public void Pause(bool pause) { }
+        /// <summary> 일시정지 요청을 받습니다. 현재 구현에서는 보드 상태를 변경하지 않습니다. </summary>
+        /// <param name="pause">일시정지 요청 여부</param>
+        public void Pause(bool pause)
+        {
+        }
 
         /// <summary> 기록한 좌표 입력 목록의 복사본을 반환합니다. </summary>
         public List<InputRecord> GetRecordedInputs() => new List<InputRecord>(_recordedInputs);
         /// <summary> 기록한 입력 종료 목록의 복사본을 반환합니다. </summary>
         public List<InputEndRecord> GetRecordedInputEnds() => new List<InputEndRecord>(_recordedInputEnds);
 
+        /// <summary> 연출 액션을 프레임과 순서로 정렬하고 목록의 소유권을 호출자에게 넘깁니다. </summary>
         public List<BoardViewAction> FetchActions()
         {
             // LINQ 대신 List.Sort로 GC 할당 방지
@@ -507,11 +523,14 @@ namespace Puzzle.Core
                 return cmp != 0 ? cmp : a.orderIndex.CompareTo(b.orderIndex);
             });
             // 리스트 복사 대신 참조 스왑으로 GC 할당 방지
-            var res = _views;
+            List<BoardViewAction> res = _views;
             _views = new List<BoardViewAction>();
             return res;
         }
 
+        /// <summary> 연출 액션에 현재 프레임과 처리 순서를 부여해 등록합니다. </summary>
+        /// <param name="view">등록할 연출 액션</param>
+        /// <param name="customOrder">직접 지정할 연출 순서이며 생략하면 내부 순서를 사용</param>
         public void AddView(BoardViewAction view, uint? customOrder = null)
         {
             // 연출 프레임/순서는 큐 소유자(보드)가 스탬프한다. (Model의 연출 데이터 책임 분리)
@@ -531,7 +550,7 @@ namespace Puzzle.Core
         /// <param name="pos">조회할 그리드 좌표</param>
         public PuzzleCell GetCell(GridPos pos)
         {
-            if (Cells.TryGetValue(pos, out var cell))
+            if (Cells.TryGetValue(pos, out PuzzleCell cell))
             {
                 return cell;
             }

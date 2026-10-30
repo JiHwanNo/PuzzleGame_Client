@@ -148,8 +148,8 @@ public class PuzzleGameController : MonoBehaviour
                 // 모든 충돌체를 순회하며 PuzzleBlockCollider를 찾습니다.
                 for (int i = 0; i < hitCount; i++)
                 {
-                    var hitCollider = _hitBuffer[i];
-                    if (hitCollider.TryGetComponent<PuzzleBlockCollider>(out var blockCollider))
+                    Collider2D hitCollider = _hitBuffer[i];
+                    if (hitCollider.TryGetComponent<PuzzleBlockCollider>(out PuzzleBlockCollider blockCollider))
                     {
                         GridPos? pos = GetGridPosFromCollider(hitCollider);
                         // 이전에 머물렀던 블럭과 다른 블럭으로 마우스가 이동했을 때만 입력 처리
@@ -296,7 +296,7 @@ public class PuzzleGameController : MonoBehaviour
     /// <returns>블럭 뷰가 가진 그리드 좌표 혹은 null</returns>
     private GridPos? GetGridPosFromCollider(Collider2D col)
     {
-        var view = col.GetComponentInParent<PuzzleBlockView>();
+        PuzzleBlockView view = col.GetComponentInParent<PuzzleBlockView>();
         if (view != null && view.BoardView == boardView && boardView != null && boardView.InputEnabled)
         {
             return view.GridPos;
@@ -350,7 +350,7 @@ public class PuzzleGameController : MonoBehaviour
             return;
         }
 
-        var replayData = new ReplayData
+        ReplayData replayData = new ReplayData
         {
             formatVersion = ReplayData.CurrentFormatVersion,
             mode = _mode,

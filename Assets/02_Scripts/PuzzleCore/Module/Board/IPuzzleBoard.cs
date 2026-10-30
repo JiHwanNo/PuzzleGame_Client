@@ -46,9 +46,11 @@ namespace Puzzle.Core
         int Height { get; }
 
         /// <summary> 게임 사양서를 바탕으로 보드를 초기화합니다. </summary>
+        /// <param name="spec">보드 초기화에 사용할 게임 사양</param>
         void Initialize(GameSpec spec);
 
         /// <summary> 외부에서 입력 좌표를 전달받아 처리 대기열에 추가합니다. </summary>
+        /// <param name="input">입력한 격자 좌표</param>
         void Input(GridPos input);
 
         /// <summary> 입력 종료를 대기열에 추가합니다. 반환값은 등록 성공 여부이며 매칭 결과가 아닙니다. </summary>
@@ -58,9 +60,12 @@ namespace Puzzle.Core
         void FixedUpdate();
 
         /// <summary> 보드의 로직 처리를 일시 정지하거나 재개합니다. </summary>
+        /// <param name="pause">일시정지 요청 여부</param>
         void Pause(bool pause);
 
         /// <summary> 화면 연출을 위해 발생한 상태 변화를 추가합니다. </summary>
+        /// <param name="view">등록할 연출 액션</param>
+        /// <param name="customOrder">직접 지정할 연출 순서이며 생략하면 내부 순서를 사용</param>
         public void AddView(BoardViewAction view, uint? customOrder = null);
 
         /// <summary> 발생한 View 액션 리스트를 가져오고 보드 내역을 비웁니다. (소비형) </summary>
@@ -73,6 +78,7 @@ namespace Puzzle.Core
         List<InputEndRecord> GetRecordedInputEnds();
 
         /// <summary> 지정된 좌표에 해당하는 셀 객체를 가져옵니다. </summary>
+        /// <param name="pos">대상 격자 좌표</param>
         PuzzleCell GetCell(GridPos pos);
     }
 }

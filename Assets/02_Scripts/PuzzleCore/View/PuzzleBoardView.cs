@@ -113,7 +113,7 @@ public class PuzzleBoardView : MonoBehaviour
         }
         GUIStyle style = _debugStyle;
 
-        foreach (var kvp in _board.Cells)
+        foreach (KeyValuePair<GridPos, PuzzleCell> kvp in _board.Cells)
         {
             GridPos pos = kvp.Key;
             PuzzleCell cell = kvp.Value;
@@ -164,6 +164,7 @@ public class PuzzleBoardView : MonoBehaviour
     }
 #endif
 
+    /// <summary> 코루틴을 중단하고 애니메이션 상태와 링크 표시 리소스를 정리합니다. </summary>
     private void OnDestroy()
     {
         StopAllCoroutines();
@@ -236,7 +237,7 @@ public class PuzzleBoardView : MonoBehaviour
             blockRoot = this.transform;
         }
 
-        foreach (var kvp in _board.Cells)
+        foreach (KeyValuePair<GridPos, PuzzleCell> kvp in _board.Cells)
         {
             GridPos gridPos = kvp.Key;
             PuzzleCell cell = kvp.Value;
@@ -255,6 +256,7 @@ public class PuzzleBoardView : MonoBehaviour
         }
     }
 
+    /// <summary> 링크 경로를 표시할 선과 마커 리소스를 준비합니다. </summary>
     private void SetupLineRenderer()
     {
         if (_lineRenderer == null)
@@ -337,6 +339,8 @@ public class PuzzleBoardView : MonoBehaviour
         return tex;
     }
 
+    /// <summary> 격자 좌표를 보드 형태에 맞는 로컬 위치로 변환합니다. </summary>
+    /// <param name="pos">대상 격자 좌표</param>
     public Vector3 GetLocalPos(GridPos pos)
     {
         if (_board == null)
@@ -362,6 +366,7 @@ public class PuzzleBoardView : MonoBehaviour
         return new Vector3(xPos, yPos, 0);
     }
 
+    /// <summary> 보드를 화면 중앙에 배치하고 카메라 크기를 조정합니다. </summary>
     private void AlignBoardToCenter()
     {
         if (_board == null)
@@ -402,9 +407,10 @@ public class PuzzleBoardView : MonoBehaviour
         transform.localPosition = new Vector3(0, finalY, 0);
     }
 
+    /// <summary> 기존 셀과 블럭 뷰를 반환하고 보드 표시 상태를 비웁니다. </summary>
     private void ClearBoard()
     {
-        foreach (var view in _cellViews.Values)
+        foreach (PuzzleCellView view in _cellViews.Values)
         {
             if (view != null)
             {
@@ -412,7 +418,7 @@ public class PuzzleBoardView : MonoBehaviour
             }
         }
 
-        foreach (var view in _blockViews.Values)
+        foreach (PuzzleBlockView view in _blockViews.Values)
         {
             if (view != null)
             {
@@ -433,6 +439,9 @@ public class PuzzleBoardView : MonoBehaviour
         }
     }
 
+    /// <summary> 지정 좌표에 셀 뷰를 생성하고 초기화합니다. </summary>
+    /// <param name="gridPos">뷰를 배치할 격자 좌표</param>
+    /// <param name="cellData">표시할 셀 데이터</param>
     private void CreateCellView(GridPos gridPos, PuzzleCell cellData)
     {
         if (_cellPrefabObj == null)
@@ -454,6 +463,9 @@ public class PuzzleBoardView : MonoBehaviour
         _cellViews[gridPos] = cellView;
     }
 
+    /// <summary> 지정 좌표에 블럭 뷰를 생성하고 초기화합니다. </summary>
+    /// <param name="gridPos">뷰를 배치할 격자 좌표</param>
+    /// <param name="blockData">표시할 블럭 데이터</param>
     private void CreateBlockView(GridPos gridPos, Block blockData)
     {
         if (_blockPrefabObj == null)
@@ -473,6 +485,7 @@ public class PuzzleBoardView : MonoBehaviour
         }
     }
 
+    /// <summary> 블럭 상태와 링크 경로를 갱신하고 모델의 연출 액션을 수집합니다. </summary>
     private void Update()
     {
         if (_board == null)
@@ -482,7 +495,7 @@ public class PuzzleBoardView : MonoBehaviour
 
         UpdateLineRenderer();
 
-        foreach (var kvp in _blockViews)
+        foreach (KeyValuePair<GridPos, PuzzleBlockView> kvp in _blockViews)
         {
             if (kvp.Value != null)
             {
@@ -532,7 +545,10 @@ public class PuzzleBoardView : MonoBehaviour
     /// <summary> 변경된 링크 경로를 선과 포인트 마커에 반영합니다. </summary>
     private void UpdateLineRenderer()
     {
-        if (_lineRenderer == null) return;
+        if (_lineRenderer == null)
+        {
+            return;
+        }
 
         if (_board is LinkPuzzleBoard linkBoard)
         {
@@ -682,6 +698,7 @@ public class PuzzleBoardView : MonoBehaviour
     /// <summary> ProcessActionQueue 내부에서 기타 액션을 재사용하는 임시 리스트 </summary>
     private readonly List<BoardViewAction> _tempOtherActions = new List<BoardViewAction>();
 
+    /// <summary> 연출 액션 그룹을 순서대로 재생하고 완료를 기다립니다. </summary>
     private IEnumerator ProcessActionQueue()
     {
         _isAnimating = true;
@@ -737,6 +754,8 @@ public class PuzzleBoardView : MonoBehaviour
     private readonly List<BoardViewAction> _batchActions = new List<BoardViewAction>();
     private readonly List<PuzzleBlockView> _batchViews = new List<PuzzleBlockView>();
 
+    /// <summary> 기존 블럭 이동을 먼저 확보한 뒤 생성 낙하를 준비하고 함께 재생합니다. </summary>
+    /// <param name="moveActions">함께 재생할 이동 및 낙하 액션 목록</param>
     private System.Collections.IEnumerator ExecuteBatchMovement(List<BoardViewAction> moveActions)
     {
         int completedCount = 0;
@@ -824,6 +843,9 @@ public class PuzzleBoardView : MonoBehaviour
         }
     }
 
+    /// <summary> 단일 연출 액션을 실행하고 완료 콜백을 전달합니다. </summary>
+    /// <param name="action">실행할 연출 액션</param>
+    /// <param name="onComplete">연출 완료 시 호출할 콜백</param>
     private void ExecuteSingleAction(BoardViewAction action, System.Action onComplete)
     {
         switch (action.type)
@@ -908,6 +930,8 @@ public class PuzzleBoardView : MonoBehaviour
         }
     }
 
+    /// <summary> 지정 좌표의 블럭 뷰를 즉시 제거하고 풀에 반환합니다. </summary>
+    /// <param name="pos">대상 격자 좌표</param>
     private void HandleImmediateDestroy(GridPos pos)
     {
         if (_blockViews.TryGetValue(pos, out PuzzleBlockView view))
@@ -931,6 +955,7 @@ public class PuzzleBoardView : MonoBehaviour
         }
     }
 
+    /// <summary> 현재 모델의 블럭 배치에 맞춰 블럭 뷰를 다시 생성합니다. </summary>
     public void RefreshBlocks()
     {
         if (_board == null)
@@ -938,7 +963,7 @@ public class PuzzleBoardView : MonoBehaviour
             return;
         }
 
-        foreach (var view in _blockViews.Values)
+        foreach (PuzzleBlockView view in _blockViews.Values)
         {
             if (view != null && view.gameObject != null)
             {
@@ -947,7 +972,7 @@ public class PuzzleBoardView : MonoBehaviour
         }
         _blockViews.Clear();
 
-        foreach (var kvp in _board.Cells)
+        foreach (KeyValuePair<GridPos, PuzzleCell> kvp in _board.Cells)
         {
             GridPos gridPos = kvp.Key;
             PuzzleCell cell = kvp.Value;
