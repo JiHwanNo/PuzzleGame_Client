@@ -57,6 +57,8 @@ namespace Puzzle.Core
         private readonly Queue<GridPos?> _pendingInputs = new Queue<GridPos?>();
         /// <summary> 좌표 입력과 종료 입력에 공통으로 부여하는 기록 순서입니다. </summary>
         private ulong _inputSequence;
+        /// <summary> 현재 매칭이 유저의 성공한 교환에서 직접 시작되었는지 여부입니다. </summary>
+        private bool _pendingPlayerMatch;
 
         /// <summary> 현재 보드에 적용된 게임 사양서 </summary>
         internal GameSpec gameSpec;
@@ -96,6 +98,7 @@ namespace Puzzle.Core
             _frameCount = 0;
             _pendingInputs.Clear();
             _inputSequence = 0;
+            _pendingPlayerMatch = false;
             _currentOrderIndex = 0;
             gameSpec = spec;
             Random = new PuzzleRandom(spec.randomSeed);
@@ -305,6 +308,7 @@ namespace Puzzle.Core
             if (FindMatches().Count > 0)
             {
                 // 매칭 성공 -> 매칭 페이즈 진입
+                _pendingPlayerMatch = true;
                 State = BoardState.Matching;
             }
             else
@@ -424,15 +428,17 @@ namespace Puzzle.Core
         /// <summary> 매칭된 블럭을 파괴하고 점수와 기믹 및 연출 액션을 갱신합니다. </summary>
         private bool ProcessMatching()
         {
+            bool isPlayerMatch = _pendingPlayerMatch;
+            _pendingPlayerMatch = false;
             HashSet<GridPos> matches = FindMatches();
             if (matches == null || matches.Count == 0)
             {
                 return false;
             }
 
-            if (Objective != null)
+            if (Objective != null && (isPlayerMatch || gameSpec.UseLegacyAutomaticCombos))
             {
-                Objective.OnMatchEvent();
+                Objective.OnMatchEvent(isPlayerMatch);
             }
 
             // 이번 매칭 시퀀스의 터지는 연출을 하나의 그룹으로 묶음

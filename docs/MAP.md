@@ -49,6 +49,9 @@
 | 새 블럭·기믹 추가 | [PuzzleBlockFactory.cs](../Assets/02_Scripts/PuzzleCore/Module/Block/PuzzleBlockFactory.cs) | [INGAME.md](INGAME.md#콘텐츠와-c-매핑) |
 | 폭탄 범위·연쇄 파괴 | [BombGimmick.cs](../Assets/02_Scripts/PuzzleCore/Module/Gimmick/BombGimmick.cs) | [INGAME.md](INGAME.md#콘텐츠와-c-매핑) |
 | 점수·콤보·피버·목표 | [ObjectiveManager.cs](../Assets/02_Scripts/PuzzleCore/Module/ObjectiveManager.cs) | [INGAME.md](INGAME.md#콘텐츠와-c-매핑) |
+| 대전 피벗 충전·유지·빠른 콤보 감속 | [PivotMode.cs](../Assets/02_Scripts/Battle/Pivot/PivotMode.cs) | [INGAME.md](INGAME.md#콘텐츠와-c-매핑) |
+| 링크 피벗의 육각형 주변 한 겹 파괴 | [LinkPivotEffect.cs](../Assets/02_Scripts/Battle/Pivot/LinkPivotEffect.cs) | [INGAME.md](INGAME.md#링크-피벗-육각형-이웃-한-겹) |
+| 피벗 게이지·충전·소비 수치 JSON 수정 | [PivotSettings.cs](../Assets/02_Scripts/Battle/Pivot/PivotSettings.cs) | [DATA.md](DATA.md#피벗-게임-데이터) |
 | 낙하 중 블럭 소실·뷰 액션 순서 | [PuzzleBoardView.cs](../Assets/02_Scripts/PuzzleCore/View/PuzzleBoardView.cs) | [INGAME.md](INGAME.md#콘텐츠와-c-매핑) |
 | 블럭 애니메이션 | [PuzzleBlockView.cs](../Assets/02_Scripts/PuzzleCore/View/PuzzleBlockView.cs) | [INGAME.md](INGAME.md#콘텐츠와-c-매핑) |
 | 보드 좌표·링크 선·배치 | [PuzzleBoardView.cs](../Assets/02_Scripts/PuzzleCore/View/PuzzleBoardView.cs) | [INGAME.md](INGAME.md#콘텐츠와-c-매핑) |

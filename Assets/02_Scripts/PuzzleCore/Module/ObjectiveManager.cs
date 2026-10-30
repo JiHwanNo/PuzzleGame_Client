@@ -12,6 +12,12 @@ namespace Puzzle.Core
         /// <summary> 현재 스테이지에서 획득한 총 점수 </summary>
         public int CurrentScore { get; private set; }
 
+        /// <summary> 기믹 연쇄를 포함하여 실제로 파괴된 블럭의 누적 개수입니다. </summary>
+        public int TotalDestroyedBlocks { get; private set; }
+
+        /// <summary> 유저 조작으로 매칭을 성공한 누적 횟수이며 자동 연쇄는 포함하지 않습니다. </summary>
+        public int TotalPlayerMatches { get; private set; }
+
         /// <summary> 현재 누적된 액티브 콤보 수 </summary>
         public int ComboCount { get; private set; }
 
@@ -119,10 +125,15 @@ namespace Puzzle.Core
         public bool ShouldFinish() => IsTimeOver() || (_mode == GameMode.Stage && IsAllObjectivesCleared());
 
         /// <summary>
-        /// 유저 조작 또는 연쇄 작용으로 매칭이 발생했을 때 호출되어 콤보를 갱신합니다.
+        /// 유저 조작으로 매칭이 성공했을 때 콤보를 갱신합니다. 자동 매칭 호출은 이전 기록 재생 전용입니다.
         /// </summary>
-        public void OnMatchEvent()
+        /// <param name="isPlayerMatch">유저 조작으로 성공한 매칭인지 여부</param>
+        public void OnMatchEvent(bool isPlayerMatch = true)
         {
+            if (isPlayerMatch)
+            {
+                TotalPlayerMatches++;
+            }
             if (!IsFeverTime)
             {
                 ComboCount++;
@@ -143,6 +154,7 @@ namespace Puzzle.Core
         /// <param name="score">해당 블럭 파괴로 얻는 기본 점수 (기본값 10점)</param>
         public void OnBlockDestroyed(string blockId, int score = 10)
         {
+            TotalDestroyedBlocks++;
             float multiplier = 1.0f;
             if (IsFeverTime)
             {

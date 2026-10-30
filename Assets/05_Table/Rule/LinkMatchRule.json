@@ -1,5 +1,20 @@
 {
   "_comment_global": "육각형 링크 매치 게임의 규칙과 블럭 속성을 정의하는 데이터 파일입니다.",
+  "_comment_pivot": "대전 전용 피벗. 게이지 1000점, 블럭 10개당 1점, 10콤보마다 충전 배율 0.1 증가, 기본 초당 10점 소비.",
+  "pivotSettings": {
+    "_comment_charge": "Units는 0.01점 단위. 기본 블럭당 10 Units=0.1점, 10콤보마다 1 Unit=0.01점 추가.",
+    "Capacity": 1000,
+    "ChargePerBlockUnits": 10,
+    "ChargeComboStep": 10,
+    "ChargeBonusPerStepUnits": 1,
+    "DrainPerSecond": 10,
+    "_comment_drain": "빠른 콤보마다 기본 소비 속도에서 25%p 감소, 최소 25% 유지. 콤보 간격은 50틱=1초.",
+    "DrainReductionPercentPerCombo": 25,
+    "MinimumDrainPercent": 25,
+    "ComboWindowTicks": 50,
+    "_comment_link_pivot": "피벗 중 링크 경로의 육각형 6방향 이웃 한 겹도 색상과 관계없이 함께 파괴합니다.",
+    "LinkNeighborClear": true
+  },
   "rule": {
     "_comment": "육각형(Hexagon) 링크 매치 기본 룰 설정",
     "ruleId": "LinkMatch_Hexagon",

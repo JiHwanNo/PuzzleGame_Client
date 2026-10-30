@@ -18,6 +18,12 @@ namespace Puzzle.Core
 
         public Action<string> OnLog { get; set; }
 
+        /// <summary> 매칭 확정 후 파괴 전에 원래 경로를 기준으로 추가 대상을 등록하는 확장 지점입니다. </summary>
+        public event Action<BoardShape, IReadOnlyList<GridPos>, List<GridPos>> MatchTargetsExpanding;
+
+        /// <summary> 원래 연결 경로와 외부 효과가 추가한 파괴 대상을 순서대로 보관합니다. </summary>
+        private readonly List<GridPos> _matchTargets = new List<GridPos>();
+
         private PuzzleBlockFactory _blockFactory;
         
         /// <summary> 현재 유저가 드래그하여 연결 중인 블럭들의 좌표 리스트 </summary>
@@ -50,6 +56,8 @@ namespace Puzzle.Core
         {
             _blockFactory = new PuzzleBlockFactory();
             _linkPath = new List<GridPos>();
+            _matchTargets.Clear();
+            MatchTargetsExpanding = null;
             Cells = new Dictionary<GridPos, PuzzleCell>();
             _views = new List<BoardViewAction>();
             _recordedInputs = new List<InputRecord>();
@@ -333,13 +341,21 @@ namespace Puzzle.Core
                 return false;
             }
 
+            // 확장 대상은 연결 경로와 분리하여 이웃에서 다시 범위가 퍼지는 것을 방지합니다.
+            _matchTargets.Clear();
+            _matchTargets.AddRange(_linkPath);
+            if (MatchTargetsExpanding != null)
+            {
+                MatchTargetsExpanding.Invoke(gameSpec.rule.boardShape, _linkPath, _matchTargets);
+            }
+
             if (Objective != null)
             {
                 Objective.OnMatchEvent();
             }
             uint burstOrder = _currentOrderIndex++;
 
-            foreach (GridPos pos in _linkPath)
+            foreach (GridPos pos in _matchTargets)
             {
                 PuzzleCell cell = GetCell(pos);
                 if (cell != null && cell.Block != null)
@@ -361,6 +377,7 @@ namespace Puzzle.Core
                 }
             }
 
+            _matchTargets.Clear();
             _linkPath.Clear();
             return true;
         }

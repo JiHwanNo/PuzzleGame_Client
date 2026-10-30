@@ -11,26 +11,29 @@ JSON 규칙, 스테이지, GameSpec, 블럭 데이터 관련 작업 시 참고.
 | 찾는 콘텐츠 | 담당 C# 파일 | 주요 메서드·타입·멤버 |
 |---|---|---|
 | Rule/Stage 로드·사양 병합·시드 생성 | [StageInjection.cs](../Assets/02_Scripts/StageInjection.cs) | `MakeGameSpec`, `GetGameSpec`, `SetReplayData` |
-| 게임 사양·스테이지·셀 데이터 정의 | [GameSpec.cs](../Assets/02_Scripts/PuzzleCore/Module/GameSpec.cs) | `GameSpec`, `GameSpec.mode`, `BattleFrameCount`, `StageData`, `CellData`, `GetBlock` |
+| 게임 사양·스테이지·셀 데이터 정의 | [GameSpec.cs](../Assets/02_Scripts/PuzzleCore/Module/GameSpec.cs) | `GameSpec`, `GameSpec.mode`, `GameSpec.pivotSettings`, `UseLegacyAutomaticCombos`, `BattleFrameCount`, `StageData`, `CellData`, `GetBlock` |
 | 규칙·블럭·목표 데이터, enum, 좌표, 입력 기록 | [PuzzleDefine.cs](../Assets/02_Scripts/PuzzleCore/Module/PuzzleDefine.cs) | `GameRuleContainer`, `RuleData`, `BlockData`, `ObjectiveData`, `GridPos`, `InputRecord`, `InputEndRecord` |
-| 리플레이 저장 형식 | [ReplayData.cs](../Assets/02_Scripts/PuzzleCore/Module/ReplayData.cs) | `ReplayData`, `IsCompleteBattleRecord` |
+| 리플레이 저장 형식 | [ReplayData.cs](../Assets/02_Scripts/PuzzleCore/Module/ReplayData.cs) | `ReplayData`, `IsCompleteBattleRecord`, `HasCompatibleBattleRules`, `pivotSettings`, `comboRuleVersion` |
+| Rule JSON 및 리플레이에 보관하는 피벗 규칙 | [PivotSettings.cs](../Assets/02_Scripts/Battle/Pivot/PivotSettings.cs) | `PivotSettings`, `IsValid`, `CopyValidated`, `HasSameRules` |
 | 리플레이 JSON 저장·로드·저장 경로 | [ReplayStorage.cs](../Assets/02_Scripts/PuzzleCore/Module/ReplayStorage.cs) | `Save`, `Load`, `GetReplayDirectoryPath` |
 
 ---
 
 ## 데이터 흐름
 
+`ReplayData.pivotSettings`에는 플레이 시작 시 검증한 피벗 설정 복사본을 저장한다. 재생은 기록된 설정을 사용하고, 해당 필드가 없는 기존 기록은 기본값으로 피벗 게이지를 계산한다. 입력 저장 형식의 `formatVersion`은 유지하고, 콤보 판정 차이는 `comboRuleVersion`으로 구분한다. 설정 항목은 [피벗 모드](INGAME.md#대전-전용-피벗-모드)를 참고한다.
+
 ```
 Rule JSON + Stage JSON
   → AssetManager.LoadAsset<TextAsset>(address)
     → JsonUtility.FromJson<T>()
       → StageInjection.MakeGameSpec()
-        → GameSpec { StageData, RuleData, List<BlockData> }
+        → GameSpec { StageData, RuleData, List<BlockData>, pivotSettings }
           → PuzzleGameController.Start() 에서 소비
             → board.Initialize(gameSpec)
 ```
 
-**StageInjection**: 싱글톤. `MakeGameSpec(ruleAddress, stageAddress)`로 JSON 로드 후 `GetGameSpec()`으로 반환. 파싱 실패 시 `false` 반환 + `_gameSpec = null`.
+**StageInjection**: 싱글톤. `MakeGameSpec(ruleAddress, stageAddress, mode)`로 JSON 로드 후 `GetGameSpec()`으로 반환한다. `mode` 생략 시 Stage이며, 대전·대전 리플레이 진입은 Battle을 전달한다. 파싱 실패 시 `false` 반환 + `_gameSpec = null`. 대전은 `pivotSettings`가 없거나 유효하지 않아도 같은 방식으로 진입을 중단한다. 스테이지는 대전 전용 설정의 누락·범위 오류를 검사하지 않는다.
 
 ### 데이터 타입 주의 (struct vs class)
 | 타입 | 종류 | `== null` 가능 | 비고 |
@@ -53,6 +56,7 @@ Rule JSON + Stage JSON
 ```
 GameSpec
 ├─ mode (GameMode: 0=Stage, 1=Battle)
+├─ pivotSettings (PivotSettings) — Rule JSON에서 전달한 대전 전용 피벗 규칙
 ├─ StageData
 │   ├─ stage_id        (int) — 스테이지 번호
 │   ├─ stage_width     (int) — 보드 가로 크기
@@ -131,6 +135,36 @@ GameSpec
 | 1 | ThreeMatch | ThreeMatchPuzzleBoard |
 | 2 | Link | LinkPuzzleBoard |
 | 3 | TapMatch | TapMatchPuzzleBoard |
+
+### 피벗 게임 데이터
+
+다음 세 파일의 최상위 `pivotSettings`를 수정한다. 이미 등록된 Rule Addressable을 `AssetManager`로 읽으므로 별도 리소스 등록은 필요 없다.
+
+- [ThreeMatchRule.json](../Assets/05_Table/Rule/ThreeMatchRule.json): 3매치
+- [LinkMatchRule.json](../Assets/05_Table/Rule/LinkMatchRule.json): 링크
+- [TapMatchRule.json](../Assets/05_Table/Rule/TapMatchRule.json): 탭 매치
+
+```json
+"pivotSettings": {
+  "Capacity": 1000,
+  "ChargePerBlockUnits": 10,
+  "ChargeComboStep": 10,
+  "ChargeBonusPerStepUnits": 1,
+  "DrainPerSecond": 10,
+  "DrainReductionPercentPerCombo": 25,
+  "MinimumDrainPercent": 25,
+  "ComboWindowTicks": 50,
+  "LinkNeighborClear": true
+}
+```
+
+`Capacity`는 최대 점수, `DrainPerSecond`는 초당 소비 점수다. `Units`로 끝나는 충전량은 0.01점 단위이므로 `ChargePerBlockUnits: 10`은 블럭당 0.1점(10개당 1점)이다. 콤보가 `ChargeComboStep`만큼 증가할 때마다 블럭당 `ChargeBonusPerStepUnits`를 더한다. 기본값에서 10콤보는 블럭당 0.11점, 20콤보는 0.12점이다. 기본 충전량을 바꿀 때 배율을 유지하려면 추가 충전량도 함께 조정한다.
+
+`DrainReductionPercentPerCombo`는 빠른 콤보마다 감소하는 기본 소비 속도의 퍼센트포인트, `MinimumDrainPercent`는 최소 소비 비율이다. `ComboWindowTicks`는 초당 50틱 기준이므로 50은 1초다. 모든 값은 양수이고 소비 비율은 1~100이다. 자세한 판정 규칙은 [피벗 모드](INGAME.md#대전-전용-피벗-모드)를 참고한다.
+
+`LinkNeighborClear`는 링크 JSON에서만 true이며, 피벗 중 육각형 링크 경로의 이웃 한 겹을 추가 파괴한다. 3매치·탭 매치는 false다. 이 필드가 없는 기존 리플레이 설정은 false로 읽어 당시 점수와 파괴 범위를 유지한다. 콤보는 유저 조작의 매칭 성공 기준이며 자동 연쇄는 횟수·시간 갱신에서 제외한다.
+
+대전 시작 시 검증한 복사본을 사용하며, 게임 도중 원본 설정을 바꿔도 현재 게임에는 적용하지 않는다. 새 대전은 수정한 JSON을 사용하고 상대 리플레이는 기록된 `pivotSettings`를 우선 사용한다. 기존 기록에 필드가 없을 때만 이전 기본값을 사용한다.
 
 ### inputType 값 (문자열 목록 → InputType 플래그)
 JSON에는 **가독성을 위해 문자열 목록**으로 두고, 게임 로직에서는 `Block` 생성자가 `Enum.TryParse`로 `InputType` 플래그(int)로 변환한다. 보드는 이 플래그로 조작 가능 여부를 게이팅한다.
@@ -253,10 +287,12 @@ JSON에는 **가독성을 위해 문자열 목록**으로 두고, 게임 로직�
 | 필드 | 타입 | 설명 |
 |------|------|------|
 | `formatVersion` | int | 현재 1. 없으면 이전 형식 0으로 읽음 |
+| `comboRuleVersion` | int | 현재 1은 유저 조작 성공만 콤보로 계산. 없는 기존 기록의 0은 당시 자동 매칭/파괴 포함 규칙을 복원 |
 | `mode` | GameMode | Stage(0), Battle(1) |
 | `timeLimit` | float | 기록 당시 제한 시간(초) |
 | `frameCount` | ulong | 실제 완료한 총 틱 수. 대전은 3,000 |
 | `finalScore` | int | 재생 결과와 비교할 최종 점수 |
+| `pivotSettings` | PivotSettings | 대전 시작 당시 피벗 설정 복사본. 없는 기존 기록은 기본값 사용 |
 | `ruleAddress` | string | 규칙 JSON의 Addressable 에셋 주소 |
 | `stageAddress` | string | 스테이지 JSON의 Addressable 에셋 주소 |
 | `randomSeed` | int | 게임에 사용된 난수 시드 |
@@ -275,5 +311,8 @@ JSON에는 **가독성을 위해 문자열 목록**으로 두고, 게임 로직�
 ### 대전 기록 호환성
 - `Battle`은 제한 시간 60초, 완료 틱 수 3,000인 현재 형식의 기록만 상대로 선택한다. `Stage` 기록이나 이전 형식은 대전 기록으로 변환하지 않는다.
 - `ReplayStorage.Load()`에서 형식 버전, 모드, 시간, 완료 기록을 검사한다. 향후 알 수 없는 버전은 거부한다.
+- 대전 기록의 `pivotSettings`가 존재하면 유효 범위도 검사한다. 잘못된 스냅샷은 상대 선택 전에 제외하며, 필드가 없는 기존 기록은 허용한다.
+- 새 플레이는 `comboRuleVersion: 1`로 저장한다. 버전 0의 3매치 재생은 자동 매칭도 기존 점수 콤보에 포함하며, 피벗 콤보도 기존의 파괴 발생 기준을 사용한다. 이를 위한 `GameSpec.UseLegacyAutomaticCombos`는 재생 시에만 설정하는 비직렬화 필드다. 알 수 없는 콤보 버전은 로드에서 거부한다.
+- `IsCompleteBattleRecord()`는 재생 가능한 완주 기록인지 검사하고, `HasCompatibleBattleRules()`는 현재 점수 조건으로 대전할 수 있는지 별도로 검사한다. `PopupReady.OnClickBattle()`은 현재 콤보 버전과 해당 Rule JSON의 피벗 설정이 모두 같은 상대만 선택한다. 결과 표시 때도 같은 조건을 검사하므로, 다른 규칙의 기록을 직접 재생해도 승패를 비교하지 않는다.
 - 동일 주소의 Rule/Stage가 바뀌면 기존 결과와 달라질 수 있다. 종료 틱/점수 검증 실패 시 승패를 비교하지 않는다. 현재 형식은 Rule/Stage 전체 스냅샷을 저장하지 않는다.
 - 문서 JSON 예제의 입력과 점수는 필드 설명용이며 실제 대전 상대는 게임에서 완주하여 저장한 기록을 사용한다.

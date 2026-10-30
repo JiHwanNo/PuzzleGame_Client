@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Battle.Pivot;
 
 namespace Puzzle.Core
 {
@@ -130,6 +131,9 @@ namespace Puzzle.Core
         public RuleData rule;
         /// <summary> 블럭 정보 리스트 </summary>
         public List<BlockData> blocks;
+
+        /// <summary> Rule JSON에서 지정하는 대전 전용 피벗 충전과 유지 규칙입니다. </summary>
+        public PivotSettings pivotSettings;
     }
 
     /// <summary>

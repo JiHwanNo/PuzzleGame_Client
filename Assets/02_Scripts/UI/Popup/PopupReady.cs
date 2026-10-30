@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using Puzzle.Core;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -73,7 +74,8 @@ public class PopupReady : PopupHandler
         }
 
         // 유저 게임 데이터 준비 (리플레이와 동일한 규칙/스테이지 사용)
-        if (!StageInjection.Instance.MakeGameSpec(replayData.ruleAddress, replayData.stageAddress))
+        GameMode replayMode = replayData.formatVersion == ReplayData.CurrentFormatVersion ? replayData.mode : GameMode.Stage;
+        if (!StageInjection.Instance.MakeGameSpec(replayData.ruleAddress, replayData.stageAddress, replayMode))
         {
             Debug.LogError("[PopupReady] 리플레이용 GameSpec 준비에 실패했습니다.");
             return;
@@ -81,7 +83,6 @@ public class PopupReady : PopupHandler
 
         GameSpec spec = StageInjection.Instance.GetGameSpec();
         spec.randomSeed = replayData.randomSeed;
-        spec.mode = replayData.formatVersion == ReplayData.CurrentFormatVersion ? replayData.mode : GameMode.Stage;
         if (replayData.formatVersion == ReplayData.CurrentFormatVersion)
         {
             spec.rule.timeLimit = replayData.timeLimit;
@@ -96,6 +97,8 @@ public class PopupReady : PopupHandler
     private void OnClickBattle()
     {
         ReplayData opponent = null;
+        GameSpec spec = null;
+        Dictionary<(string Rule, string Stage), GameSpec> candidateSpecs = new Dictionary<(string Rule, string Stage), GameSpec>();
         string directory = ReplayStorage.GetReplayDirectoryPath();
         if (Directory.Exists(directory))
         {
@@ -104,23 +107,51 @@ public class PopupReady : PopupHandler
             for (int i = files.Length - 1; i >= 0; i--)
             {
                 ReplayData candidate = ReplayStorage.Load(files[i]);
-                if (candidate != null && candidate.IsCompleteBattleRecord())
+                if (candidate == null || !candidate.IsCompleteBattleRecord() ||
+                    candidate.comboRuleVersion != ReplayData.CurrentComboRuleVersion)
                 {
+                    continue;
+                }
+                (string Rule, string Stage) key = (candidate.ruleAddress, candidate.stageAddress);
+                if (!candidateSpecs.TryGetValue(key, out GameSpec candidateSpec))
+                {
+                    // 같은 주소의 기록이 많아도 이번 탐색에서는 데이터를 한 번만 파싱합니다.
+                    bool loaded = StageInjection.Instance.MakeGameSpec(candidate.ruleAddress, candidate.stageAddress, GameMode.Battle);
+                    candidateSpec = loaded ? StageInjection.Instance.GetGameSpec() : null;
+                    candidateSpecs.Add(key, candidateSpec);
+                }
+                if (candidateSpec == null)
+                {
+                    continue;
+                }
+                if (candidate.HasCompatibleBattleRules(candidateSpec.pivotSettings))
+                {
+                    // 다른 후보를 읽은 뒤 캐시된 후보가 선택되면 실제 씬 주입 데이터도 복원합니다.
+                    if (!ReferenceEquals(candidateSpec, StageInjection.Instance.GetGameSpec()))
+                    {
+                        if (!StageInjection.Instance.MakeGameSpec(candidate.ruleAddress, candidate.stageAddress, GameMode.Battle))
+                        {
+                            continue;
+                        }
+                        candidateSpec = StageInjection.Instance.GetGameSpec();
+                    }
                     opponent = candidate;
+                    spec = candidateSpec;
                     break;
                 }
             }
         }
 
-        string ruleAddress = opponent != null ? opponent.ruleAddress : RulePaths[Random.Range(0, RulePaths.Length)];
-        string stageAddress = opponent != null ? opponent.stageAddress : "Stage";
-        if (!StageInjection.Instance.MakeGameSpec(ruleAddress, stageAddress))
+        if (spec == null)
         {
-            Debug.LogError("[PopupReady] 대전용 데이터를 준비하지 못했습니다.");
-            return;
+            string ruleAddress = RulePaths[Random.Range(0, RulePaths.Length)];
+            if (!StageInjection.Instance.MakeGameSpec(ruleAddress, "Stage", GameMode.Battle))
+            {
+                Debug.LogError("[PopupReady] 대전용 데이터를 준비하지 못했습니다.");
+                return;
+            }
+            spec = StageInjection.Instance.GetGameSpec();
         }
-        GameSpec spec = StageInjection.Instance.GetGameSpec();
-        spec.mode = GameMode.Battle;
         spec.rule.timeLimit = GameSpec.BattleDurationSeconds;
         if (opponent != null)
         {

@@ -1,5 +1,6 @@
 ﻿using Puzzle.Core;
 using System;
+using Battle.Pivot;
 using System.Collections.Generic;
 using System.Collections;
 using TMPro;
@@ -38,6 +39,13 @@ public class PuzzleGameController : MonoBehaviour
 
     /// <summary> 퍼즐 보드의 핵심 로직을 처리하는 모델 인터페이스 </summary>
     private IPuzzleBoard _board;
+
+    /// <summary> Rule JSON에서 읽어 검증한 대전 피벗 규칙의 실행용 복사본입니다. </summary>
+    private PivotSettings _pivotSettings;
+    /// <summary> 보드 파괴 통계를 독립 피벗 모듈로 전달합니다. </summary>
+    private BattlePivotSession _pivotSession;
+    /// <summary> 대전 중 플레이어의 피벗 게이지를 표시합니다. </summary>
+    private PivotGaugeView _pivotGaugeView;
 
     /// <summary> 현재 드래그 중 마지막으로 머문 좌표 (되돌리기 등 경로 재진입 허용을 위해) </summary>
     private GridPos? _lastHoveredPos = null;
@@ -99,6 +107,29 @@ public class PuzzleGameController : MonoBehaviour
         _mode = gameSpec.mode;
         _elapsedFrames = 0;
         _board.Initialize(gameSpec);
+
+        if (_mode == GameMode.Battle)
+        {
+            if (gameSpec.pivotSettings == null)
+            {
+                Debug.LogError("[PuzzleGameController] Rule JSON의 pivotSettings가 주입되지 않았습니다.");
+                return;
+            }
+            try
+            {
+                _pivotSettings = gameSpec.pivotSettings.CopyValidated();
+            }
+            catch (ArgumentOutOfRangeException exception)
+            {
+                Debug.LogError($"[PuzzleGameController] 피벗 설정 오류: {exception.Message}");
+                return;
+            }
+            _pivotSession = new BattlePivotSession(_board, _mode, _pivotSettings);
+            if (_timerText != null)
+            {
+                _pivotGaugeView = new PivotGaugeView(_timerText, _pivotSession.Mode);
+            }
+        }
 
         if (boardView != null)
         {
@@ -174,6 +205,10 @@ public class PuzzleGameController : MonoBehaviour
         // 4. UI 갱신
         UpdateTimerUI();
         UpdateScoreUI();
+        if (_pivotGaugeView != null)
+        {
+            _pivotGaugeView.Refresh();
+        }
 
         // 게임 종료 시 기록을 저장하고, 대전이면 점수 비교를 표시한 뒤 로비로 이동합니다.
         if (_board.State == BoardState.Finish && !_replaySaved)
@@ -204,6 +239,10 @@ public class PuzzleGameController : MonoBehaviour
 
         // Unity의 컴포넌트 실행 순서와 무관하게 두 보드를 같은 공통 틱에서 진행합니다.
         _board.FixedUpdate();
+        if (_pivotSession != null)
+        {
+            _pivotSession.AdvanceAfterBoardTick();
+        }
         if (_hasOpponent && replayController != null && replayController.IsInitialized)
         {
             replayController.AdvanceFrame();
@@ -220,7 +259,8 @@ public class PuzzleGameController : MonoBehaviour
         {
             result = $"대전 기록 완료 · {score}점";
         }
-        else if (replayController == null || !replayController.HasValidResult)
+        else if (replayController == null || !replayController.HasValidResult ||
+            !replayController.HasCompatibleBattleRules(_pivotSettings))
         {
             result = $"대전 종료 · 내 점수 {score}\n상대 기록 확인 실패 · 승패 비교 제외";
         }
@@ -353,6 +393,7 @@ public class PuzzleGameController : MonoBehaviour
         ReplayData replayData = new ReplayData
         {
             formatVersion = ReplayData.CurrentFormatVersion,
+            comboRuleVersion = ReplayData.CurrentComboRuleVersion,
             mode = _mode,
             timeLimit = _board.Objective.TotalLimitTime,
             frameCount = _elapsedFrames,
@@ -365,7 +406,24 @@ public class PuzzleGameController : MonoBehaviour
             recordedAt = DateTime.Now.ToString("o")
         };
 
+        if (_pivotSettings != null)
+        {
+            replayData.pivotSettings = _pivotSettings.CopyValidated();
+        }
         ReplayStorage.Save(replayData);
+    }
+
+    /// <summary> 컨트롤러가 생성한 피벗 표시를 정리합니다. </summary>
+    private void OnDestroy()
+    {
+        if (_pivotSession != null)
+        {
+            _pivotSession.Dispose();
+        }
+        if (_pivotGaugeView != null)
+        {
+            _pivotGaugeView.Dispose();
+        }
     }
 
     /// <summary>

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Battle.Pivot;
 
 namespace Puzzle.Core
 {
@@ -18,6 +19,11 @@ namespace Puzzle.Core
         public const int BattleFrameCount = LogicFramesPerSecond * BattleDurationSeconds;
         /// <summary> 게임 종료 규칙입니다. 기존 데이터의 기본값은 스테이지입니다. </summary>
         public GameMode mode;
+        /// <summary> 이전 기록 재생에서만 자동 연쇄를 콤보에 포함하는 규칙을 복원합니다. </summary>
+        [NonSerialized]
+        public bool UseLegacyAutomaticCombos;
+        /// <summary> Rule JSON에서 주입한 피벗 규칙입니다. 대전 진입 시 검증합니다. </summary>
+        public PivotSettings pivotSettings;
         /// <summary> 현재 스테이지의 세부 구성 데이터 </summary>
         public StageData stageData;
         

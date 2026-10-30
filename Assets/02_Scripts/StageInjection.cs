@@ -79,18 +79,30 @@ public class StageInjection
     /// </summary>
     /// <param name="ruleAddress">Addressable 내 규칙 JSON 에셋 주소</param>
     /// <param name="stageAddress">Addressable 내 스테이지 JSON 에셋 주소</param>
+    /// <param name="mode">게임 종료 규칙과 대전 전용 데이터 검증 여부</param>
     /// <returns>사양서 생성 성공 여부</returns>
-    public bool MakeGameSpec(string ruleAddress, string stageAddress)
+    public bool MakeGameSpec(string ruleAddress, string stageAddress, GameMode mode = GameMode.Stage)
     {
         _ruleAddress = ruleAddress;
         _stageAddress = stageAddress;
         _gameSpec = new GameSpec();
+        _gameSpec.mode = mode;
 
         // 1. 규칙(Rule) 데이터 로드 및 파싱
         TextAsset ruleAsset = AssetManager.Instance.LoadAsset<TextAsset>(ruleAddress);
         if (ruleAsset != null)
         {
-            GameRuleContainer ruleContainer = JsonUtility.FromJson<GameRuleContainer>(ruleAsset.text);
+            GameRuleContainer ruleContainer;
+            try
+            {
+                ruleContainer = JsonUtility.FromJson<GameRuleContainer>(ruleAsset.text);
+            }
+            catch (System.ArgumentException exception)
+            {
+                Debug.LogError($"[StageInjection] 규칙 JSON 파싱 실패: {ruleAddress} / {exception.Message}");
+                _gameSpec = null;
+                return false;
+            }
             if (ruleContainer == null)
             {
                 Debug.LogError($"[StageInjection] 규칙 JSON 파싱 실패: {ruleAddress}");
@@ -99,6 +111,26 @@ public class StageInjection
             }
             _gameSpec.rule = ruleContainer.rule;
             _gameSpec.blocks = ruleContainer.blocks;
+            _gameSpec.pivotSettings = ruleContainer.pivotSettings;
+            if (mode == GameMode.Battle)
+            {
+                if (_gameSpec.pivotSettings == null)
+                {
+                    Debug.LogError($"[StageInjection] 대전 피벗 설정이 없습니다: {ruleAddress} / pivotSettings");
+                    _gameSpec = null;
+                    return false;
+                }
+                try
+                {
+                    _gameSpec.pivotSettings = _gameSpec.pivotSettings.CopyValidated();
+                }
+                catch (System.ArgumentOutOfRangeException exception)
+                {
+                    Debug.LogError($"[StageInjection] 대전 피벗 설정 오류: {ruleAddress} / {exception.Message}");
+                    _gameSpec = null;
+                    return false;
+                }
+            }
         }
         else
         {
