@@ -145,7 +145,7 @@ public class PuzzleGameController : MonoBehaviour
         if (_resultText != null)
         {
             _resultText.text = _mode == GameMode.Battle ?
-                (_hasOpponent ? "60초 대전" : "60초 대전 · 첫 기록 도전") : "";
+                (_hasOpponent ? "90초 대전" : "90초 대전 · 첫 기록 도전") : "";
         }
         if (replayData != null && replayController != null)
         {
@@ -295,8 +295,7 @@ public class PuzzleGameController : MonoBehaviour
             return;
         }
 
-        float remaining = _board.Objective.RemainingTime;
-        int seconds = Mathf.CeilToInt(remaining);
+        int seconds = _board.Objective.RemainingSeconds;
         if (seconds < 0)
         {
             seconds = 0;
@@ -394,6 +393,7 @@ public class PuzzleGameController : MonoBehaviour
         {
             formatVersion = ReplayData.CurrentFormatVersion,
             comboRuleVersion = ReplayData.CurrentComboRuleVersion,
+            numericRuleVersion = ReplayData.CurrentNumericRuleVersion,
             mode = _mode,
             timeLimit = _board.Objective.TotalLimitTime,
             frameCount = _elapsedFrames,

@@ -82,7 +82,7 @@ namespace Battle.Pivot
                 return;
             }
 
-            float ratio = _mode.GaugePoints / _mode.Capacity;
+            float ratio = _mode.GaugeRatio;
             _fill.anchorMax = new Vector2(ratio, 1f);
             int displayedTenths = _mode.GaugeUnits / 10;
             if (displayedTenths != _lastDisplayedTenths || _mode.IsActive != _lastActive)
@@ -90,7 +90,7 @@ namespace Battle.Pivot
                 _lastDisplayedTenths = displayedTenths;
                 _lastActive = _mode.IsActive;
                 string state = _mode.IsActive ? "피벗 모드" : "피벗 충전";
-                _label.text = $"{state} · {displayedTenths / 10f:0.0} / {_mode.Capacity}";
+                _label.text = $"{state} · {displayedTenths / 10}.{displayedTenths % 10} / {_mode.Capacity}";
                 _fillImage.color = _mode.IsActive ? new Color(1f, 0.65f, 0.15f) : new Color(0.2f, 0.75f, 1f);
             }
         }

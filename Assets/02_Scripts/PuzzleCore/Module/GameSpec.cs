@@ -14,7 +14,7 @@ namespace Puzzle.Core
         /// <summary> 초당 논리 틱 수입니다. Unity의 고정 간격은 0.02초로 설정합니다. </summary>
         public const int LogicFramesPerSecond = 50;
         /// <summary> 대전 한 판의 공통 제한 시간입니다. </summary>
-        public const int BattleDurationSeconds = 60;
+        public const int BattleDurationSeconds = 90;
         /// <summary> 대전 한 판의 총 논리 틱 수입니다. </summary>
         public const int BattleFrameCount = LogicFramesPerSecond * BattleDurationSeconds;
         /// <summary> 게임 종료 규칙입니다. 기존 데이터의 기본값은 스테이지입니다. </summary>
@@ -22,6 +22,12 @@ namespace Puzzle.Core
         /// <summary> 이전 기록 재생에서만 자동 연쇄를 콤보에 포함하는 규칙을 복원합니다. </summary>
         [NonSerialized]
         public bool UseLegacyAutomaticCombos;
+        /// <summary> 리플레이에서 기록 당시 대전 제한 시간을 사용할지 여부입니다. </summary>
+        [NonSerialized]
+        public bool UseRecordedBattleDuration;
+        /// <summary> 이전 수치 규칙 리플레이에서만 실수 기반 계산을 복원합니다. </summary>
+        [NonSerialized]
+        public bool UseLegacyNumericRules;
         /// <summary> Rule JSON에서 주입한 피벗 규칙입니다. 대전 진입 시 검증합니다. </summary>
         public PivotSettings pivotSettings;
         /// <summary> 현재 스테이지의 세부 구성 데이터 </summary>
@@ -91,6 +97,25 @@ namespace Puzzle.Core
         
         /// <summary> 스테이지를 구성하는 개별 셀(Cell)들의 상세 데이터 목록 </summary>
         public List<CellData> cells;
+
+        /// <summary> 맵 크기와 모든 셀 좌표가 유효한 범위에 있는지 검사합니다. </summary>
+        /// <returns>양수 크기와 범위 안의 셀 목록이면 true</returns>
+        public bool HasValidCoordinates()
+        {
+            if (stage_width <= 0 || stage_height <= 0 || cells == null)
+            {
+                return false;
+            }
+            for (int i = 0; i < cells.Count; i++)
+            {
+                CellData cell = cells[i];
+                if (cell == null || cell.x < 0 || cell.x >= stage_width || cell.y < 0 || cell.y >= stage_height)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
     }
 
     /// <summary>

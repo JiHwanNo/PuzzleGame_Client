@@ -93,7 +93,7 @@ public class PopupReady : PopupHandler
         Main.Instance.MoveScene(SceneEnum.LobbyScene, SceneEnum.GameScene);
     }
 
-    /// <summary> 완주한 60초 기록과 대전하거나, 기록이 없으면 첫 대전 기록을 만듭니다. </summary>
+    /// <summary> 완주한 90초 기록과 대전하거나, 기록이 없으면 첫 대전 기록을 만듭니다. </summary>
     private void OnClickBattle()
     {
         ReplayData opponent = null;
@@ -108,7 +108,8 @@ public class PopupReady : PopupHandler
             {
                 ReplayData candidate = ReplayStorage.Load(files[i]);
                 if (candidate == null || !candidate.IsCompleteBattleRecord() ||
-                    candidate.comboRuleVersion != ReplayData.CurrentComboRuleVersion)
+                    candidate.comboRuleVersion != ReplayData.CurrentComboRuleVersion ||
+                    candidate.numericRuleVersion != ReplayData.CurrentNumericRuleVersion)
                 {
                     continue;
                 }

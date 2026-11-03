@@ -42,8 +42,8 @@ namespace Puzzle.Core
         /// <param name="b">두 번째 격자 좌표</param>
         public static bool IsAdjacentSquare(GridPos a, GridPos b)
         {
-            int dx = Math.Abs(a.X - b.X);
-            int dy = Math.Abs(a.Y - b.Y);
+            long dx = Math.Abs((long)a.X - b.X);
+            long dy = Math.Abs((long)a.Y - b.Y);
             return (dx == 1 && dy == 0) || (dx == 0 && dy == 1);
         }
 
@@ -55,8 +55,8 @@ namespace Puzzle.Core
         /// <param name="b">두 번째 격자 좌표</param>
         public static bool IsAdjacentHexagon(GridPos a, GridPos b)
         {
-            int dx = b.X - a.X;
-            int dy = b.Y - a.Y;
+            long dx = (long)b.X - a.X;
+            long dy = (long)b.Y - a.Y;
 
             if (dx == 0) // 같은 열(위, 아래)
             {

@@ -3,7 +3,7 @@ using Puzzle.Core;
 
 namespace Battle.Pivot
 {
-    /// <summary> 피벗 중 원래 링크 경로의 육각형 이웃 한 겹을 파괴 대상으로 추가합니다. </summary>
+    /// <summary> 피벗 중 링크의 육각형 이웃 또는 3매치·탭 매치의 상하좌우 이웃 한 겹을 추가합니다. </summary>
     public sealed class LinkPivotEffect
     {
         /// <summary> 대상 셀의 존재와 상태를 확인할 보드입니다. </summary>
@@ -28,7 +28,33 @@ namespace Battle.Pivot
         /// <param name="targets">기존 경로가 들어 있는 파괴 대상 목록</param>
         public void ExpandTargets(BoardShape shape, IReadOnlyList<GridPos> path, List<GridPos> targets)
         {
-            if (!_mode.IsEnabled || !_mode.IsActive || shape != BoardShape.Hexagon)
+            if (shape != BoardShape.Hexagon)
+            {
+                return;
+            }
+            ExpandNeighbors(path, targets, true);
+        }
+
+        /// <summary> 3매치 또는 탭 매치 원래 대상의 상하좌우 한 겹을 추가합니다. </summary>
+        /// <param name="shape">보드 형태이며 사각형에서만 적용합니다.</param>
+        /// <param name="path">원래 매칭 대상</param>
+        /// <param name="targets">추가 파괴 대상을 받을 목록</param>
+        public void ExpandSquareTargets(BoardShape shape, IReadOnlyList<GridPos> path, List<GridPos> targets)
+        {
+            if (shape != BoardShape.Quadrangle)
+            {
+                return;
+            }
+            ExpandNeighbors(path, targets, false);
+        }
+
+        /// <summary> 원래 대상에서 한 겹만 탐색하며 유효한 이웃을 중복 없이 추가합니다. </summary>
+        /// <param name="path">확장 중 변경하지 않는 원래 대상</param>
+        /// <param name="targets">파괴 대상 목록</param>
+        /// <param name="hexagon">육각형 인접 판정을 사용할지 여부</param>
+        private void ExpandNeighbors(IReadOnlyList<GridPos> path, List<GridPos> targets, bool hexagon)
+        {
+            if (!_mode.IsEnabled || !_mode.IsActive)
             {
                 return;
             }
@@ -47,9 +73,11 @@ namespace Battle.Pivot
                     for (int dy = -1; dy <= 1; dy++)
                     {
                         GridPos candidate = new GridPos(origin.X + dx, origin.Y + dy);
+                        bool adjacent = hexagon ? GridPos.IsAdjacentHexagon(origin, candidate) :
+                            GridPos.IsAdjacentSquare(origin, candidate);
                         if (candidate.X < 0 || candidate.X >= _board.Width ||
                             candidate.Y < 0 || candidate.Y >= _board.Height ||
-                            !GridPos.IsAdjacentHexagon(origin, candidate) || !_seen.Add(candidate))
+                            !adjacent || !_seen.Add(candidate))
                         {
                             continue;
                         }

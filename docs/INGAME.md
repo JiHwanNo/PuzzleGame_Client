@@ -13,9 +13,9 @@
 |---|---|---|
 | 입력, 게임 루프, 종료 후 저장, 점수/타이머 UI | [PuzzleGameController.cs](../Assets/02_Scripts/PuzzleCore/Controller/PuzzleGameController.cs) | `Start`, `Update`(입력 수집/UI), `FixedUpdate`(양쪽 공통 틱), `SaveReplay`, `ShowBattleResult`, `UpdateTimerUI` |
 | 보드 공통 계약 | [IPuzzleBoard.cs](../Assets/02_Scripts/PuzzleCore/Module/Board/IPuzzleBoard.cs) | `IPuzzleBoard`, `BoardViewAction` |
-| 3매치 스왑·매칭·낙하·셔플 | [ThreeMatchPuzzleBoard.cs](../Assets/02_Scripts/PuzzleCore/Module/Board/ThreeMatchPuzzleBoard.cs) | `ProcessSwapInput`, `FindMatches`, `ProcessFallingAndFilling`, `FillFromGenerator`, `CheckAndShuffleIfNoMoves` |
+| 3매치 스왑·매칭·낙하·셔플 | [ThreeMatchPuzzleBoard.cs](../Assets/02_Scripts/PuzzleCore/Module/Board/ThreeMatchPuzzleBoard.cs) | `ProcessSwapInput`, `FindMatches`, `ProcessFallingAndFilling`, `FillFromGenerator`, `CheckAndShuffleIfNoMoves`, `MatchTargetsExpanding` |
 | 드래그 링크 연결·해제·낙하·매칭 대상 확장 | [LinkPuzzleBoard.cs](../Assets/02_Scripts/PuzzleCore/Module/Board/LinkPuzzleBoard.cs) | `Input`, `InputEnd`(큐 등록), `FixedUpdate`, `UpdateState`, `ProcessFallingAndFilling`, `FillFromGenerator`, `HasEmptyCell`, `MatchTargetsExpanding` |
-| 탭 매치 연결 블럭 탐색·파괴 | [TapMatchPuzzleBoard.cs](../Assets/02_Scripts/PuzzleCore/Module/Board/TapMatchPuzzleBoard.cs) | `Input`, `InputEnd`(큐 등록), `FixedUpdate`, `UpdateState`, `GetConnectedBlocks`, `FillFromGenerator`, `CheckAndShuffleIfNoMoves` |
+| 탭 매치 연결 블럭 탐색·파괴 | [TapMatchPuzzleBoard.cs](../Assets/02_Scripts/PuzzleCore/Module/Board/TapMatchPuzzleBoard.cs) | `Input`, `InputEnd`(큐 등록), `FixedUpdate`, `UpdateState`, `GetConnectedBlocks`, `FillFromGenerator`, `CheckAndShuffleIfNoMoves`, `MatchTargetsExpanding` |
 | 블럭 상태·입력 플래그·기믹 발화 | [Block.cs](../Assets/02_Scripts/PuzzleCore/Module/Block/Block.cs) | `Block`, `GetInputType`, `FireDestroyed` |
 | 블럭 생성·기믹 부착 | [PuzzleBlockFactory.cs](../Assets/02_Scripts/PuzzleCore/Module/Block/PuzzleBlockFactory.cs) | `PuzzleBlockFactory` |
 | 기믹 계약·호스트·기본 클래스 | [IGimmick.cs](../Assets/02_Scripts/PuzzleCore/Module/Gimmick/IGimmick.cs) | `IGimmick`, `IGimmickHost`, `GimmickBase` |
@@ -24,7 +24,7 @@
 | 공통 파괴·목표 갱신·뷰 액션 등록 | [GimmickUtil.cs](../Assets/02_Scripts/PuzzleCore/Module/Gimmick/GimmickUtil.cs) | `DestroyBlock` |
 | 셀 상태와 블럭 보관 | [PuzzleCell.cs](../Assets/02_Scripts/PuzzleCore/Module/PuzzleCell.cs) | `PuzzleCell` |
 | 바닥 패널 기본 타입 | [PuzzlePanel.cs](../Assets/02_Scripts/PuzzleCore/Module/PuzzlePanel.cs) | `PuzzlePanel`, `NormalPanel` |
-| 점수·콤보·피버·시간 제한·목표 판정·누적 파괴/조작 성공 수 | [ObjectiveManager.cs](../Assets/02_Scripts/PuzzleCore/Module/ObjectiveManager.cs) | `OnMatchEvent`, `OnBlockDestroyed`, `UpdateTimer`, `ShouldFinish`, `IsAllObjectivesCleared`, `TotalDestroyedBlocks`, `TotalPlayerMatches` |
+| 점수·콤보·피버·시간 제한·목표 판정·누적 파괴/조작 성공 수 | [ObjectiveManager.cs](../Assets/02_Scripts/PuzzleCore/Module/ObjectiveManager.cs) | `OnMatchEvent`, `OnBlockDestroyed`, `UpdateTimer`, `ShouldFinish`, `IsAllObjectivesCleared`, `TotalDestroyedBlocks`, `TotalPlayerMatches`, `IsValidTimeLimit`, `GetTimeLimitFrames`, `RemainingSeconds` |
 | 보드 배치·좌표 변환·뷰 액션 순서·링크 선 | [PuzzleBoardView.cs](../Assets/02_Scripts/PuzzleCore/View/PuzzleBoardView.cs) | `DrawBoard`, `GetLocalPos`, `ExecuteBatchMovement`, `UpdateLineRenderer`, `CacheLinkPathIfChanged` |
 | 블럭 스프라이트·클릭/이동/낙하/파괴 연출 | [PuzzleBlockView.cs](../Assets/02_Scripts/PuzzleCore/View/PuzzleBlockView.cs) | `UpdateVisual`, `PlayMoveAnimation`, `PlayFallAnimation`, `PlayDestroyAnimation` |
 | 셀 색상·상태 시각화 | [PuzzleCellView.cs](../Assets/02_Scripts/PuzzleCore/View/PuzzleCellView.cs) | `Initialize`, `UpdateVisual` |
@@ -32,10 +32,10 @@
 | 입력 충돌체와 셀 뷰 연결 | [PuzzleCellCollider.cs](../Assets/02_Scripts/PuzzleCore/PuzzleCellCollider.cs) | `PuzzleCellCollider` |
 | 리플레이 보드 생성·프레임 입력 재생·축소 배치 | [ReplayController.cs](../Assets/02_Scripts/PuzzleCore/Controller/ReplayController.cs) | `Initialize`, `AdvanceFrame`, `HasValidResult`, `HasCompatibleBattleRules`, `UpdateStatusPosition`, `AlignToTopRight` |
 | 시드 기반 난수 | [PuzzleRandom.cs](../Assets/02_Scripts/PuzzleCore/Module/PuzzleRandom.cs) | `Next`, `NextDouble`, `SetSeed` |
-| 대전 피벗 충전·활성·콤보 소비 감속 | [PivotMode.cs](../Assets/02_Scripts/Battle/Pivot/PivotMode.cs) | `AdvanceTick`, `Stop`, `GaugeUnits`, `GaugePoints`, `IsActive`, `ComboCount`, `CurrentDrainPercent` |
+| 대전 피벗 충전·활성·콤보 소비 감속 | [PivotMode.cs](../Assets/02_Scripts/Battle/Pivot/PivotMode.cs) | `AdvanceTick`, `Stop`, `GaugeUnits`, `GaugePoints`, `GaugeRatio`, `IsActive`, `ComboCount`, `CurrentDrainPercent` |
 | 피벗 충전량·소비량·콤보 간격 설정 | [PivotSettings.cs](../Assets/02_Scripts/Battle/Pivot/PivotSettings.cs) | `PivotSettings`, `IsValid`, `CopyValidated`, `HasSameRules` |
 | 보드 통계·모드별 효과와 독립 피벗 모듈 연결 | [BattlePivotSession.cs](../Assets/02_Scripts/Battle/Pivot/BattlePivotSession.cs) | `BattlePivotSession`, `AdvanceAfterBoardTick`, `Dispose` |
-| 링크 피벗의 육각형 이웃 한 겹 추가 파괴 | [LinkPivotEffect.cs](../Assets/02_Scripts/Battle/Pivot/LinkPivotEffect.cs) | `LinkPivotEffect`, `ExpandTargets` |
+| 세 모드 피벗의 이웃 한 겹 추가 파괴 | [LinkPivotEffect.cs](../Assets/02_Scripts/Battle/Pivot/LinkPivotEffect.cs) | `LinkPivotEffect`, `ExpandTargets`, `ExpandSquareTargets`, `ExpandNeighbors` |
 | 플레이어 피벗 게이지 UI | [PivotGaugeView.cs](../Assets/02_Scripts/Battle/Pivot/PivotGaugeView.cs) | `PivotGaugeView`, `Refresh`, `Dispose` |
 
 규칙/좌표/입력 기록 타입과 리플레이 파일 저장은 [DATA.md](DATA.md)의 코드 표를 함께 확인하세요.
@@ -183,6 +183,7 @@ Block : IGimmickHost — State: Idle, Selected, Moving, Matched, Falling, None
 - 콤보는 **유저 조작으로 성공한 매칭 횟수**다. 3매치는 성공한 교환의 첫 매칭만, 링크는 3개 이상 연결 확정만, 탭 매치는 2개 이상 그룹 파괴 성공만 한 번씩 센다.
 - 초기 보드 자동 매칭, 낙하 후 자동 연쇄, 폭탄과 피벗 추가 파괴는 별도 콤보를 올리거나 유지 타이머를 갱신하지 않는다. 점수·수집·파괴 개수는 정상 반영한다.
 - `TotalPlayerMatches`는 피버 중에도 유저 성공 횟수를 기록한다. 피벗은 이 누적값과 `TotalDestroyedBlocks`를 분리해서 전달받는다.
+- 새 점수는 배율을 1/5 단위 정수로 표현하고 `long` 중간값에서 곱셈·절삭한다. 점수·수집·파괴·유저 성공 누적값은 `int.MaxValue`에서 포화하며 음수 기본 점수는 거부한다. 기존 기록의 점수 계산은 `numericRuleVersion: 0`일 때만 실수 배율·절삭으로 복원한다.
 - 이전 리플레이(`comboRuleVersion: 0`)의 3매치만 `GameSpec.UseLegacyAutomaticCombos`로 당시 자동 연쇄 포함 규칙을 재현한다.
 
 | 항목 | 값 |
@@ -309,9 +310,16 @@ ReplayData 로드 → GameSpec 복원 (동일 Rule/Stage + 동일 시드)
 - 매칭·낙하·입력에 따른 블럭 상태 변경은 모두 모델의 `FixedUpdate()`에서 실행한다. `Update()`에서는 입력 수집과 UI/뷰 연출만 실행한다.
 - 기존 리플레이에 `sequence`가 없으면 같은 프레임의 좌표 입력을 종료 입력보다 먼저 처리한다. 과거 가변 프레임 판정 결과와의 완전한 일치는 보장하지 않는다.
 
-## 스테이지와 60초 대전
+## 수치 경계와 시간 변환
+
+- `ObjectiveManager.IsValidTimeLimit`는 NaN·Infinity·음수와 정수 틱 범위 초과를 거부한다. 0은 무제한이다. 새 규칙의 최대 입력 float는 42,949,672초이며 2,147,483,600틱으로 정확히 변환된다.
+- `GetTimeLimitFrames`는 double로 초×50을 계산한다. 정수 틱과의 차이가 float 입력의 상대 표현 오차 `2^-24` 이내면 해당 정수로 보정하고, 나머지 부분 틱은 올림한다. 따라서 0.3초는 15틱, 0.301초는 16틱이다. 타이머 표시의 올림은 `RemainingSeconds`가 정수 나눗셈으로 계산한다.
+- `numericRuleVersion: 0` 기록은 `UseLegacyNumericRules`로 이전 float 곱셈·올림을 복원하므로 0.3초 기록의 16틱 종료도 유지한다. 새 기록은 버전 1이며 다른 버전은 대전 승패 비교에서 제외한다.
+- 맵은 양수 크기와 범위 안의 셀 좌표만 허용한다. 로드와 보드 초기화에서 `StageData.HasValidCoordinates`로 검사한다. 사각형·육각형 인접 판정은 좌표를 long으로 확장한 뒤 뺄셈·절댓값을 계산한다.
+
+## 스테이지와 90초 대전
 - `GameSpec.mode`의 기본값은 `Stage`. 목표 전체 달성 또는 Rule의 제한 시간 종료 시 끝난다.
-- `Battle`은 목표 달성으로 끝나지 않으며, 50틱/초 × 60초 = 3,000틱을 정확히 진행한다. 양쪽 보드는 동일한 규칙·맵·시드를 사용한다.
+- `Battle`은 목표 달성으로 끝나지 않으며, 50틱/초 × 90초 = 4,500틱을 정확히 진행한다. 양쪽 보드는 동일한 규칙·맵·시드를 사용한다.
 - `ObjectiveManager`는 시간을 정수 틱으로 관리하고 표시할 때만 초로 변환한다. 콤보/피버도 기존처럼 논리 틱을 사용한다.
 - `GameScene`의 작은 보드 아래에 남은 시간, 입력이 없는 대기 상태, 재생 완료 및 점수를 표시한다. 기존 기록은 `이전 기록`으로 구분한다.
 - 대전 종료 시 현재 점수를 비교해 승리/패배/무승부를 4초간 표시한 뒤 로비로 돌아간다. 첫 기록 도전이면 본인 점수만 표시한다.
@@ -320,32 +328,33 @@ ReplayData 로드 → GameSpec 복원 (동일 Rule/Stage + 동일 시드)
 
 ## 대전 전용 피벗 모드
 
-- 기존 피버와 피벗은 별도의 상태로 동작한다. 콤보 증가는 유저 조작 성공 기준이며 피벗 자체의 추가 점수 배율은 없다. 링크 피벗의 추가 파괴는 기존 블럭 점수 규칙으로 점수를 얻는다.
+- 기존 피버와 피벗은 별도의 상태로 동작한다. 콤보 증가는 유저 조작 성공 기준이며 피벗 자체의 추가 점수 배율은 없다. 피벗의 추가 파괴는 기존 블럭 점수 규칙으로 점수를 얻는다.
 - `Battle/Pivot/PivotMode`와 `PivotSettings`는 Unity 및 `Puzzle.Core`를 참조하지 않는 순수 C# 모듈이다. 0.01점 단위 정수 게이지와 초당 50 논리 틱으로 동작하며 소수점은 표시할 때만 사용한다.
 - `ObjectiveManager.TotalDestroyedBlocks`는 모드에 관계없이 실제 파괴 수를 기록한다. 일반 매칭과 폭탄 연쇄가 모두 포함되며, 단순 이동·생성·셔플은 포함하지 않는다.
-- 연결 계층 `BattlePivotSession`은 대전 보드 초기화 직후 생성하고, 보드의 `FixedUpdate()` 직후 `AdvanceAfterBoardTick()`을 한 번 호출한다. 누적 파괴 수와 유저 매칭 성공 횟수의 증가분을 각각 전달하며 액션 큐는 소비하지 않는다. 링크 보드에는 별도 효과의 매칭 대상 확장 함수를 구독한다.
+- 연결 계층 `BattlePivotSession`은 대전 보드 초기화 직후 생성하고, 보드의 `FixedUpdate()` 직후 `AdvanceAfterBoardTick()`을 한 번 호출한다. 누적 파괴 수와 유저 매칭 성공 횟수의 증가분을 각각 전달하며 액션 큐는 소비하지 않는다. 세 보드에 별도 효과의 매칭 대상 확장 함수를 구독한다.
 - `GameMode.Battle`에서만 충전/발동하며 스테이지에서는 세션을 만들거나 피벗 설정을 검증하지 않는다. 플레이어와 상대 리플레이는 세션을 따로 보유한다. 게임 또는 재생 종료 시 `Stop()`으로 게이지와 활성 상태를 정리한다.
 
-| 설정 | 기본값 | 의미 |
+| 설정 | 현재 Rule JSON 값 | 의미 |
 |---|---|---|
 | `Capacity` | 1,000 | 최대 게이지 점수 |
-| `ChargePerBlockUnits` | 10 | 0.01점 단위 충전량. 블럭당 0.1점, 10개당 1점 |
+| `ChargePerBlockUnits` | 400 | 블럭당 4점 충전 |
 | `ChargeComboStep` | 10 | 충전 보너스가 증가하는 콤보 간격 |
-| `ChargeBonusPerStepUnits` | 1 | 단계마다 블럭당 0.01점 추가. 10~19콤보는 0.11점, 20~29콤보는 0.12점 |
-| `DrainPerSecond` | 10 | 기본 초당 소비량. 만충 상태에서 100초 유지 |
-| `DrainReductionPercentPerCombo` | 25 | 빠른 연속 유저 매칭 성공마다 줄이는 기본 소비 속도의 백분율 |
-| `MinimumDrainPercent` | 25 | 최소 소비 속도, 기본값에서 초당 2.5점 |
+| `ChargeBonusPerStepUnits` | 40 | 10콤보마다 블럭당 0.4점 추가 |
+| `DrainPerSecond` | 167 | 기본 유지 약 6초 |
+| `DrainReductionPercentPerCombo` | 10 | 빠른 연속 유저 매칭 성공마다 줄이는 기본 소비 속도의 백분율 |
+| `MinimumDrainPercent` | 75 | 최소 초당 125.25점 소비, 최대 유지 약 8초 |
 | `ComboWindowTicks` | 50 | 유저 매칭 성공을 빠른 콤보로 인정하는 최대 간격, 기본 1초 |
 | `LinkNeighborClear` | 링크 JSON만 true | 링크 피벗 중 육각형 이웃 한 겹 추가 파괴. 다른 모드와 기존 기록은 false |
+| `SquareNeighborClear` | 3매치·탭 JSON만 true | 원래 매칭의 상하좌우 한 겹 추가 파괴. 기존 기록은 false |
 
 - 충전 중에는 게이지가 감소하지 않는다. 최대치 도달 시 발동하며 초과 충전은 버린다. 발동 틱에는 소비하지 않고 다음 틱부터 소비한다.
 - 피벗 콤보는 기존 피버 콤보와 독립적이다. 충전 중부터 직전 유저 매칭 성공과 50틱 이내인 성공을 연속 콤보로 세며, 현재 성공을 포함해 10콤보가 되는 순간부터 충전 보너스를 적용한다. 자동 매칭·폭탄·추가 파괴는 콤보를 늘리거나 시간을 갱신하지 않지만, 충전 중에는 당시 콤보 배율로 파괴량만큼 충전한다.
-- 활성 중 블럭 파괴는 게이지를 다시 채우지 않는다. 빠른 연속 유저 매칭 성공마다 소비량이 초당 10 → 7.5 → 5 → 2.5점으로 감소한다. 자동 파괴는 감속을 추가하지 않는다. 발동 전 콤보 횟수로 여러 감속 단계를 즉시 적용하지 않는다.
+- 활성 중 블럭 파괴는 게이지를 다시 채우지 않는다. 빠른 연속 유저 매칭 성공마다 소비량이 초당 167 → 150.3 → 133.6 → 125.25점으로 감소한다. 자동 파괴는 감속을 추가하지 않는다. 발동 전 콤보 횟수로 여러 감속 단계를 즉시 적용하지 않는다.
 - 50틱 동안 유저 매칭 성공이 없고 다음 틱으로 넘어가면 피벗 콤보는 0으로, 소비 속도는 기본값으로 복귀한다. 게이지 소진 후에는 다시 충전할 수 있으며, 소진 틱의 파괴를 재충전에 중복 사용하지 않는다. 정수 단위 미만 소비량은 다음 틱으로 이월한다.
 - 수치는 `Assets/05_Table/Rule/`의 세 Rule JSON 최상위 `pivotSettings`에서 모드별로 조정한다. `AssetManager`로 읽은 `GameRuleContainer` → `StageInjection` → `GameSpec.pivotSettings` → 컨트롤러로 전달한다. Inspector 설정은 사용하지 않는다.
 - 대전 준비 시 설정이 없거나 범위를 벗어나면 로그를 남기고 씬 진입 전에 중단한다. 스테이지는 이 설정의 누락·범위 오류 때문에 중단하지 않는다. 구체적인 JSON 예시는 [DATA.md](DATA.md#피벗-게임-데이터)를 참고한다.
 - 실행에는 검증된 복사본을 사용하고 `ReplayData.pivotSettings`에 저장하여 재생에서도 당시 설정을 사용한다. 필드가 없는 기존 기록은 기본값을 사용한다. 잘못된 피벗 설정을 포함한 대전 기록은 로드/상대 선택 단계에서 제외한다. 기존 기록의 점수 규칙은 콤보 버전으로 복원한다.
-- 플레이어 UI는 기존 타이머 아래에 `PivotGaugeView`가 생성한다. 기존 한글 폰트를 재사용하며 충전은 파란색, 활성은 주황색으로 표시한다. 현재 점수와 최대치 1,000을 함께 표시한다. 종료 시 숨기고 컨트롤러 제거 시 정리한다. 상대 피벗 상태와 점수는 기존 리플레이 상태 텍스트에 표시한다. 양쪽 모두 소수점 한 자리 아래를 버려 미충전 상태가 만충으로 반올림되지 않게 한다.
+- 플레이어 UI는 기존 타이머 아래에 `PivotGaugeView`가 생성한다. 기존 한글 폰트를 재사용하며 충전은 파란색, 활성은 주황색으로 표시한다. 현재 점수와 최대치 1,000을 함께 표시한다. 종료 시 숨기고 컨트롤러 제거 시 정리한다. 상대 피벗 상태와 점수는 기존 리플레이 상태 텍스트에 표시한다. 양쪽 모두 정수 몫·나머지로 소수점 한 자리 문자열을 만든다. `GaugeRatio`는 double 중간값으로 계산하고 미충전 값이 float에서 1로 반올림되면 1보다 작은 최댓값으로 제한한다.
 
 ### 링크 피벗: 육각형 이웃 한 겹
 
@@ -353,7 +362,16 @@ ReplayData 로드 → GameSpec 복원 (동일 Rule/Stage + 동일 시드)
 - 유효한 원래 연결 경로의 각 칸에 대해 `GridPos.IsAdjacentHexagon`과 동일한 6방향 이웃을 색상·입력 플래그와 무관하게 추가한다. 보드 밖·누락·빈 셀·Close/Lock 셀은 제외한다. 일반/생성기 셀의 블럭만 대상이다.
 - 추가 대상에서는 다시 이웃을 찾지 않는다. 원래 경로와 이웃 중복은 제거하고 경로 순서 → 고정 좌표 오프셋 순서로 수집한다. 해시 집합은 중복 검사에만 사용한다.
 - `LinkPivotEffect`는 대상 수집만 담당한다. 링크 보드가 원래 경로와 추가 대상을 같은 파괴 연출 순서로 처리하며 점수·수집·폭탄 기믹을 기존 경로로 적용한다. 포함된 폭탄의 고유 연쇄 범위는 한 겹 밖으로 이어질 수 있다.
-- 링크가 짧아 매칭에 실패했거나, 피벗 비활성/스테이지/사각형 보드이면 추가 효과가 없다. 3매치·탭 매치 효과는 아직 추가하지 않았다.
+- 링크가 짧아 매칭에 실패했거나, 피벗 비활성/스테이지/사각형 보드이면 추가 효과가 없다. 3매치·탭 매치는 아래의 사각형 이웃 효과를 적용한다.
 - `Dispose()`는 매칭 확장 구독을 해제하고 피벗을 정지한다. 게임 종료, 상대 재초기화, 컨트롤러 제거 시 호출한다.
 - 새 기록은 `LinkNeighborClear`와 `comboRuleVersion: 1`을 저장한다. 해당 효과 필드가 없는 기존 기록은 이웃 파괴 없이 재생하고, 콤보 버전이 없는 기록은 당시 자동 매칭/파괴 기준 콤보로 재생한다.
-- 대전 상대는 현재 콤보 버전과 Rule JSON의 피벗 설정 전체가 같은 완주 기록만 선택한다. 다른 규칙의 기존 기록은 재생할 수 있지만 승패 비교에서는 제외한다. 호환 기록이 없으면 첫 기록 도전으로 진행한다.
+- 대전 상대는 현재 콤보·수치 계산 버전과 Rule JSON의 피벗 설정 전체가 같은 완주 기록만 선택한다. 다른 규칙의 기존 기록은 재생할 수 있지만 승패 비교에서는 제외한다. 호환 기록이 없으면 첫 기록 도전으로 진행한다.
+
+### 90초 대전 충전 밸런스와 사각형 피벗
+
+- 기준 입력은 매초 유저 매칭 1회, 매칭당 10개 파괴다. 실제 상태 머신 검증에서 첫 발동은 24초, 다음 발동은 55초와 86초다. 활성 중 충전하지 않으므로 충전 약 24초와 유지 약 7초를 합쳐 반복 간격 약 31초를 맞춘다. 플레이 속도·자동 연쇄·콤보에 따라 발동 시점은 달라지며 시간만으로 자동 발동하지 않는다.
+- `SquareNeighborClear`는 3매치·탭 매치 JSON에서 true, 링크 및 기존 기록에서는 false다. `ThreeMatchPuzzleBoard.MatchTargetsExpanding`과 `TapMatchPuzzleBoard.MatchTargetsExpanding`에 `LinkPivotEffect.ExpandSquareTargets`를 연결한다.
+- 3매치는 확정 매칭(자동 연쇄 포함), 탭 매치는 유효한 2개 이상 연결 덩어리의 상하좌우 한 겹을 색상과 무관하게 추가 파괴한다. 대각선, 빈칸, 누락 셀, Close/Lock은 제외한다. 추가 대상에서 다시 확장하지 않으며 폭탄 고유 연쇄만 별도로 이어진다.
+- 새 효과가 구독된 보드는 원래 매칭을 Y→X 순으로 수집하고 고정 오프셋 순으로 이웃을 추가한다. 효과가 없는 기존 기록은 기존 파괴 순서를 유지한다. 추가 파괴는 점수·수집에 반영하지만 유저 매칭 횟수를 늘리지 않는다.
+- `PivotSettings` 클래스 초기값은 구형 리플레이 복원을 위해 유지한다. 새 플레이 밸런스는 Rule JSON이 기준이다. 두 효과 플래그 모두 스냅샷 복사와 호환성 비교에 포함한다.
+- 기존 60초 기록은 `UseRecordedBattleDuration`으로 원래 3,000틱 동안 재생한다. 새 플레이는 항상 90초이며 60초 기록은 상대 선택과 승패 비교에서 제외한다.

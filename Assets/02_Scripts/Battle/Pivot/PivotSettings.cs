@@ -2,7 +2,7 @@
 
 namespace Battle.Pivot
 {
-    /// <summary> 피벗 충전량, 초당 소비량 및 콤보 틱 간격을 정의하는 게임 데이터입니다. </summary>
+    /// <summary> 피벗 충전량, 소비량 및 효과를 정의합니다. 초기값은 구형 기록 복원용이며 새 게임은 Rule JSON을 사용합니다. </summary>
     [Serializable]
     public sealed class PivotSettings
     {
@@ -25,6 +25,8 @@ namespace Battle.Pivot
 
         /// <summary> 링크 피벗 중 육각형 이웃 한 겹을 함께 파괴할지 여부입니다. 기존 기록은 기본 비활성입니다. </summary>
         public bool LinkNeighborClear;
+        /// <summary> 3매치·탭 매치의 상하좌우 한 겹 파괴입니다. 기존 기록은 비활성입니다. </summary>
+        public bool SquareNeighborClear;
 
         /// <summary> 예외나 복사본 생성 없이 피벗 설정의 유효 범위를 확인합니다. </summary>
         /// <returns>정수 게이지와 소비 비율이 유효하면 true</returns>
@@ -47,7 +49,7 @@ namespace Battle.Pivot
                 ChargeComboStep == other.ChargeComboStep && ChargeBonusPerStepUnits == other.ChargeBonusPerStepUnits &&
                 DrainPerSecond == other.DrainPerSecond && DrainReductionPercentPerCombo == other.DrainReductionPercentPerCombo &&
                 MinimumDrainPercent == other.MinimumDrainPercent && ComboWindowTicks == other.ComboWindowTicks &&
-                LinkNeighborClear == other.LinkNeighborClear;
+                LinkNeighborClear == other.LinkNeighborClear && SquareNeighborClear == other.SquareNeighborClear;
         }
 
         /// <summary> 실행 중 외부 설정 변경의 영향을 받지 않도록 검증한 복사본을 만듭니다. </summary>
@@ -69,7 +71,8 @@ namespace Battle.Pivot
                 DrainReductionPercentPerCombo = DrainReductionPercentPerCombo,
                 MinimumDrainPercent = MinimumDrainPercent,
                 ComboWindowTicks = ComboWindowTicks,
-                LinkNeighborClear = LinkNeighborClear
+                LinkNeighborClear = LinkNeighborClear,
+                SquareNeighborClear = SquareNeighborClear
             };
         }
     }

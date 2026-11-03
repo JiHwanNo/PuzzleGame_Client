@@ -16,6 +16,12 @@ namespace Puzzle.Core
         public int Width { get; private set; }
         public int Height { get; private set; }
 
+        /// <summary> 매칭 파괴 전에 원래 대상과 추가 파괴 대상을 전달하는 확장 지점입니다. </summary>
+        public event Action<BoardShape, IReadOnlyList<GridPos>, List<GridPos>> MatchTargetsExpanding;
+        /// <summary> 확장 중 변경하지 않는 원래 매칭 대상입니다. </summary>
+        private readonly List<GridPos> _originalMatchTargets = new List<GridPos>();
+        /// <summary> 원래 매칭과 추가 효과를 합친 파괴 대상입니다. </summary>
+        private readonly List<GridPos> _expandedMatchTargets = new List<GridPos>();
         private PuzzleBlockFactory _blockFactory;
         private Queue<GridPos> _inputQueue = new Queue<GridPos>();
         /// <summary> 마지막으로 큐에 추가된 입력 좌표 (Queue.Last() O(n) 방지) </summary>
@@ -44,6 +50,13 @@ namespace Puzzle.Core
         /// <param name="spec">보드 초기화에 사용할 게임 사양</param>
         public void Initialize(GameSpec spec)
         {
+            if (spec == null || spec.stageData == null || !spec.stageData.HasValidCoordinates())
+            {
+                throw new ArgumentException("보드 크기와 셀 좌표가 유효한 스테이지가 필요합니다.", nameof(spec));
+            }
+            MatchTargetsExpanding = null;
+            _originalMatchTargets.Clear();
+            _expandedMatchTargets.Clear();
             _blockFactory = new PuzzleBlockFactory();
             _inputQueue = new Queue<GridPos>();
             _lastEnqueuedInput = null;
@@ -57,7 +70,7 @@ namespace Puzzle.Core
             _currentOrderIndex = 0;
             gameSpec = spec;
             Random = new PuzzleRandom(spec.randomSeed);
-            Objective = new ObjectiveManager(gameSpec.rule.objectives, gameSpec.rule.timeLimit, spec.mode);
+            Objective = new ObjectiveManager(gameSpec.rule.objectives, gameSpec.rule.timeLimit, spec.mode, spec.UseRecordedBattleDuration, spec.UseLegacyNumericRules);
 
             if (gameSpec != null && gameSpec.stageData != null)
             {
@@ -209,8 +222,33 @@ namespace Puzzle.Core
                 }
 
                 uint burstOrder = _currentOrderIndex++;
-                foreach (GridPos pos in matched)
+                _expandedMatchTargets.Clear();
+                foreach (GridPos matchedPos in matched)
                 {
+                    _expandedMatchTargets.Add(matchedPos);
+                }
+                if (MatchTargetsExpanding != null)
+                {
+                    // 새 효과가 연결된 경우만 좌표 순서를 고정하여 기존 기록의 파괴 순서를 유지합니다.
+                    _originalMatchTargets.Clear();
+                    for (int y = 0; y < Height; y++)
+                    {
+                        for (int x = 0; x < Width; x++)
+                        {
+                            GridPos candidate = new GridPos(x, y);
+                            if (matched.Contains(candidate))
+                            {
+                                _originalMatchTargets.Add(candidate);
+                            }
+                        }
+                    }
+                    _expandedMatchTargets.Clear();
+                    _expandedMatchTargets.AddRange(_originalMatchTargets);
+                    MatchTargetsExpanding.Invoke(gameSpec.rule.boardShape, _originalMatchTargets, _expandedMatchTargets);
+                }
+                for (int targetIndex = 0; targetIndex < _expandedMatchTargets.Count; targetIndex++)
+                {
+                    GridPos pos = _expandedMatchTargets[targetIndex];
                     PuzzleCell mCell = GetCell(pos);
                     if (mCell != null && mCell.Block != null)
                     {

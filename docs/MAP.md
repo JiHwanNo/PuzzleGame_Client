@@ -41,7 +41,7 @@
 
 | 찾는 기능·수정할 내용 | 먼저 볼 C# 파일 | 관련 코드 전체 표 |
 |---|---|---|
-| 게임 시작·스테이지/60초 대전·랜덤 퍼즐 모드 선택 | [PopupReady.cs](../Assets/02_Scripts/UI/Popup/PopupReady.cs) | [UI.md](UI.md#콘텐츠와-c-매핑) |
+| 게임 시작·스테이지/90초 대전·랜덤 퍼즐 모드 선택 | [PopupReady.cs](../Assets/02_Scripts/UI/Popup/PopupReady.cs) | [UI.md](UI.md#콘텐츠와-c-매핑) |
 | 퍼즐 입력·게임 루프·종료 처리 | [PuzzleGameController.cs](../Assets/02_Scripts/PuzzleCore/Controller/PuzzleGameController.cs) | [INGAME.md](INGAME.md#콘텐츠와-c-매핑) |
 | 3매치·스왑·자동 셔플 | [ThreeMatchPuzzleBoard.cs](../Assets/02_Scripts/PuzzleCore/Module/Board/ThreeMatchPuzzleBoard.cs) | [INGAME.md](INGAME.md#콘텐츠와-c-매핑) |
 | 링크 연결 | [LinkPuzzleBoard.cs](../Assets/02_Scripts/PuzzleCore/Module/Board/LinkPuzzleBoard.cs) | [INGAME.md](INGAME.md#콘텐츠와-c-매핑) |
@@ -50,7 +50,7 @@
 | 폭탄 범위·연쇄 파괴 | [BombGimmick.cs](../Assets/02_Scripts/PuzzleCore/Module/Gimmick/BombGimmick.cs) | [INGAME.md](INGAME.md#콘텐츠와-c-매핑) |
 | 점수·콤보·피버·목표 | [ObjectiveManager.cs](../Assets/02_Scripts/PuzzleCore/Module/ObjectiveManager.cs) | [INGAME.md](INGAME.md#콘텐츠와-c-매핑) |
 | 대전 피벗 충전·유지·빠른 콤보 감속 | [PivotMode.cs](../Assets/02_Scripts/Battle/Pivot/PivotMode.cs) | [INGAME.md](INGAME.md#콘텐츠와-c-매핑) |
-| 링크 피벗의 육각형 주변 한 겹 파괴 | [LinkPivotEffect.cs](../Assets/02_Scripts/Battle/Pivot/LinkPivotEffect.cs) | [INGAME.md](INGAME.md#링크-피벗-육각형-이웃-한-겹) |
+| 링크·3매치·탭 매치 피벗의 주변 한 겹 파괴 | [LinkPivotEffect.cs](../Assets/02_Scripts/Battle/Pivot/LinkPivotEffect.cs) | [INGAME.md](INGAME.md#링크-피벗-육각형-이웃-한-겹) |
 | 피벗 게이지·충전·소비 수치 JSON 수정 | [PivotSettings.cs](../Assets/02_Scripts/Battle/Pivot/PivotSettings.cs) | [DATA.md](DATA.md#피벗-게임-데이터) |
 | 낙하 중 블럭 소실·뷰 액션 순서 | [PuzzleBoardView.cs](../Assets/02_Scripts/PuzzleCore/View/PuzzleBoardView.cs) | [INGAME.md](INGAME.md#콘텐츠와-c-매핑) |
 | 블럭 애니메이션 | [PuzzleBlockView.cs](../Assets/02_Scripts/PuzzleCore/View/PuzzleBlockView.cs) | [INGAME.md](INGAME.md#콘텐츠와-c-매핑) |

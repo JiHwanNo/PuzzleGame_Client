@@ -109,6 +109,12 @@ public class StageInjection
                 _gameSpec = null;
                 return false;
             }
+            if (!ObjectiveManager.IsValidTimeLimit(ruleContainer.rule.timeLimit))
+            {
+                Debug.LogError($"[StageInjection] 제한 시간 범위가 잘못되었습니다: {ruleAddress} / {ruleContainer.rule.timeLimit}");
+                _gameSpec = null;
+                return false;
+            }
             _gameSpec.rule = ruleContainer.rule;
             _gameSpec.blocks = ruleContainer.blocks;
             _gameSpec.pivotSettings = ruleContainer.pivotSettings;
@@ -144,9 +150,9 @@ public class StageInjection
         if (stageAsset != null)
         {
             _gameSpec.stageData = JsonUtility.FromJson<StageData>(stageAsset.text);
-            if (_gameSpec.stageData == null)
+            if (_gameSpec.stageData == null || !_gameSpec.stageData.HasValidCoordinates())
             {
-                Debug.LogError($"[StageInjection] 스테이지 JSON 파싱 실패: {stageAddress}");
+                Debug.LogError($"[StageInjection] 스테이지 데이터 또는 셀 좌표 범위 오류: {stageAddress}");
                 _gameSpec = null;
                 return false;
             }

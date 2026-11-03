@@ -15,6 +15,10 @@ namespace Puzzle.Core
         public const int CurrentFormatVersion = 1;
         /// <summary> 유저 조작 성공만 콤보로 세는 현재 판정 버전입니다. </summary>
         public const int CurrentComboRuleVersion = 1;
+        /// <summary> 시간 표현 오차 보정과 정수 점수를 사용하는 현재 수치 계산 버전입니다. </summary>
+        public const int CurrentNumericRuleVersion = 1;
+        /// <summary> 수치 계산 버전입니다. 필드가 없는 기존 기록의 0은 이전 실수 계산을 복원합니다. </summary>
+        public int numericRuleVersion;
         /// <summary> 콤보 판정 버전입니다. 없는 기존 기록의 0은 자동 연쇄 포함 규칙을 사용합니다. </summary>
         public int comboRuleVersion;
         /// <summary> 없으면 이전 형식으로 읽으며 대전 상대로 사용하지 않습니다. </summary>
@@ -31,13 +35,15 @@ namespace Puzzle.Core
         /// <summary> 기록 당시 피벗 규칙입니다. 없는 기존 기록은 기본 설정으로 표시합니다. </summary>
         public PivotSettings pivotSettings;
 
-        /// <summary> 동일한 60초 규칙으로 완료한 대전 기록인지 검사합니다. </summary>
-        /// <returns>대전 상대로 사용할 수 있는 기록이면 true</returns>
+        /// <summary> 지원하는 60초 또는 90초 규칙으로 완료한 대전 기록인지 검사합니다. </summary>
+        /// <returns>지원하는 제한 시간까지 완주한 기록이면 true</returns>
         public bool IsCompleteBattleRecord()
         {
             if (formatVersion != CurrentFormatVersion || mode != GameMode.Battle ||
                 comboRuleVersion < 0 || comboRuleVersion > CurrentComboRuleVersion ||
-                System.Math.Abs(timeLimit - GameSpec.BattleDurationSeconds) > 0.0001f || float.IsNaN(timeLimit) || frameCount != GameSpec.BattleFrameCount ||
+                numericRuleVersion < 0 || numericRuleVersion > CurrentNumericRuleVersion ||
+                (timeLimit != 60f && timeLimit != GameSpec.BattleDurationSeconds) ||
+                frameCount != (ulong)(timeLimit * GameSpec.LogicFramesPerSecond) ||
                 finalScore < 0 || inputs == null || inputEnds == null ||
                 string.IsNullOrEmpty(ruleAddress) || string.IsNullOrEmpty(stageAddress))
             {
@@ -69,8 +75,8 @@ namespace Puzzle.Core
         /// <returns>완주 기록이며 현재 규칙으로 점수를 비교할 수 있으면 true</returns>
         public bool HasCompatibleBattleRules(PivotSettings currentSettings)
         {
-            if (!IsCompleteBattleRecord() || comboRuleVersion != CurrentComboRuleVersion ||
-                currentSettings == null || !currentSettings.IsValid())
+            if (!IsCompleteBattleRecord() || timeLimit != GameSpec.BattleDurationSeconds || comboRuleVersion != CurrentComboRuleVersion ||
+                numericRuleVersion != CurrentNumericRuleVersion || currentSettings == null || !currentSettings.IsValid())
             {
                 return false;
             }

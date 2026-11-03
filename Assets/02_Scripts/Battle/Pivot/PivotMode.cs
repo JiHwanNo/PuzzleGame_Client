@@ -23,6 +23,21 @@ namespace Battle.Pivot
         public int GaugeUnits { get; private set; }
         /// <summary> 표시용 게이지 점수입니다. 판정에는 정수 단위를 사용합니다. </summary>
         public float GaugePoints => (float)GaugeUnits / UnitsPerPoint;
+        /// <summary> 만충 전 반올림으로 1이 되지 않게 보정한 표시용 게이지 비율입니다. </summary>
+        public float GaugeRatio
+        {
+            get
+            {
+                long capacityUnits = (long)Capacity * UnitsPerPoint;
+                float ratio = (float)((double)GaugeUnits / capacityUnits);
+                if (GaugeUnits < capacityUnits && ratio >= 1f)
+                {
+                    // 1보다 작은 가장 큰 float 값으로 미충전 상태를 유지합니다.
+                    return 0.99999994f;
+                }
+                return ratio;
+            }
+        }
         /// <summary> 최대 게이지 점수입니다. </summary>
         public int Capacity => _settings.Capacity;
         /// <summary> 현재 적용되는 기본 소비 속도의 백분율입니다. </summary>
@@ -88,7 +103,7 @@ namespace Battle.Pivot
 
             if (!IsActive)
             {
-                // 10콤보부터 블럭당 0.11점, 20콤보부터 0.12점으로 정수 단위 충전합니다.
+                // 설정된 콤보 단계마다 블럭당 정수 충전 보너스를 적용합니다.
                 long chargePerBlock = _settings.ChargePerBlockUnits +
                     (long)(ComboCount / _settings.ChargeComboStep) * _settings.ChargeBonusPerStepUnits;
                 long remaining = (long)_settings.Capacity * UnitsPerPoint - GaugeUnits;

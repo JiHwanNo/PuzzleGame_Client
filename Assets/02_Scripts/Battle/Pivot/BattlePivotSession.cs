@@ -16,8 +16,12 @@ namespace Battle.Pivot
         private readonly bool _useLegacyDestructionCombos;
         /// <summary> 매칭 대상 확장 이벤트를 구독한 링크 보드입니다. </summary>
         private readonly LinkPuzzleBoard _linkBoard;
-        /// <summary> 피벗 활성 상태에서만 이웃을 추가하는 링크 전용 효과입니다. </summary>
-        private readonly LinkPivotEffect _linkEffect;
+        /// <summary> 피벗 활성 상태에서만 보드별 이웃을 추가하는 공통 효과입니다. </summary>
+        private readonly LinkPivotEffect _neighborEffect;
+        /// <summary> 사각형 이웃 효과를 구독한 3매치 보드입니다. </summary>
+        private readonly ThreeMatchPuzzleBoard _threeMatchBoard;
+        /// <summary> 사각형 이웃 효과를 구독한 탭 매치 보드입니다. </summary>
+        private readonly TapMatchPuzzleBoard _tapMatchBoard;
         /// <summary> 이 보드만의 독립적인 피벗 상태입니다. </summary>
         public PivotMode Mode { get; }
 
@@ -38,11 +42,24 @@ namespace Battle.Pivot
             _lastPlayerMatches = board.Objective.TotalPlayerMatches;
             _useLegacyDestructionCombos = useLegacyDestructionCombos;
             Mode = new PivotMode(gameMode == GameMode.Battle, settings);
+            _neighborEffect = new LinkPivotEffect(board, Mode);
             if (Mode.IsEnabled && settings.LinkNeighborClear && board is LinkPuzzleBoard linkBoard)
             {
                 _linkBoard = linkBoard;
-                _linkEffect = new LinkPivotEffect(board, Mode);
-                _linkBoard.MatchTargetsExpanding += _linkEffect.ExpandTargets;
+                _linkBoard.MatchTargetsExpanding += _neighborEffect.ExpandTargets;
+            }
+            if (Mode.IsEnabled && settings.SquareNeighborClear)
+            {
+                if (board is ThreeMatchPuzzleBoard threeMatchBoard)
+                {
+                    _threeMatchBoard = threeMatchBoard;
+                    _threeMatchBoard.MatchTargetsExpanding += _neighborEffect.ExpandSquareTargets;
+                }
+                else if (board is TapMatchPuzzleBoard tapMatchBoard)
+                {
+                    _tapMatchBoard = tapMatchBoard;
+                    _tapMatchBoard.MatchTargetsExpanding += _neighborEffect.ExpandSquareTargets;
+                }
             }
         }
 
@@ -70,9 +87,17 @@ namespace Battle.Pivot
         /// <summary> 종료 또는 재초기화 시 효과 구독과 피벗 상태를 정리합니다. </summary>
         public void Dispose()
         {
-            if (_linkBoard != null && _linkEffect != null)
+            if (_linkBoard != null && _neighborEffect != null)
             {
-                _linkBoard.MatchTargetsExpanding -= _linkEffect.ExpandTargets;
+                _linkBoard.MatchTargetsExpanding -= _neighborEffect.ExpandTargets;
+            }
+            if (_threeMatchBoard != null)
+            {
+                _threeMatchBoard.MatchTargetsExpanding -= _neighborEffect.ExpandSquareTargets;
+            }
+            if (_tapMatchBoard != null)
+            {
+                _tapMatchBoard.MatchTargetsExpanding -= _neighborEffect.ExpandSquareTargets;
             }
             Mode.Stop();
         }

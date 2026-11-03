@@ -54,6 +54,10 @@ namespace Puzzle.Core
         /// <param name="spec">보드 초기화에 사용할 게임 사양</param>
         public void Initialize(GameSpec spec)
         {
+            if (spec == null || spec.stageData == null || !spec.stageData.HasValidCoordinates())
+            {
+                throw new ArgumentException("보드 크기와 셀 좌표가 유효한 스테이지가 필요합니다.", nameof(spec));
+            }
             _blockFactory = new PuzzleBlockFactory();
             _linkPath = new List<GridPos>();
             _matchTargets.Clear();
@@ -68,7 +72,7 @@ namespace Puzzle.Core
             _currentOrderIndex = 0;
             gameSpec = spec;
             Random = new PuzzleRandom(spec.randomSeed);
-            Objective = new ObjectiveManager(gameSpec.rule.objectives, gameSpec.rule.timeLimit, spec.mode);
+            Objective = new ObjectiveManager(gameSpec.rule.objectives, gameSpec.rule.timeLimit, spec.mode, spec.UseRecordedBattleDuration, spec.UseLegacyNumericRules);
 
             if (gameSpec != null && gameSpec.stageData != null)
             {

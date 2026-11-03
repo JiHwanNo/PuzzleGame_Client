@@ -127,6 +127,11 @@ public class ReplayController : MonoBehaviour
             Debug.LogError("[ReplayController] 리플레이 입력 데이터가 없습니다.");
             return;
         }
+        if (replayData.numericRuleVersion < 0 || replayData.numericRuleVersion > ReplayData.CurrentNumericRuleVersion)
+        {
+            Debug.LogError($"[ReplayController] 지원하지 않는 수치 규칙 버전입니다: {replayData.numericRuleVersion}");
+            return;
+        }
         _replayData = replayData;
         _frameCount = 0;
         _inputIndex = 0;
@@ -167,10 +172,19 @@ public class ReplayController : MonoBehaviour
         // 기록된 시드를 적용하여 동일한 난수 시퀀스 재현
         replaySpec.randomSeed = _replayData.randomSeed;
         replaySpec.UseLegacyAutomaticCombos = _replayData.comboRuleVersion == 0;
+        replaySpec.UseLegacyNumericRules = _replayData.numericRuleVersion == 0;
         if (_replayData.formatVersion == ReplayData.CurrentFormatVersion)
         {
             replaySpec.mode = _replayData.mode;
+            replaySpec.UseRecordedBattleDuration = true;
             replaySpec.rule.timeLimit = _replayData.timeLimit;
+        }
+
+        if (!ObjectiveManager.IsValidTimeLimit(replaySpec.rule.timeLimit, replaySpec.UseLegacyNumericRules) ||
+            replaySpec.stageData == null || !replaySpec.stageData.HasValidCoordinates())
+        {
+            Debug.LogError("[ReplayController] 제한 시간 또는 스테이지 좌표 범위가 잘못되었습니다.");
+            return;
         }
 
         // 퍼즐 타입에 맞는 보드 생성
@@ -344,7 +358,7 @@ public class ReplayController : MonoBehaviour
         }
         else
         {
-            seconds = Mathf.CeilToInt(_board.Objective.RemainingTime);
+            seconds = _board.Objective.RemainingSeconds;
             bool waiting = _inputIndex >= _replayData.inputs.Count && _inputEndIndex >= _replayData.inputEnds.Count;
             statusState = waiting ? ReplayStatusState.Waiting : ReplayStatusState.Playing;
         }
@@ -396,7 +410,7 @@ public class ReplayController : MonoBehaviour
         if (pivotTenths >= 0)
         {
             string pivotState = pivotActive ? "피벗 모드" : "피벗 충전";
-            text += $"\n{pivotState} · {pivotTenths / 10f:0.0} / {pivotCapacity}";
+            text += $"\n{pivotState} · {pivotTenths / 10}.{pivotTenths % 10} / {pivotCapacity}";
         }
         _statusText.text = text;
     }
