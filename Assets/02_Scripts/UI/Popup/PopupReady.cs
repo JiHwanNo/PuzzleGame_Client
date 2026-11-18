@@ -1,172 +1,150 @@
-﻿using System.IO;
-using Puzzle.Core;
-using System.Collections.Generic;
+﻿using System;
+using System.Collections;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-/// <summary>
-/// 게임 준비(Ready) 팝업.
-/// PopupHandler를 상속받아 시작/닫기/리플레이 버튼 로직을 구현합니다.
-/// </summary>
+/// <summary>준비 팝업에서 미리 고른 퍼즐을 슬롯으로 공개하고 스테이지 또는 대전을 시작합니다.</summary>
 public class PopupReady : PopupHandler
 {
+    [SerializeField] private TMP_Text _titleText;
+    [SerializeField] private TMP_Text _statusText;
+    [SerializeField] private TMP_Text _lifeText;
+    [SerializeField] private RawImage _reel;
+    [SerializeField] private Button _startButton;
+    [SerializeField] private Button _closeButton;
 
-    /// <summary>
-    /// 랜덤 퍼즐 모드 선택에 사용할 규칙 에셋 주소 목록입니다.
-    /// </summary>
-    private static readonly string[] RulePaths = new string[]
+    // 이미지의 왼쪽부터 링크, 3매치, 탭 매치 순서입니다.
+    private static readonly string[] RulePaths = { "LinkMatchRule", "ThreeMatchRule", "TapMatchRule" };
+    private static readonly string[] ModeNames = { "링크", "3매치", "탭 매치" };
+
+    private Vector2 _previewSize;
+    private int _selectedMode;
+    private bool _spinning;
+    private bool _isBattle;
+    private long _lastSecond = -1;
+
+    /// <summary>첫 프레임 전에 결과를 정하고 라이프 상태를 표시합니다.</summary>
+    protected override void Awake()
     {
-        "LinkMatchRule",
-        "ThreeMatchRule",
-        "TapMatchRule"
-    };
+        base.Awake();
+        _previewSize = _reel.rectTransform.sizeDelta;
+        _selectedMode = UnityEngine.Random.Range(0, RulePaths.Length);
+        RefreshLives(DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+    }
 
-    /// <summary>
-    /// 시작 버튼 클릭 시 랜덤 퍼즐 모드로 게임 데이터를 준비하고 게임 씬으로 이동합니다.
-    /// Link, 3매치, 탭 블라스트 중 하나를 선택하고 스테이지의 목표/제한 시간을 적용합니다.
-    /// </summary>
+    /// <summary>로비에서 대전을 선택한 팝업에 제목과 대전 진입 경로를 설정합니다.</summary>
+    internal void ConfigureBattle()
+    {
+        _isBattle = true;
+        _titleText.text = "90초 대전 준비";
+    }
+
+    /// <summary>팝업이 열린 동안 초 단위로 다음 회복 시각과 버튼 상태를 갱신합니다.</summary>
+    private void Update()
+    {
+        long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        if (now != _lastSecond)
+        {
+            RefreshLives(now);
+        }
+    }
+
+    /// <summary>라이프 잔량과 다음 한 개가 충전될 때까지의 시간을 표시합니다.</summary>
+    /// <param name="now">현재 UTC 초입니다.</param>
+    private void RefreshLives(long now)
+    {
+        _lastSecond = now;
+        int lives = PlayerLives.GetRemaining(now, out int seconds);
+        _lifeText.text = $"라이프  {lives} / {PlayerLives.Capacity}";
+        if (seconds > 0)
+        {
+            _lifeText.text += $"     +1까지  {seconds / 60:00}:{seconds % 60:00}";
+        }
+        _startButton.interactable = !_spinning && lives > 0;
+    }
+
+    /// <summary>중복 클릭을 막고 미리 선택된 모드의 슬롯 연출을 시작합니다.</summary>
     private void OnClickStart()
     {
-        // 3가지 퍼즐 모드 중 랜덤 선택
-        string rulePath = RulePaths[Random.Range(0, RulePaths.Length)];
-        string stagePath = "Stage";
-
-        if (!StageInjection.Instance.MakeGameSpec(rulePath, stagePath))
+        if (_spinning || _popup.IsAnimating || !_startButton.interactable)
         {
-            Debug.LogError("[PopupReady] GameSpec 준비에 실패했습니다.");
             return;
         }
-
-        Debug.Log($"[PopupReady] 선택된 퍼즐 모드: {rulePath}");
-        Main.Instance.MoveScene(SceneEnum.LobbyScene, SceneEnum.GameScene);
+        _spinning = true;
+        _startButton.interactable = false;
+        _closeButton.interactable = false;
+        StartCoroutine(SpinAndStart());
     }
 
-    /// <summary>
-    /// 리플레이 테스트 버튼 클릭 시 가장 최근 리플레이를 로드하고 게임을 시작합니다.
-    /// 유저는 정상 플레이하며, 상대방 보드에 리플레이가 재생됩니다.
-    /// </summary>
-    private void OnClickReplay()
+    /// <summary>릴을 감속해 선택된 칸에 정지한 뒤 데이터를 준비하고 라이프를 사용합니다.</summary>
+    private IEnumerator SpinAndStart()
     {
-        // 가장 최근 리플레이 파일 탐색
-        string replayDir = ReplayStorage.GetReplayDirectoryPath();
-        if (!Directory.Exists(replayDir))
+        _statusText.text = "모드 추첨 중";
+        const float spinSeconds = 3f;
+        const float resultSeconds = 2f;
+        int steps = RulePaths.Length * 4 + _selectedMode;
+        double startedAt = Time.realtimeSinceStartupAsDouble;
+        while (Time.realtimeSinceStartupAsDouble - startedAt < spinSeconds)
         {
-            Debug.LogError("리플레이 디렉터리가 존재하지 않습니다.");
-            return;
+            float elapsed = (float)(Time.realtimeSinceStartupAsDouble - startedAt);
+            float t = Mathf.Clamp01(elapsed / spinSeconds);
+            float position = steps * (1f - Mathf.Pow(1f - t, 2f));
+            float zoom = Mathf.SmoothStep(0f, 1f, elapsed / 0.28f);
+            Vector2 size = Vector2.Lerp(_previewSize, new Vector2(300f, 300f), zoom);
+            _reel.rectTransform.sizeDelta = size;
+            _reel.uvRect = new Rect(position / RulePaths.Length, 0f, size.x / (size.y * RulePaths.Length), 1f);
+            yield return null;
         }
+        _reel.rectTransform.sizeDelta = new Vector2(300f, 300f);
+        _reel.uvRect = new Rect((float)_selectedMode / RulePaths.Length, 0f, 1f / RulePaths.Length, 1f);
+        _statusText.text = $"<color=#823044>{ModeNames[_selectedMode]}</color> 모드 당첨!";
+        yield return new WaitForSecondsRealtime(resultSeconds);
 
-        string[] files = Directory.GetFiles(replayDir, "replay_*.json");
-        if (files.Length == 0)
+        if (_popup.IsAnimating || Main.Instance == null || Main.Instance.IsMovingScene ||
+            StageInjection.Instance == null || !PrepareSelectedGame())
         {
-            Debug.LogError("저장된 리플레이 파일이 없습니다.");
-            return;
+            Debug.LogError("[PopupReady] 게임 진입을 준비하지 못했습니다.");
+            RestoreButtons("게임을 준비하지 못했습니다. 다시 시도해 주세요.");
+            yield break;
         }
-
-        // 파일명 기준 정렬하여 가장 최근 파일 선택
-        System.Array.Sort(files);
-        string latestFile = files[files.Length - 1];
-
-        ReplayData replayData = ReplayStorage.Load(latestFile);
-        if (replayData == null)
+        if (!PlayerLives.TrySpend(DateTimeOffset.UtcNow.ToUnixTimeSeconds()))
         {
-            Debug.LogError("리플레이 데이터 로드에 실패했습니다.");
-            return;
+            RestoreButtons("라이프가 충전되면 시작할 수 있어요.");
+            yield break;
         }
-
-        // 유저 게임 데이터 준비 (리플레이와 동일한 규칙/스테이지 사용)
-        GameMode replayMode = replayData.formatVersion == ReplayData.CurrentFormatVersion ? replayData.mode : GameMode.Stage;
-        if (!StageInjection.Instance.MakeGameSpec(replayData.ruleAddress, replayData.stageAddress, replayMode))
-        {
-            Debug.LogError("[PopupReady] 리플레이용 GameSpec 준비에 실패했습니다.");
-            return;
-        }
-
-        GameSpec spec = StageInjection.Instance.GetGameSpec();
-        spec.randomSeed = replayData.randomSeed;
-        if (replayData.formatVersion == ReplayData.CurrentFormatVersion)
-        {
-            spec.rule.timeLimit = replayData.timeLimit;
-        }
-
-        // 이전 스테이지 기록은 원래 종료 규칙으로 재생하며 대전 기록으로 바꾸지 않습니다.
-        StageInjection.Instance.SetReplayData(replayData);
         Main.Instance.MoveScene(SceneEnum.LobbyScene, SceneEnum.GameScene);
     }
 
-    /// <summary> 완주한 90초 기록과 대전하거나, 기록이 없으면 첫 대전 기록을 만듭니다. </summary>
-    private void OnClickBattle()
+    /// <summary>릴에 표시한 규칙 주소로 요청된 종류의 게임을 준비합니다.</summary>
+    private bool PrepareSelectedGame()
     {
-        ReplayData opponent = null;
-        GameSpec spec = null;
-        Dictionary<(string Rule, string Stage), GameSpec> candidateSpecs = new Dictionary<(string Rule, string Stage), GameSpec>();
-        string directory = ReplayStorage.GetReplayDirectoryPath();
-        if (Directory.Exists(directory))
+        string ruleAddress = RulePaths[_selectedMode];
+        if (_isBattle)
         {
-            string[] files = Directory.GetFiles(directory, "replay_*.json");
-            System.Array.Sort(files, System.StringComparer.Ordinal);
-            for (int i = files.Length - 1; i >= 0; i--)
-            {
-                ReplayData candidate = ReplayStorage.Load(files[i]);
-                if (candidate == null || !candidate.IsCompleteBattleRecord() ||
-                    candidate.comboRuleVersion != ReplayData.CurrentComboRuleVersion ||
-                    candidate.numericRuleVersion != ReplayData.CurrentNumericRuleVersion)
-                {
-                    continue;
-                }
-                (string Rule, string Stage) key = (candidate.ruleAddress, candidate.stageAddress);
-                if (!candidateSpecs.TryGetValue(key, out GameSpec candidateSpec))
-                {
-                    // 같은 주소의 기록이 많아도 이번 탐색에서는 데이터를 한 번만 파싱합니다.
-                    bool loaded = StageInjection.Instance.MakeGameSpec(candidate.ruleAddress, candidate.stageAddress, GameMode.Battle);
-                    candidateSpec = loaded ? StageInjection.Instance.GetGameSpec() : null;
-                    candidateSpecs.Add(key, candidateSpec);
-                }
-                if (candidateSpec == null)
-                {
-                    continue;
-                }
-                if (candidate.HasCompatibleBattleRules(candidateSpec.pivotSettings))
-                {
-                    // 다른 후보를 읽은 뒤 캐시된 후보가 선택되면 실제 씬 주입 데이터도 복원합니다.
-                    if (!ReferenceEquals(candidateSpec, StageInjection.Instance.GetGameSpec()))
-                    {
-                        if (!StageInjection.Instance.MakeGameSpec(candidate.ruleAddress, candidate.stageAddress, GameMode.Battle))
-                        {
-                            continue;
-                        }
-                        candidateSpec = StageInjection.Instance.GetGameSpec();
-                    }
-                    opponent = candidate;
-                    spec = candidateSpec;
-                    break;
-                }
-            }
+            return LobbyMain.PrepareBattle(ruleAddress);
         }
-
-        if (spec == null)
-        {
-            string ruleAddress = RulePaths[Random.Range(0, RulePaths.Length)];
-            if (!StageInjection.Instance.MakeGameSpec(ruleAddress, "Stage", GameMode.Battle))
-            {
-                Debug.LogError("[PopupReady] 대전용 데이터를 준비하지 못했습니다.");
-                return;
-            }
-            spec = StageInjection.Instance.GetGameSpec();
-        }
-        spec.rule.timeLimit = GameSpec.BattleDurationSeconds;
-        if (opponent != null)
-        {
-            spec.randomSeed = opponent.randomSeed;
-        }
-        StageInjection.Instance.SetReplayData(opponent);
-        Main.Instance.MoveScene(SceneEnum.LobbyScene, SceneEnum.GameScene);
+        return StageInjection.Instance.MakeGameSpec(ruleAddress, "Stage");
     }
 
-    /// <summary>
-    /// 닫기 버튼 클릭 시 호출됩니다.
-    /// </summary>
+    /// <summary>시작 실패 시 선택 결과를 감추고 버튼을 다시 활성화합니다.</summary>
+    /// <param name="message">팝업에 표시할 실패 사유입니다.</param>
+    private void RestoreButtons(string message)
+    {
+        _spinning = false;
+        _reel.rectTransform.sizeDelta = _previewSize;
+        _reel.uvRect = new Rect(0f, 0f, 1f, 1f);
+        _statusText.text = message;
+        _closeButton.interactable = true;
+        RefreshLives(DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+    }
+
+    /// <summary>추첨 전에는 라이프를 소모하지 않고 팝업을 닫습니다.</summary>
     private void OnClickClose()
     {
-        ClosePopup();
+        if (!_spinning)
+        {
+            ClosePopup();
+        }
     }
 }

@@ -95,7 +95,7 @@ GameSpec
 ## ReplayData JSON 구조
 
 파일 위치:
-- **에디터**: `Assets/05_Table/Replay/replay_{timestamp}.json`
+- **에디터**: `Assets/05_Table/Replay/replay_{timestamp}.json`. 플레이 기록과 Unity가 생성한 짝 파일(`.json.meta`)은 프로젝트에 누적되며 Git에서 제외한다.
 - **빌드**: `Application.persistentDataPath/Replay/replay_{timestamp}.json`
 
 게임 종료 시 `ReplayStorage.Save()`에 의해 자동 생성됨.
@@ -153,7 +153,7 @@ GameSpec
 - `ReplayStorage.Load()`에서 형식 버전, 모드, 시간, 완료 기록을 검사한다. 향후 알 수 없는 버전은 거부한다.
 - 대전 기록의 `pivotSettings`가 존재하면 유효 범위도 검사한다. 잘못된 스냅샷은 상대 선택 전에 제외하며, 필드가 없는 기존 기록은 허용한다.
 - 새 플레이는 `comboRuleVersion: 1`로 저장한다. 버전 0의 3매치 재생은 자동 매칭도 기존 점수 콤보에 포함하며, 피벗 콤보도 기존의 파괴 발생 기준을 사용한다. 이를 위한 `GameSpec.UseLegacyAutomaticCombos`는 재생 시에만 설정하는 비직렬화 필드다. 알 수 없는 콤보 버전은 로드에서 거부한다.
-- `IsCompleteBattleRecord()`는 재생 가능한 완주 기록인지 검사하고, `HasCompatibleBattleRules()`는 현재 점수 조건으로 대전할 수 있는지 별도로 검사한다. `PopupReady.OnClickBattle()`은 현재 콤보·수치 계산 버전과 해당 Rule JSON의 피벗 설정이 모두 같은 상대만 선택한다. 결과 표시 때도 같은 조건을 검사하므로, 다른 규칙의 기록을 직접 재생해도 승패를 비교하지 않는다.
+- `IsCompleteBattleRecord()`는 재생 가능한 완주 기록인지 검사하고, `HasCompatibleBattleRules()`는 현재 점수 조건으로 대전할 수 있는지 별도로 검사한다. `LobbyMain.PrepareBattle()`은 슬롯에서 선택한 Rule의 기록 중 현재 콤보·수치 계산 버전과 해당 Rule JSON의 피벗 설정이 모두 같은 상대만 선택한다. 결과 표시 때도 같은 조건을 검사하므로, 다른 규칙의 기록을 직접 재생해도 승패를 비교하지 않는다.
 - 동일 주소의 Rule/Stage가 바뀌면 기존 결과와 달라질 수 있다. 종료 틱/점수 검증 실패 시 승패를 비교하지 않는다. 현재 형식은 Rule/Stage 전체 스냅샷을 저장하지 않는다.
 - 문서 JSON 예제의 입력과 점수는 필드 설명용이며 실제 대전 상대는 게임에서 완주하여 저장한 기록을 사용한다.
 

@@ -154,9 +154,9 @@
     → TitleMain.Start()에서 CI 연출
       → LoadingScene 경유
         → LobbyScene (스테이지 선택)
-          → PopupReady 팝업 열기
-            → [시작] StageInjection.MakeGameSpec() (JSON → GameSpec + 랜덤 시드)
-            → [리플레이] 최근 리플레이 로드 → SetReplayData()
+          → [Stage] PopupReady → 슬롯 정지 → GameSpec 준비 → 라이프 1개 사용
+          → [Battle 90s] PopupReady → 슬롯 정지 → 같은 Rule의 대전 기록 확인 → 90초 대전 준비 → 라이프 1개 사용
+          → [리플레이] LobbyMain에서 기록 확인 → GameSpec 준비 → SetReplayData()
               → LoadingScene 경유
                 → GameScene
                   → Board 생성 + Initialize + View 그리기 → 게임 루프

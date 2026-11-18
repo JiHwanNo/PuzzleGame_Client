@@ -25,6 +25,9 @@ public class Main : MonoBehaviour
     /// <summary> 씬 전환 중 여부 </summary>
     private bool _isMovingScene;
 
+    /// <summary> 현재 씬 전환이 완료되기를 기다리는 중인지 반환합니다. </summary>
+    internal bool IsMovingScene => _isMovingScene;
+
     /// <summary>
     /// 게임 시작 시 SharedScene을 자동 로드합니다. SharedScene 내 Main 컴포넌트가 함께 생성됩니다.
     /// </summary>

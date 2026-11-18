@@ -8,9 +8,9 @@
 
 | 찾는 콘텐츠 | 담당 C# 파일 | 주요 메서드·타입·멤버 |
 |---|---|---|
-| SharedScene 자동 로드·중복 정리·씬 전환 | [Main.cs](../Assets/02_Scripts/Manager/Main.cs) | `SceneEnum`, `AutoCreate`, `MoveScene`, `CoMoveScene` |
+| SharedScene 자동 로드·중복 정리·씬 전환 | [Main.cs](../Assets/02_Scripts/Manager/Main.cs) | `SceneEnum`, `AutoCreate`, `MoveScene`, `CoMoveScene`, `IsMovingScene` |
 | 타이틀 CI 연출·로비 진입 | [TitleMain.cs](../Assets/02_Scripts/Title/TitleMain.cs) | `Start` |
-| 로비 시작 버튼·준비 팝업 열기 | [LobbyMain.cs](../Assets/02_Scripts/Lobby/LobbyMain.cs) | `OnClickStartStage` |
+| 로비 준비 팝업·대전·최근 리플레이 | [LobbyMain.cs](../Assets/02_Scripts/Lobby/LobbyMain.cs) | `OnClickStartStage`, `OnClickBattle`, `OnClickReplay` |
 | 에셋 로딩 요청 공유·캐시·해제 | [AssetManager.cs](../Assets/02_Scripts/Manager/AssetManager.cs) | `AssetArguments`, `LoadAsset`, `LoadAssetAsync`, `MarkPersistent`, `ReleaseAll` |
 | 오브젝트 풀 대여·반환·씬 전환 시 정리 | [PoolManager.cs](../Assets/02_Scripts/Manager/PoolManager.cs) | `Get`, `Release`, `ClearIfCreated`, `Clear` |
 | 메인 카메라 접근·중복 처리 | [CameraController.cs](../Assets/02_Scripts/CameraController.cs) | `MainCamera` |
@@ -154,14 +154,16 @@ TitleMain.Start()
 ```
 LobbyMain.OnClickStartStage()
   → DomainManager.OpenPopup("PopupReady")
-    → [시작 버튼] PopupReady.OnClickStart()
-      → StageInjection.MakeGameSpec(rulePath, stagePath) (+ 랜덤 시드 생성)
+    → [스타트] 미리 고른 퍼즐 모드 공개
+      → StageInjection.MakeGameSpec(rulePath, stagePath) → 라이프 1개 사용
         → Main.MoveScene(LobbyScene, GameScene)
-    → [리플레이 버튼] PopupReady.OnClickReplay()
+LobbyMain.OnClickReplay()
       → 최근 리플레이 JSON 로드 → 기록의 Rule/Stage로 MakeGameSpec()
         → 기록의 시드 적용 → SetReplayData() → Main.MoveScene(LobbyScene, GameScene)
-    → [대전 버튼] PopupReady.OnClickBattle()
-      → 호환되는 로컬 완주 기록 선택 (없으면 첫 기록 도전) → GameScene 이동
+LobbyMain.OnClickBattle()
+  → PopupReady.ConfigureBattle() → START → 슬롯 결과 공개
+    → LobbyMain.PrepareBattle(추첨된 Rule) → 같은 Rule의 호환 완주 기록 선택 (없으면 단독 대전)
+      → 라이프 1개 사용 → GameScene 이동
 ```
 
 ### GameScene

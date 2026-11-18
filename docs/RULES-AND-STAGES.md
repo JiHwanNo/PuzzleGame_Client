@@ -146,7 +146,7 @@ JSON에는 **가독성을 위해 문자열 목록**으로 두고, 게임 로직�
 ## 새 규칙 추가 방법
 
 1. [기존 Rule JSON](../Assets/05_Table/Rule)에서 보드의 `puzzleType`을 확인하고 블럭·목표·시간 설정을 작성한다.
-2. JSON을 Addressables에 등록한다. 로비에서 무작위로 선택할 규칙이면 `PopupReady.RulePaths`에 같은 주소를 넣는다.
+2. JSON을 Addressables에 등록한다. 로비에서 무작위로 선택할 규칙이면 준비 팝업의 규칙 주소·모드 이름·릴 이미지에 같은 순서로 등록한다.
 3. 새로운 보드 동작이 필요하면 `PuzzleType`과 `IPuzzleBoard` 구현을 추가하고 플레이·리플레이 양쪽의 생성 분기를 연결한다. [새 퍼즐 모드 추가](MAP.md#새-퍼즐-모드-추가)
 
 ## 새 스테이지 추가 방법
@@ -158,10 +158,12 @@ JSON에는 **가독성을 위해 문자열 목록**으로 두고, 게임 로직�
 
 ## 새 블럭 추가 방법
 
+그림을 만들 때는 [보드 블럭 스타일과 폭탄 프롬프트](ART-STYLE.md#보드-블럭)를 참고한다.
+
 1. Rule JSON의 `blocks` 배열에 새 BlockData 추가
 2. `blockId` 고유 값 지정
 3. `inputType` 조작 방법 문자열 목록 설정 (예: `["Swap","Touch"]`)
 4. 특수 행동이 필요하면 `gimmickIds`에 기믹 문자열 추가 (예: `["Bomb"]`).
    - **새 기믹 타입**이면 `PuzzleDefine.cs`의 `GimmickType` enum 값 + `GimmickFactory` 분기 + (`GimmickBase` 상속) 기믹 클래스를 함께 추가 → 상세: `INGAME.md` "새 블럭(기믹) 추가 절차"
    - 일반 색 블럭은 코드 변경 없이 JSON 추가만으로 동작
-5. 블럭 스프라이트를 `Assets/04_Resources/Block/`에 추가 후 Addressable 등록
+5. 블럭 이미지를 단일 Sprite로 임포트하고 `BuildIn_Resource` 그룹에 `Block_{blockId}` 주소로 등록한다. 예를 들어 [원형 폭탄 스프라이트](../Assets/04_Resources/Block/Block_200-1.png)의 주소는 `Block_200-1`이다. [PuzzleBlockView](../Assets/02_Scripts/PuzzleCore/View/PuzzleBlockView.cs)가 이 주소로 이미지를 로드한다.
