@@ -200,14 +200,14 @@ public class Main : MonoBehaviour
         AsyncOperation loadingOp = SceneManager.LoadSceneAsync(SceneEnum.LoadingScene.ToString(), LoadSceneMode.Additive);
         yield return loadingOp;
 
-        // 2. 에셋 캐시 정리 후 이전 씬 언로드
-        AssetManager.Instance.ReleaseAll();
-
+        // 2. 이전 씬과 풀의 인스턴스를 정리한 뒤 원본 에셋을 해제합니다.
         if (pre != SceneEnum.None)
         {
             AsyncOperation unloadOp = SceneManager.UnloadSceneAsync(pre.ToString());
             yield return unloadOp;
         }
+        PoolManager.ClearIfCreated();
+        AssetManager.Instance.ReleaseAll();
 
         // 3. 다음 씬 비동기 로드 (활성화 대기)
         AsyncOperation nextOp = SceneManager.LoadSceneAsync(next.ToString(), LoadSceneMode.Additive);
