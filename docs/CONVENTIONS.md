@@ -3,8 +3,6 @@
 커밋 전 리뷰 에이전트가 **반드시 읽고 기준으로 삼는 문서**. 모든 항목은 위반 시 **수정 대상**이다.
 코딩 규칙은 `../AGENTS.md`, 아키텍처는 `ARCHITECTURE.md`, 세부 영역은 각 영역별 MD(`INGAME.md`, `DATA.md` 등)를 참조.
 
----
-
 ## 0. 리뷰 원칙
 
 - **스타일 교정 시 실행 로직/메서드 호출/조건문 결과를 절대 변경하지 않는다.**
@@ -13,14 +11,13 @@
 - `.meta`, JSON 데이터, 자동 생성 파일(`*.cs.meta`, `*Generated.cs`)은 검토 제외.
 - 외부 DLL(`Plugins/*.dll`) 관련 파일은 검토 제외.
 
----
-
 ## 1. 코딩 규칙 (AGENTS.md 준수)
 
 ### 1-1. 파일 및 인코딩
 - [ ] 새로 추가된 C# 파일은 **UTF-8 (BOM 포함)**.
 - [ ] 모든 주석/설명은 **한글**.
-- [ ] 모든 메서드와 매개변수에 **한글 XML 주석(`///`)** 작성.
+- [ ] 한글 XML 주석은 클래스 4줄 이하, 함수 2줄 이하이며 매개변수의 의미를 담는다.
+- [ ] 주니어 개발자가 이름과 간단한 문법으로 처리 흐름을 따라갈 수 있다.
 - [ ] 복잡한 로직/데이터 구조 수정 시 의도 설명 주석 추가.
 
 ### 1-2. 명명 규칙
@@ -87,38 +84,12 @@ for (int i = 0; i < 10; i++)
 - 예: `var cell = GetCell(pos);` 대신 `PuzzleCell cell = GetCell(pos);` 사용.
 
 
----
-
 ## 2. 아키텍처 규칙 (MVC 엄격 분리)
 
 ### 2-1. Model 레이어 제약 (`PuzzleCore/Module/`)
 - [ ] **`UnityEngine` 종속성 금지** — `using UnityEngine;` 없어야 함.
 - [ ] `Debug.Log`, `Debug.LogError`, `MonoBehaviour`, `GameObject`, `Transform` 등 사용 금지.
 - [ ] 로깅이 필요하면 **`Action<string> OnLog` 델리게이트 + `Log()` 메서드** 사용.
-
-**위반 예시 → 수정**
-```csharp
-// ✗ 위반 (Model 레이어)
-using UnityEngine;
-public class ThreeMatchPuzzleBoard
-{
-    public void Process()
-    {
-        Debug.LogError("failed");
-    }
-}
-
-// ✓ 수정
-public class ThreeMatchPuzzleBoard
-{
-    public Action<string> OnLog;
-    private void Log(string msg) { OnLog?.Invoke(msg); }
-    public void Process()
-    {
-        Log("failed");
-    }
-}
-```
 
 ### 2-2. View/Controller 역할
 - [ ] View는 Model의 `BoardViewAction` 이벤트를 수신하여 **시각적 연출만** 담당.
@@ -132,8 +103,6 @@ public class ThreeMatchPuzzleBoard
 - [ ] `float == float` 직접 비교 금지 → `Mathf.Approximately` 또는 정수 프레임.
 - [ ] 프레임 전진은 **`FixedUpdate`**에서만.
 - [ ] 허용 영역(View 애니메이션, UI 연출, 시드 생성, 파일명 타임스탬프)은 예외. 상세: `ARCHITECTURE.md` §4.
-
----
 
 ## 3. Known Pitfalls (AGENTS.md 주의사항)
 
@@ -159,7 +128,7 @@ if (ruleContainer == null) { ... }
 ### 3-3. 뷰 액션 처리 순서
 - [ ] `ExecuteBatchMovement`에서 **Move/Fall을 반드시 먼저** 처리한 후 CreateAndFall 처리.
 - [ ] 순서가 바뀌면 CreateAndFall의 `HandleImmediateDestroy`가 이동 예정 블럭을 파괴.
-- [ ] 상세: `INGAME.md` "ExecuteBatchMovement 처리 순서 규칙".
+- [ ] 상세: `INGAME-VIEW-AND-BATTLE.md` "ExecuteBatchMovement 처리 순서 규칙".
 
 ### 3-4. LINQ 잔존 확인
 - [ ] `using System.Linq` 제거 후 `.Last()`, `.Any()`, `.Where()`, `.Select()`, `.ToList()` 등이 **남아있지 않은지 확인**.
@@ -175,8 +144,6 @@ if (ruleContainer == null) { ... }
 - [ ] `AssetManager.ReleaseAll()`은 `MarkPersistent()` 되지 않은 에셋 해제.
 - [ ] 풀에 남은 인스턴스가 해제된 에셋을 참조하지 않는지 씬 전환 전후 확인.
 
----
-
 ## 4. 명백한 버그 패턴
 
 - [ ] **null 역참조 가능성**: 초기화되지 않은 참조 접근.
@@ -187,8 +154,6 @@ if (ruleContainer == null) { ... }
 - [ ] **오타 필드/메서드 참조**: 유사한 이름(`Postion` vs `Position`) 오타로 의도와 다른 멤버 참조.
 - [ ] **대입 vs 비교**: `if (x = 5)` (대입) vs `if (x == 5)` (비교).
 - [ ] **부동소수점 비교**: `float == float`은 오차 위험. `Mathf.Approximately` 또는 epsilon 비교 권장.
-
----
 
 ## 5. 수정 후 체크
 
@@ -202,14 +167,16 @@ if (ruleContainer == null) { ... }
 
 상세 기준: [AGENTS.md의 문서와 코드 동기화 지침](../AGENTS.md#문서와-코드-동기화-매-작업-필수).
 
+- [ ] Markdown 파일은 빈 줄을 포함해 200줄 이하이며 분리한 문서를 원문에서 연결한다.
+
 ### 리뷰 결과 처리
+
+- [ ] 커밋 제목은 [Git 작성 규칙](../AGENTS.md#git-커밋과-푸시)에 맞는 이모지로 시작하고 설명은 한글로 작성했다.
 
 - [ ] 커밋/리뷰 작업에서 사용자가 스테이징을 요청한 경우, 수정한 파일을 `git add <파일경로>`로 재스테이징.
 - [ ] 수정 결과는 **한 줄 요약**으로 보고.
   - 예: `수정 3건: Allman 위반 2, Debug.LogError 1 (Model 레이어)`
   - 문제 없으면: `문제 없음`.
-
----
 
 ## 참고 문서
 

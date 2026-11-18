@@ -3,7 +3,7 @@
 > Codex와 작업할 때의 기본 가이드는 `AGENTS.md`를 사용한다.
 > 이 문서는 Claude Code 호환을 위해 유지한다.
 
-Unity 6000.0.38f1 (URP) 기반 퍼즐 배틀 게임 프레임워크.
+Unity URP 기반 퍼즐 배틀 게임 프레임워크. 에디터 버전은 [프로젝트 설정](ProjectSettings/ProjectVersion.txt)을 따른다.
 세부 작업 시 `docs/MAP.md`를 읽고 해당 참고 문서로 이동.
 
 기능별 구현 파일은 [docs/MAP.md](docs/MAP.md)의 작업별 빠른 경로와 각 영역 문서의 **콘텐츠와 C# 매핑** 표에서 확인한다. C# 파일 추가·이동·책임 변경 시 해당 매핑도 함께 갱신한다.
@@ -16,12 +16,14 @@ Unity 6000.0.38f1 (URP) 기반 퍼즐 배틀 게임 프레임워크.
 
 ---
 
+가독성, Markdown 분량, 커밋과 푸시 형식은 [공통 작업 가이드](AGENTS.md)를 따른다.
+
 ## 코딩 규칙
 
 ### 파일 및 인코딩
 - 모든 소스 파일은 **UTF-8 (BOM 포함)** 형식.
 - 코드 내 모든 설명 및 주석은 **한글**로 작성.
-- 모든 메서드 및 매개변수에 한글 XML 주석(`///`) 작성 필수.
+- 클래스·함수의 한글 XML 주석과 매개변수 설명은 [공통 코딩 규칙](AGENTS.md#코딩-규칙)을 따른다.
 - 복잡한 로직이나 데이터 구조를 수정할 때는 의도를 명확히 설명하는 주석을 추가.
 
 ### 명명 규칙
@@ -92,7 +94,7 @@ MVC 엄격 분리, 데이터 기반 생성, 결정론적 리플레이, 인터페
 - 사례: `FetchActions()` 정렬 시 Fall/CreateAndFall 순서 뒤바뀜 → `ExecuteBatchMovement` 루프 분리로 해결.
 
 ### 뷰 액션 처리 순서
-- `ExecuteBatchMovement`는 Move/Fall → CreateAndFall 순서 분리 필수. 상세: `docs/INGAME.md` "ExecuteBatchMovement 처리 순서 규칙".
+- `ExecuteBatchMovement`는 Move/Fall → CreateAndFall 순서 분리 필수. 상세: `docs/INGAME-VIEW-AND-BATTLE.md` "ExecuteBatchMovement 처리 순서 규칙".
 
 ### 기믹 컴포지션 / 연출 책임 분리
 - 블럭은 단일 `Block` 클래스 + 기믹 부착(`IGimmick`) 구조. `BaseBlock`/`NormalBlock`/`BombBlock` 서브클래스는 폐기됨 — 새 행동은 상속이 아니라 기믹으로 추가.

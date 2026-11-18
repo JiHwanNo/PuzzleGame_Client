@@ -17,6 +17,8 @@
 | [UI.md](UI.md) | 도메인 시스템, 팝업/탭 생명주기, UIButton, 추가 방법 | UI 작업 시 |
 | [SCENE.md](SCENE.md) | 씬 전환, SharedScene, 매니저, AssetManager, PoolManager | 인프라 작업 시 |
 | [SERVER.md](SERVER.md) | 서버 통신, 공유 DLL, 네트워크 레이어, API 연동 | 서버 API 작업 시 |
+| [RULES-AND-STAGES.md](RULES-AND-STAGES.md) | 규칙·스테이지 JSON과 피벗 설정 | 게임 데이터 추가 시 |
+| [INGAME-VIEW-AND-BATTLE.md](INGAME-VIEW-AND-BATTLE.md) | 뷰 동기화·리플레이·대전 | 연출과 대전 처리 확인 시 |
 | [CHANGELOG.md](CHANGELOG.md) | 전체 변경 이력 | 이전 작업 맥락 파악 시 |
 
 ---
@@ -26,7 +28,7 @@
 | 상황 | 읽을 곳 |
 |------|---------|
 | 정렬 변경 후 버그 | [../AGENTS.md](../AGENTS.md) → "주의사항 - 정렬 안정성" |
-| 뷰 블럭 미씽/소실 | [INGAME.md](INGAME.md) → "ExecuteBatchMovement 처리 순서 규칙" |
+| 뷰 블럭 미씽/소실 | [ExecuteBatchMovement 처리 순서 규칙](INGAME-VIEW-AND-BATTLE.md#executebatchmovement-처리-순서-규칙) |
 | LINQ 제거 최적화 | [../AGENTS.md](../AGENTS.md) → "주의사항 - 최적화 체크리스트" |
 | 씬 전환 후 에셋 미씽 | [../AGENTS.md](../AGENTS.md) → "주의사항 - Pool/Addressable 생명주기" |
 | struct null 비교 에러 | [../AGENTS.md](../AGENTS.md) → "주의사항 - 데이터 타입" |
@@ -50,8 +52,8 @@
 | 폭탄 범위·연쇄 파괴 | [BombGimmick.cs](../Assets/02_Scripts/PuzzleCore/Module/Gimmick/BombGimmick.cs) | [INGAME.md](INGAME.md#콘텐츠와-c-매핑) |
 | 점수·콤보·피버·목표 | [ObjectiveManager.cs](../Assets/02_Scripts/PuzzleCore/Module/ObjectiveManager.cs) | [INGAME.md](INGAME.md#콘텐츠와-c-매핑) |
 | 대전 피벗 충전·유지·빠른 콤보 감속 | [PivotMode.cs](../Assets/02_Scripts/Battle/Pivot/PivotMode.cs) | [INGAME.md](INGAME.md#콘텐츠와-c-매핑) |
-| 링크·3매치·탭 매치 피벗의 주변 한 겹 파괴 | [LinkPivotEffect.cs](../Assets/02_Scripts/Battle/Pivot/LinkPivotEffect.cs) | [INGAME.md](INGAME.md#링크-피벗-육각형-이웃-한-겹) |
-| 피벗 게이지·충전·소비 수치 JSON 수정 | [PivotSettings.cs](../Assets/02_Scripts/Battle/Pivot/PivotSettings.cs) | [DATA.md](DATA.md#피벗-게임-데이터) |
+| 링크·3매치·탭 매치 피벗의 주변 한 겹 파괴 | [LinkPivotEffect.cs](../Assets/02_Scripts/Battle/Pivot/LinkPivotEffect.cs) | [INGAME-VIEW-AND-BATTLE.md](INGAME-VIEW-AND-BATTLE.md#링크-피벗-육각형-이웃-한-겹) |
+| 피벗 게이지·충전·소비 수치 JSON 수정 | [PivotSettings.cs](../Assets/02_Scripts/Battle/Pivot/PivotSettings.cs) | [RULES-AND-STAGES.md](RULES-AND-STAGES.md#피벗-게임-데이터) |
 | 낙하 중 블럭 소실·뷰 액션 순서 | [PuzzleBoardView.cs](../Assets/02_Scripts/PuzzleCore/View/PuzzleBoardView.cs) | [INGAME.md](INGAME.md#콘텐츠와-c-매핑) |
 | 블럭 애니메이션 | [PuzzleBlockView.cs](../Assets/02_Scripts/PuzzleCore/View/PuzzleBlockView.cs) | [INGAME.md](INGAME.md#콘텐츠와-c-매핑) |
 | 보드 좌표·링크 선·배치 | [PuzzleBoardView.cs](../Assets/02_Scripts/PuzzleCore/View/PuzzleBoardView.cs) | [INGAME.md](INGAME.md#콘텐츠와-c-매핑) |
@@ -74,8 +76,8 @@
 ### 새 퍼즐 모드 추가
 1. `IPuzzleBoard` 구현 클래스 작성 (`PuzzleCore/Module/Board/`)
 2. `PuzzleType` enum 값 추가 (`PuzzleDefine.cs`)
-3. `PuzzleGameController.Start()` PuzzleType별 분기 추가
-4. Rule JSON 생성 + Addressable 등록 → 상세: [INGAME.md](INGAME.md), [DATA.md](DATA.md)
+3. [PuzzleGameController](../Assets/02_Scripts/PuzzleCore/Controller/PuzzleGameController.cs)와 [ReplayController](../Assets/02_Scripts/PuzzleCore/Controller/ReplayController.cs)의 `puzzleType` 분기에 같은 보드 타입을 등록한다. 둘 중 한쪽이 빠지면 해당 경로에서 기본 3매치 보드가 생성된다.
+4. Rule JSON을 Addressables에 등록하고 로비의 무작위 선택 대상이면 `PopupReady.RulePaths`에 주소를 추가한다. [규칙 추가 방법](RULES-AND-STAGES.md#새-규칙-추가-방법)
 
 ### 새 블럭/기믹 추가 (기믹 컴포지션)
 - 일반 색 블럭: Rule JSON `blocks[]`에 BlockData 추가만으로 동작 (코드 변경 불필요)

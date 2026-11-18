@@ -25,13 +25,11 @@ UI, 팝업, 탭 관련 작업 시 이 문서를 참고.
 | 로비 탭 컴포넌트 (TabBase 상속) | [LobbyTabController.cs](../Assets/02_Scripts/LobbyTabController.cs) | `LobbyTabController` |
 | 대전 전용 피벗 충전·활성 게이지 | [PivotGaugeView.cs](../Assets/02_Scripts/Battle/Pivot/PivotGaugeView.cs) | `PivotGaugeView`, `Refresh`, `Dispose` |
 
-피벗 게이지는 대전 시작 시 기존 타이머 아래에 생성하며 같은 한글 폰트를 사용한다. 게임 종료 시 숨기고 컨트롤러 제거 시 UI를 정리한다. 상태 및 설정 규칙은 [INGAME.md](INGAME.md#대전-전용-피벗-모드)를 참고한다.
+피벗 게이지는 대전 시작 시 기존 타이머 아래에 생성하며 같은 한글 폰트를 사용한다. 게임 종료 시 숨기고 컨트롤러 제거 시 UI를 정리한다. 상태 및 설정 규칙은 [INGAME-VIEW-AND-BATTLE.md](INGAME-VIEW-AND-BATTLE.md#대전-전용-피벗-모드)를 참고한다.
 
 대전 시작은 현재 콤보 판정 버전과 Rule JSON의 피벗 설정이 일치하는 완주 기록만 상대로 선택한다. 호환되는 상대가 없으면 첫 기록 도전으로 진입한다. 이전 규칙의 리플레이는 재생할 수 있지만 승패 비교에서는 제외한다.
 
 상대 탐색 중 동일 Rule/Stage 데이터는 요청 내에서 재사용하며, 캐시된 후보를 선택하면 실제 씬 주입 데이터도 해당 후보로 맞춘다. 상대 상태 UI는 표시할 상태·남은 초·점수·피벗 수치가 바뀔 때만 문자열을 생성한다.
-
----
 
 ## 도메인 시스템 개요
 
@@ -44,8 +42,6 @@ DomainManager (SharedScene 싱글톤)
 └─ 탭: 전환 방식 (활성/비활성)
     TabController → TabBase (UI)
 ```
-
----
 
 ## DomainManager API
 
@@ -74,8 +70,6 @@ DomainManager (SharedScene 싱글톤)
 - `Register(PopupController)` / `Unregister(PopupController)`
 - `Register(TabController)` / `Unregister(TabController)`
 - OnEnable/OnDisable에서 자동 호출됨
-
----
 
 ## 팝업 생명주기
 
@@ -110,8 +104,6 @@ PopupHandler.ClosePopup() 또는 DomainManager.Close(name)
 | `RequestClose()` | `DomainManager.Close(PopupName)` 호출 |
 | `RequestBack()` | `DomainManager.Back()` 호출 |
 
----
-
 ## 팝업 핸들러 (PopupHandler)
 
 팝업별 로직을 구현하는 추상 클래스. PopupBase와 같은 GameObject에 부착.
@@ -129,8 +121,6 @@ public class PopupReady : PopupHandler
 - `ClosePopup()`: `DomainManager.Close(PopupName)` (IsAnimating 중이면 차단)
 - `BackPopup()`: `DomainManager.Back()` (IsAnimating 중이면 차단)
 - 메서드는 `UIButton`의 `SendMessage`로 호출됨
-
----
 
 ## 탭 생명주기
 
@@ -163,8 +153,6 @@ DeactivateAnimation()   // IEnumerator - 커스텀 애니메이션
 OnDeactivateComplete()  // 비활성화 완료 후
 ```
 
----
-
 ## UIButton (입력 연결)
 
 Inspector에서 설정하는 범용 버튼 컴포넌트.
@@ -178,8 +166,6 @@ Inspector에서 설정하는 범용 버튼 컴포넌트.
 
 **동작**: `Button.onClick` → `UIButton.OnClickEvent()` → `_root.SendMessage(_callbackName, _callbackValue?)`
 
----
-
 ## 씬별 컨트롤러
 
 | 컨트롤러 | ControllerName | 위치 |
@@ -188,8 +174,6 @@ Inspector에서 설정하는 범용 버튼 컴포넌트.
 | LobbyPopupController | `"Lobby"` | LobbyScene |
 | GamePopupController | `"Game"` | GameScene |
 | LobbyTabController | — | Scripts 루트 (TabBase 상속) |
-
----
 
 ## 팝업 추가 방법 (체크리스트)
 
@@ -213,4 +197,4 @@ Inspector에서 설정하는 범용 버튼 컴포넌트.
 - `Battle 90s`: 현재 콤보·수치 계산 규칙과 피벗 설정이 같은 가장 최근의 유효한 90초 완주 대전 기록을 상대로 선택한다. 기록이 없으면 혼자 90초를 플레이하여 첫 대전 기록을 만든다.
 - `Replay`: 가장 최근 기록을 원래 종료 규칙으로 재생한다. 이전/스테이지 기록도 볼 수 있으며 대전 기록으로 변경하지 않는다.
 - 버튼은 `PopupReady.prefab`의 기존 `UIButton` 메시지 연결 방식을 사용한다.
-- 대전 점수 비교와 상대 상태 표시는 `GameScene.unity`에 연결된 TMP UI이며 상세는 [INGAME.md](INGAME.md#스테이지와-90초-대전)를 참고한다.
+- 대전 점수 비교와 상대 상태 표시는 `GameScene.unity`에 연결된 TMP UI이며 상세는 [INGAME-VIEW-AND-BATTLE.md](INGAME-VIEW-AND-BATTLE.md#스테이지와-90초-대전)를 참고한다.

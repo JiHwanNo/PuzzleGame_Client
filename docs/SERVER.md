@@ -183,7 +183,7 @@ NetworkManager.Instance.Post<RequestDto, ResponseDto>(
 - 서버에서 `PascalCase`로 직렬화하면 클라이언트에서 파싱 실패 → 서버 직렬화 설정 확인 필수.
 
 ### 네트워크 초기화 순서
-- `NetworkManager.Initialize()` → `UserDataManager.Initialize()` → `LoadIdentity()` 순서 보장 필요.
+- 유저 정보를 요청하려면 `NetworkManager.Initialize()` → `UserDataManager.Initialize()` → `LoadIdentity()` 순서로 호출한다. 현재 타이틀·로비 시작 코드에는 이 호출이 연결되어 있지 않으며, 로컬 대전 상대는 `PopupReady`가 저장된 리플레이에서 고른다.
 - `Initialize()` 전 API 호출 시 에러 콜백으로 안내 메시지 반환.
 
 ### 서버 연결 실패 폴백

@@ -3,15 +3,15 @@
 게임 전체 설계 방향과 개발 원칙을 정의한다.
 코딩 규칙은 `../AGENTS.md`, 영역별 구현 상세는 각 영역 MD 참고.
 
----
-
 ## 1. 프로젝트 지향점
 
 ### 게임 정체성
 - **퍼즐 대전 게임**. 리플레이를 통해 유저 간 대결을 **랭킹화**하여 구성한다.
 - 대결은 동일 시드·동일 스테이지에서 각자 플레이한 리플레이를 비교하는 **비동기 대전** 방식. 실시간 대전은 고려하지 않는다.
 
-### 콘텐츠 구조
+현재 로비에서 스테이지와 로컬 리플레이 대전을 바로 시작할 수 있다. 서버 랭킹과 아래의 해금·보상 흐름은 기획 단계다.
+
+### 콘텐츠 구조 (기획)
 - **서브 게임(스테이지 공략)**: 스테이지를 차례로 클리어하며 진행. 클리어 시 **별(★)** 획득.
 - **메인 게임(대전 퍼즐)**: 스테이지 클리어 시 해금되는 대결 모드.
 - 스테이지 공략은 대전 해금 + 재화 수급의 진입 경로 역할.
@@ -26,12 +26,10 @@
 - **별 기반 단일 재화** → 스테이지 단위 보상 규칙이 데이터로 정의되어야 함 (`DATA.md`의 Stage/Objective 확장).
 - **스테이지 진행/해금 메타** → Model과 분리된 **유저 메타 데이터 레이어** 필요 (상세: `SERVER.md`).
 
----
-
 ## 2. 핵심 원칙
 
 ### MVC 엄격 분리
-- **Model** (`PuzzleCore/Module/`): 순수 C# 논리. `UnityEngine` 종속성 금지.
+- **Model**의 보드 판정·점수·난수 계산은 순수 C#으로 실행한다. 같은 `PuzzleCore/Module/`에 있는 [ReplayStorage](../Assets/02_Scripts/PuzzleCore/Module/ReplayStorage.cs)는 저장 경로와 JSON 직렬화에 Unity API를 사용하는 파일 입출력 코드다.
 - **View** (`PuzzleCore/View/`): Model의 `BoardViewAction` 큐를 수신, 시각 연출만.
 - **Controller** (`PuzzleCore/Controller/`): 유저 입력 감지/큐 저장, 프레임 단위 Model 호출.
 
@@ -50,8 +48,6 @@
   - 특수 행동은 `IGimmick`을 `IGimmickHost`(`Block`)에 부착해 부여. `GimmickFactory`가 `GimmickType` → 기믹 생성, `GimmickUtil`이 파괴·연쇄 공통 처리.
 - 상세: `INGAME.md` "블럭 아키텍처 (기믹 컴포지션)"
 
----
-
 ## 3. 런타임 루프
 
 ### 프레임 모델
@@ -60,19 +56,16 @@
 - Model의 모든 시간 의존 로직(타이머, 콤보 유지, 피버 지속)은 **논리 프레임 기반**이어야 한다. 실시간(`Time.deltaTime`) 사용 금지.
 
 ### 입력 게이팅
-- `boardView.IsAnimating == true`이면 Controller가 입력을 차단.
-- 애니메이션이 끝나기 전에 다음 프레임 입력을 받으면 뷰와 Model의 논리 프레임이 어긋남.
+- `PuzzleGameController.Update()`는 `boardView.IsAnimating` 동안 누르고 있는 포인터의 블럭 감지를 건너뛴다. 포인터를 떼면 연출 중에도 `InputEnd()`를 전달하고 마지막 좌표를 비운다.
 
 ### 보드 상태머신
 `Waiting → Matching → Falling → Filling → Waiting` 루프. `Stage`는 목표 달성/시간 종료 시 `Finish`, `Battle`은 목표와 무관하게 90초(4,500틱) 종료 시 `Finish`.
 상세 전이 조건: `INGAME.md` "Board 상태 머신".
 
----
-
 ## 4. Model-View 계약
 
 ### 큐 기반 단방향 통신
-- View는 Model을 직접 참조하지 않는다. Model이 `BoardViewAction`을 큐에 쌓고 View가 `FetchActions()`로 소비.
+- `PuzzleBoardView`는 `IPuzzleBoard`를 참조해 초기 보드를 그린다. 이후 보드가 생성·이동·파괴 결과를 `BoardViewAction`으로 쌓으면 뷰가 `FetchActions()`로 가져와 연출한다.
 
 ### FetchActions() 소유권 이전
 - 참조 스왑 패턴(`var res = _views; _views = new List<>(); return res;`)으로 복사 없이 반환.
@@ -81,9 +74,7 @@
 ### 정렬 규약
 - `frame` + `orderIndex` 기준 `List.Sort()` 정렬(**불안정 정렬**).
 - 같은 (frame, orderIndex) 내부 순서는 미보장 → 타입별 처리 순서를 **소비 측에서 명시적으로 분리**해야 함.
-- 상세: `INGAME.md` "ExecuteBatchMovement 처리 순서 규칙"
-
----
+- 상세: `INGAME-VIEW-AND-BATTLE.md` "ExecuteBatchMovement 처리 순서 규칙"
 
 ## 5. 결정론 보장
 
@@ -93,7 +84,7 @@
 | 소스 | 이유 | 대체 |
 |------|------|------|
 | `UnityEngine.Random`, `Random.Range` | 전역 상태, 시드 격리 불가 | `PuzzleRandom`(GameSpec.randomSeed 주입) |
-| `System.Random` | 시드 미주입 시 매번 다름 | `PuzzleRandom` |
+| 보드에서 `System.Random` 직접 생성 | 리플레이가 재현할 난수 흐름에서 벗어남 | `PuzzleRandom`이 내부 `System.Random`을 기록된 시드로 초기화 |
 | `Time.deltaTime`, `Time.time`, `Time.unscaledTime` | 실시간 기반 → 프레임 레이트 의존 | 논리 프레임 카운터 |
 | `DateTime.Now`, `DateTime.UtcNow` | 실행 시점 의존 | 논리 프레임 |
 | `Dictionary<>` 순회 순서 의존 | .NET 버전에 따라 순서 상이 | `List<>` + 명시적 정렬 |
@@ -109,8 +100,6 @@
 - 동일 `ReplayData`로 재생 → Board의 최종 상태(점수, 남은 블럭)가 원본과 일치해야 함.
 - 깨졌다면 Model 레이어에 허용되지 않은 비결정론 소스가 혼입된 것.
 
----
-
 ## 6. 데이터 경계
 
 ### GameSpec 단방향 주입
@@ -123,8 +112,6 @@
 - **class = nullable 컨테이너**: JSON 파싱 실패 감지가 필요한 최상위 레벨 (`GameSpec`, `GameRuleContainer`, `StageData`, `CellData`, `BlockData`, `ReplayData`).
 - struct는 `== null` 비교 불가(CS0019) — 파싱 실패 감지는 **class 컨테이너 null 체크**로 수행.
 - 상세: `DATA.md` "데이터 타입 주의"
-
----
 
 ## 7. 성능 원칙
 
@@ -159,14 +146,12 @@
 - `new List<>()`, `new Dictionary<>()`가 `FixedUpdate`/`ProcessActionQueue` 경로에 추가될 때 재확인.
 - 상세: `CONVENTIONS.md` 최적화 체크리스트.
 
----
-
 ## 8. 게임 흐름
 
 ```
 [앱 시작]
-  Main (RuntimeInitializeOnLoadMethod) → SharedScene 자동 로드
-    → TitleScene (CI 연출)
+  TitleScene 시작 → Main.AutoCreate()가 SharedScene 추가 로드
+    → TitleMain.Start()에서 CI 연출
       → LoadingScene 경유
         → LobbyScene (스테이지 선택)
           → PopupReady 팝업 열기
@@ -181,14 +166,13 @@
 
 씬 전환 상세: `SCENE.md`
 
----
-
 ## 9. 폴더 구조 (Assets 기준)
 
 ```
 01_Scenes/    - SharedScene, TitleScene, LoadingScene, LobbyScene, GameScene, ToolScene
 02_Scripts/
-  PuzzleCore/ - Module(Model) / View / Controller
+  PuzzleCore/ - Module(보드 로직·데이터·리플레이 저장) / View / Controller
+  Battle/Pivot/ - 대전 피벗 규칙·세션·게이지 UI
   Manager/    - 시스템 매니저 전체
   Lobby/      - 로비 로직
   Title/      - 타이틀 로직
