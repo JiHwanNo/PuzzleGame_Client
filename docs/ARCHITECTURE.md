@@ -178,7 +178,7 @@
   Title/      - 타이틀 로직
   UI/         - UI 컴포넌트
 03_Prefab/    - Puzzle/, UI/
-04_Resources/ - 이미지, 사운드
+04_Resources/ - Block/은 퍼즐 조각, Images/는 보드·게이지·UI 이미지
 05_Table/     - Rule/, Stage/, Replay/
 ```
 

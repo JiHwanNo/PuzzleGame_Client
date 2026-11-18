@@ -11,10 +11,12 @@
 | [../AGENTS.md](../AGENTS.md) | Codex 작업 원칙, 코딩 규칙, 주의사항(Known Pitfalls), 작업별 참고 링크 | 항상 (기본 규칙) |
 | [../CLAUDE.md](../CLAUDE.md) | Claude Code 호환용 기존 가이드 | Claude Code 사용 시 |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | MVC, 데이터 흐름, 리플레이, 게임 흐름, 폴더 구조 | 아키텍처 이해 시 |
+| [LOBBY-DEFENSE.md](LOBBY-DEFENSE.md) | 100열 × 10행 로비 디펜스 규칙·구현 순서·검증 시나리오 | 아웃게임 배치·전투·퍼즐 연동 개발 시 |
 | [CONVENTIONS.md](CONVENTIONS.md) | 코드 리뷰 체크리스트, 위반 예시, 수정 가이드 | 커밋 전 리뷰 시 필독 |
 | [INGAME.md](INGAME.md) | 게임 루프, 보드 상태, 블럭, 매칭, 뷰 동기화, 애니메이션, 리플레이 | 인게임 퍼즐 작업 시 |
 | [DATA.md](DATA.md) | JSON 구조, GameSpec, Rule/Stage/Replay 데이터, 추가 방법 | 데이터/설정 작업 시 |
 | [UI.md](UI.md) | 도메인 시스템, 팝업/탭 생명주기, UIButton, 추가 방법 | UI 작업 시 |
+| [ART-STYLE.md](ART-STYLE.md) | 실제 참조 이미지, 생성 프롬프트 예시, Unity 임포트 규격 | 보드 블럭이나 슬롯 릴을 만들 때 |
 | [SCENE.md](SCENE.md) | 씬 전환, SharedScene, 매니저, AssetManager, PoolManager | 인프라 작업 시 |
 | [SERVER.md](SERVER.md) | 서버 통신, 공유 DLL, 네트워크 레이어, API 연동 | 서버 API 작업 시 |
 | [RULES-AND-STAGES.md](RULES-AND-STAGES.md) | 규칙·스테이지 JSON과 피벗 설정 | 게임 데이터 추가 시 |

@@ -52,6 +52,9 @@ public class PuzzleBoardView : MonoBehaviour
     /// <summary> 캐싱된 보드 모양 (GetLocalPos 최적화용) </summary>
     private BoardShape _cachedBoardShape = BoardShape.None;
 
+    /// <summary> 이 보드를 그릴 때 지정한 사각 또는 육각 격자 모양입니다. </summary>
+    public BoardShape Shape => _cachedBoardShape;
+
     /// <summary> 로드된 셀 프리팹 캐시 </summary>
     private GameObject _cellPrefabObj;
 

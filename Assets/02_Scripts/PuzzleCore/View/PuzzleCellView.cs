@@ -65,17 +65,18 @@ public class PuzzleCellView : MonoBehaviour
                 case CellType.Generator:
                     _spriteRenderer.gameObject.SetActive(true);
 
-                    // 게임 사양(GameSpec)을 확인하여 보드 모양에 맞는 스프라이트 로드
-                    GameSpec spec = StageInjection.Instance.GetGameSpec();
-                    if (spec != null)
+                    // 리플레이도 자신의 격자에 맞는 타일을 사용합니다.
+                    if (_boardView != null)
                     {
-                        string spriteAddress = spec.rule.boardShape == BoardShape.Hexagon ? "hexagonCell" : "squareCell";
+                        BoardShape requestedShape = _boardView.Shape;
+                        string spriteAddress = requestedShape == BoardShape.Hexagon ? "hexagonCell" : "squareCell";
+                        _spriteRenderer.sprite = null;
 
                         /// <summary> 셀 스프라이트와 충돌체 크기를 갱신합니다. </summary>
                         /// <param name="sprite">로드한 셀 스프라이트</param>
                         void OnCellSpriteLoaded(Sprite sprite)
                         {
-                            if (_spriteRenderer != null && sprite != null)
+                            if (_spriteRenderer != null && sprite != null && _boardView != null && _boardView.Shape == requestedShape)
                             {
                                 _spriteRenderer.sprite = sprite;
 

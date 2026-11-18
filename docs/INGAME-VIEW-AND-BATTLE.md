@@ -61,6 +61,8 @@ board.FetchActions()
 - 새로운 ViewType을 추가할 때도 기존 타입과의 처리 순서 의존성을 반드시 확인할 것.
 - `PuzzleBoardView.OnDestroy()`에서 `StopAllCoroutines()` 호출 — 파괴 중 코루틴 접근 크래시 방지.
 
+사각·육각 타일은 각 보드의 모양에 따라 `squareCell` 또는 `hexagonCell` 주소로 불러온다. 피벗 게이지의 별 장식 프레임과 채움 이미지는 별도 스프라이트이며 충전 비율만큼 왼쪽부터 표시한다. [원화와 임포트 기준](ART-STYLE.md#보드-타일과-피벗-게이지)
+
 ### 좌표 변환 (GetLocalPos)
 - 사각형: 보드 중앙 기준 `(X - width/2, Y - height/2) × cellSize`
 - 육각형 (Even-Q Flat-Top): 짝수 열은 Y에 `cellSize × 0.5f` 오프셋
