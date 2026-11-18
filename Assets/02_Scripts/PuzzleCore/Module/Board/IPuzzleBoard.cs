@@ -17,7 +17,7 @@ namespace Puzzle.Core
         public GridPos position;
         /// <summary> 이동 시 목적지 좌표 </summary>
         public GridPos targetPosition;
-        /// <summary> 연출에 관여하는 블럭 데이터 (생성 등에서 사용) </summary>
+        /// <summary> 생성하거나 파괴한 블럭으로, 파괴 시점의 폭탄 기믹도 포함합니다. </summary>
         public Block blockData;
     }
 

@@ -45,6 +45,7 @@
             board.AddView(new BoardViewAction
             {
                 type = ViewType.Destroy,
+                blockData = destroyed,
                 position = pos
             });
 

@@ -91,6 +91,7 @@ public class PuzzleBoardView : MonoBehaviour
     private const int MaxMatchFragments = 24;
     private readonly List<SpriteRenderer> _matchFragments = new List<SpriteRenderer>(MaxMatchFragments);
     private LineRenderer _linkRing;
+    private readonly List<LineRenderer> _bombWaves = new List<LineRenderer>();
 
     /// <summary> 현재 보드가 애니메이션 연출 중인지 여부를 반환합니다. </summary>
     public bool IsAnimating => _isAnimating;
@@ -637,20 +638,7 @@ public class PuzzleBoardView : MonoBehaviour
     {
         if (_linkRing == null)
         {
-            GameObject ring = new GameObject("LinkReadyRing");
-            ring.transform.SetParent(transform, false);
-            _linkRing = ring.AddComponent<LineRenderer>();
-            _linkRing.sharedMaterial = _lineMaterial;
-            _linkRing.useWorldSpace = false;
-            _linkRing.loop = true;
-            _linkRing.sortingLayerName = "Ingame";
-            _linkRing.sortingOrder = 102;
-            _linkRing.positionCount = 32;
-            for (int i = 0; i < _linkRing.positionCount; i++)
-            {
-                float angle = 2f * Mathf.PI * i / _linkRing.positionCount;
-                _linkRing.SetPosition(i, new Vector3(Mathf.Cos(angle), Mathf.Sin(angle)) * cellSize * 0.48f);
-            }
+            _linkRing = CreateRing("LinkReadyRing", 102, cellSize * 0.48f);
         }
         HideLinkRing();
         _linkRing.gameObject.SetActive(true);
@@ -669,6 +657,66 @@ public class PuzzleBoardView : MonoBehaviour
             _linkRing.transform.DOKill();
             _linkRing.gameObject.SetActive(false);
         }
+    }
+
+    /// <summary> 주어진 이름과 정렬 순서로 보드의 로컬 좌표에 지정한 반경의 원을 만듭니다. </summary>
+    private LineRenderer CreateRing(string objectName, int sortingOrder, float radius)
+    {
+        GameObject obj = new GameObject(objectName);
+        obj.transform.SetParent(transform, false);
+        LineRenderer ring = obj.AddComponent<LineRenderer>();
+        ring.sharedMaterial = _lineMaterial;
+        ring.useWorldSpace = false;
+        ring.loop = true;
+        ring.sortingLayerName = "Ingame";
+        ring.sortingOrder = sortingOrder;
+        ring.positionCount = 32;
+        for (int i = 0; i < ring.positionCount; i++)
+        {
+            float angle = 2f * Mathf.PI * i / ring.positionCount;
+            ring.SetPosition(i, new Vector3(Mathf.Cos(angle), Mathf.Sin(angle)) * radius);
+        }
+        return ring;
+    }
+
+    /// <summary> 파괴 액션에 담긴 폭탄마다 해당 좌표에서 판정 반경까지 충격파를 펼칩니다. </summary>
+    private void PlayBombWaves(BoardViewAction action)
+    {
+        if (action.blockData == null)
+        {
+            return;
+        }
+        foreach (IGimmick gimmick in action.blockData.Gimmicks)
+        {
+            if (gimmick is BombGimmick bomb)
+            {
+                LineRenderer wave = GetBombWave();
+                wave.gameObject.SetActive(true);
+                wave.transform.localPosition = GetLocalPos(action.position);
+                wave.transform.localScale = Vector3.one * 0.12f;
+                wave.widthMultiplier = cellSize * 0.045f / bomb.Radius;
+                wave.transform.DOScale((float)bomb.Radius, 0.24f).SetEase(Ease.OutQuad)
+                    .OnComplete(() => wave.gameObject.SetActive(false));
+            }
+        }
+    }
+
+    /// <summary> 쉬고 있는 충격파를 재사용하고, 연쇄 폭발로 모두 사용 중이면 하나를 추가합니다. </summary>
+    private LineRenderer GetBombWave()
+    {
+        foreach (LineRenderer wave in _bombWaves)
+        {
+            if (!wave.gameObject.activeSelf)
+            {
+                return wave;
+            }
+        }
+        LineRenderer created = CreateRing("BombShockwave", 21, cellSize);
+        Color orange = new Color(1f, 0.62f, 0.18f, 0.85f);
+        created.startColor = orange;
+        created.endColor = orange;
+        _bombWaves.Add(created);
+        return created;
     }
 
     /// <summary> 파괴되는 <paramref name="block"/>의 스프라이트를 작은 파편 세 개로 흩뿌립니다.</summary>
@@ -727,6 +775,11 @@ public class PuzzleBoardView : MonoBehaviour
     private void ClearFeedback()
     {
         HideLinkRing();
+        foreach (LineRenderer wave in _bombWaves)
+        {
+            wave.transform.DOKill();
+            wave.gameObject.SetActive(false);
+        }
         foreach (SpriteRenderer fragment in _matchFragments)
         {
             if (fragment != null)
@@ -979,6 +1032,7 @@ public class PuzzleBoardView : MonoBehaviour
         switch (action.type)
         {
             case ViewType.Destroy:
+                PlayBombWaves(action);
                 if (_blockViews.TryGetValue(action.position, out PuzzleBlockView dView))
                 {
                     _blockViews.Remove(action.position);

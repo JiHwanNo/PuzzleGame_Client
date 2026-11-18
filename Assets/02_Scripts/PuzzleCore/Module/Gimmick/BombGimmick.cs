@@ -9,6 +9,9 @@
         /// <summary> 폭발 반경 (셀 단위, 원형 범위 기준) </summary>
         private readonly int _radius;
 
+        /// <summary> 파괴 판정에 사용하는 셀 단위 반경입니다. </summary>
+        public int Radius => _radius;
+
         /// <summary>
         /// 폭탄 기믹을 생성합니다.
         /// </summary>

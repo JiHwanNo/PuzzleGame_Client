@@ -375,6 +375,7 @@ namespace Puzzle.Core
                     AddView(new BoardViewAction
                     {
                         type = ViewType.Destroy,
+                        blockData = destroyed,
                         frame = (uint)_frameCount,
                         position = pos
                     }, burstOrder);
