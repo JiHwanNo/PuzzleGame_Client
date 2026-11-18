@@ -91,6 +91,10 @@ public class PuzzleBoardView : MonoBehaviour
     private const int MaxMatchFragments = 24;
     private readonly List<SpriteRenderer> _matchFragments = new List<SpriteRenderer>(MaxMatchFragments);
     private LineRenderer _linkRing;
+    private Tween _linkTipTravel;
+    private Tween _linkTipPulse;
+    private static readonly Color _linkTrailColor = new Color(0.22f, 0.86f, 0.85f);
+    private static readonly Color _readyTrailColor = new Color(1f, 0.76f, 0.31f);
     private readonly List<LineRenderer> _bombWaves = new List<LineRenderer>();
 
     /// <summary> 현재 보드가 애니메이션 연출 중인지 여부를 반환합니다. </summary>
@@ -174,6 +178,12 @@ public class PuzzleBoardView : MonoBehaviour
     private void OnDisable()
     {
         ClearFeedback();
+        HideAllLinkPointMarkers();
+        _previousLinkPath.Clear();
+        if (_lineRenderer != null)
+        {
+            _lineRenderer.positionCount = 0;
+        }
     }
 
     /// <summary> 코루틴을 중단하고 애니메이션 상태와 링크 표시 리소스를 정리합니다. </summary>
@@ -300,8 +310,9 @@ public class PuzzleBoardView : MonoBehaviour
                 Debug.LogError("[PuzzleBoardView] LineRenderer용 셰이더를 찾을 수 없습니다.");
             }
 
-            // 초기 색상은 흰색, 드래그 시 블럭 색상으로 동적 교체됨
-            _lineRenderer.startColor = Color.white;
+            _lineRenderer.numCornerVertices = 4;
+            _lineRenderer.numCapVertices = 4;
+            _lineRenderer.startColor = _linkTrailColor;
             _lineRenderer.endColor = Color.white;
         }
         _lineRenderer.positionCount = 0;
@@ -569,6 +580,7 @@ public class PuzzleBoardView : MonoBehaviour
             if (path != null && path.Count > 0)
             {
                 bool wasReady = _previousLinkPath.Count >= LinkPuzzleBoard.MinimumLinkLength;
+                bool hasNewSegment = HasNewTipSegment(_previousLinkPath, path);
                 // 길이와 끝점이 같아도 중간 경로가 달라졌으면 다시 그립니다.
                 if (!CacheLinkPathIfChanged(path))
                 {
@@ -597,6 +609,8 @@ public class PuzzleBoardView : MonoBehaviour
                 // 각 연결 지점에 포인트 마커 표시
                 UpdateLinkPointMarkers(path);
                 bool isReady = path.Count >= LinkPuzzleBoard.MinimumLinkLength;
+                _lineRenderer.startColor = isReady ? _readyTrailColor : _linkTrailColor;
+                AnimateLinkTip(path, hasNewSegment);
                 float width = isReady ? 0.15f : 0.1f;
                 float worldWidth = cellSize * Mathf.Abs(transform.lossyScale.x) * width;
                 _lineRenderer.startWidth = worldWidth;
@@ -791,17 +805,15 @@ public class PuzzleBoardView : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// 링크 경로의 각 연결 지점에 원형 포인트 마커를 표시합니다.
-    /// </summary>
-    /// <param name="path">현재 링크 경로 좌표 리스트</param>
+    /// <summary> 현재 경로의 지점을 표시하고 이전 끝점의 이동과 크기를 초기화합니다. </summary>
     private void UpdateLinkPointMarkers(IReadOnlyList<GridPos> path)
     {
+        StopLinkTipAnimation();
         // 필요한 만큼 마커 오브젝트 확보
         while (_linkPointMarkers.Count < path.Count)
         {
             GameObject marker = new GameObject("LinkPoint");
-            marker.transform.SetParent(this.transform);
+            marker.transform.SetParent(transform, false);
 
             SpriteRenderer sr = marker.AddComponent<SpriteRenderer>();
             sr.sprite = _circleSprite;
@@ -820,6 +832,7 @@ public class PuzzleBoardView : MonoBehaviour
             Vector3 localPos = GetLocalPos(path[i]);
             localPos.z = -2f;
             marker.transform.localPosition = localPos;
+            marker.transform.localScale = Vector3.one * GetLinkMarkerScale(0.19f);
 
             marker.SetActive(true);
         }
@@ -831,11 +844,71 @@ public class PuzzleBoardView : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// 모든 포인트 마커를 비활성화합니다.
-    /// </summary>
+    /// <summary> 셀 너비에 대한 마커 지름 비율을 스프라이트 배율로 바꿉니다. </summary>
+    private float GetLinkMarkerScale(float diameterRatio) => cellSize * diameterRatio / _circleSprite.bounds.size.x;
+
+    /// <summary> 이전 경로와 현재 경로의 마지막 선분을 비교해 같은 프레임에 되짚고 새로 이은 경우도 찾습니다. </summary>
+    private static bool HasNewTipSegment(IReadOnlyList<GridPos> previous, IReadOnlyList<GridPos> current)
+    {
+        int last = current.Count - 1;
+        if (last < 1)
+        {
+            return false;
+        }
+        if (last >= previous.Count)
+        {
+            return true;
+        }
+        return current[last] != previous[last] || current[last - 1] != previous[last - 1];
+    }
+
+    /// <summary> 경로의 끝점을 강조하고 새 선분이 생겼을 때 그 구간을 따라 빛이 이동하게 합니다. </summary>
+    private void AnimateLinkTip(IReadOnlyList<GridPos> path, bool hasNewSegment)
+    {
+        int last = path.Count - 1;
+        Transform tip = _linkPointMarkers[last].transform;
+        float restingScale = GetLinkMarkerScale(0.31f);
+        tip.localScale = Vector3.one * restingScale;
+        if (!hasNewSegment)
+        {
+            return;
+        }
+
+        Vector3 destination = tip.localPosition;
+        tip.localPosition = _linkPointMarkers[last - 1].transform.localPosition;
+        UpdateTipLine();
+        _linkTipTravel = tip.DOLocalMove(destination, 0.07f).SetRecyclable(false).SetEase(Ease.OutQuad).OnUpdate(UpdateTipLine);
+        tip.localScale = Vector3.one * GetLinkMarkerScale(0.43f);
+        _linkTipPulse = tip.DOScale(restingScale, 0.14f).SetRecyclable(false).SetEase(Ease.OutQuad);
+
+        /// <summary> 마지막 선분이 이동 중인 끝점 마커에 닿도록 갱신합니다. </summary>
+        void UpdateTipLine()
+        {
+            Vector3 point = tip.localPosition;
+            point.z = -1f;
+            _lineRenderer.SetPosition(last, transform.TransformPoint(point));
+        }
+    }
+
+    /// <summary> 드래그 경로가 바뀌거나 닫힐 때 이전 끝점 연출을 멈춥니다. </summary>
+    private void StopLinkTipAnimation()
+    {
+        if (_linkTipTravel != null)
+        {
+            _linkTipTravel.Kill();
+            _linkTipTravel = null;
+        }
+        if (_linkTipPulse != null)
+        {
+            _linkTipPulse.Kill();
+            _linkTipPulse = null;
+        }
+    }
+
+    /// <summary> 드래그 끝점 연출을 중단하고 모든 포인트 마커를 숨깁니다. </summary>
     private void HideAllLinkPointMarkers()
     {
+        StopLinkTipAnimation();
         for (int i = 0; i < _linkPointMarkers.Count; i++)
         {
             _linkPointMarkers[i].SetActive(false);
