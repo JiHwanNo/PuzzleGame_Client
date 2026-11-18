@@ -3,6 +3,7 @@ using System.Collections.Generic;
 
 using Puzzle.Core;
 using System.Collections;
+using DG.Tweening;
 
 /// <summary>
 /// 퍼즐 보드의 데이터(Model)를 받아 화면에 시각적으로 렌더링하는 View 클래스입니다.
@@ -87,6 +88,10 @@ public class PuzzleBoardView : MonoBehaviour
     /// <summary> 마지막으로 화면에 반영한 링크 경로의 좌표 복사본입니다. </summary>
     private readonly List<GridPos> _previousLinkPath = new List<GridPos>();
 
+    private const int MaxMatchFragments = 24;
+    private readonly List<SpriteRenderer> _matchFragments = new List<SpriteRenderer>(MaxMatchFragments);
+    private LineRenderer _linkRing;
+
     /// <summary> 현재 보드가 애니메이션 연출 중인지 여부를 반환합니다. </summary>
     public bool IsAnimating => _isAnimating;
 
@@ -163,6 +168,12 @@ public class PuzzleBoardView : MonoBehaviour
         }
     }
 #endif
+
+    /// <summary> 보드가 화면에서 사라지면 진행 중인 일회성 효과를 정리합니다.</summary>
+    private void OnDisable()
+    {
+        ClearFeedback();
+    }
 
     /// <summary> 코루틴을 중단하고 애니메이션 상태와 링크 표시 리소스를 정리합니다. </summary>
     private void OnDestroy()
@@ -432,6 +443,7 @@ public class PuzzleBoardView : MonoBehaviour
         _isAnimating = false;
         _previousLinkPath.Clear();
         HideAllLinkPointMarkers();
+        ClearFeedback();
 
         if (_lineRenderer != null)
         {
@@ -555,6 +567,7 @@ public class PuzzleBoardView : MonoBehaviour
             IReadOnlyList<GridPos> path = linkBoard.GetCurrentLinkPath();
             if (path != null && path.Count > 0)
             {
+                bool wasReady = _previousLinkPath.Count >= LinkPuzzleBoard.MinimumLinkLength;
                 // 길이와 끝점이 같아도 중간 경로가 달라졌으면 다시 그립니다.
                 if (!CacheLinkPathIfChanged(path))
                 {
@@ -582,6 +595,19 @@ public class PuzzleBoardView : MonoBehaviour
 
                 // 각 연결 지점에 포인트 마커 표시
                 UpdateLinkPointMarkers(path);
+                bool isReady = path.Count >= LinkPuzzleBoard.MinimumLinkLength;
+                float width = isReady ? 0.15f : 0.1f;
+                float worldWidth = cellSize * Mathf.Abs(transform.lossyScale.x) * width;
+                _lineRenderer.startWidth = worldWidth;
+                _lineRenderer.endWidth = worldWidth;
+                if (!wasReady && isReady)
+                {
+                    PlayLinkRing(path[LinkPuzzleBoard.MinimumLinkLength - 1]);
+                }
+                else if (!isReady)
+                {
+                    HideLinkRing();
+                }
             }
             else
             {
@@ -590,6 +616,7 @@ public class PuzzleBoardView : MonoBehaviour
                     _previousLinkPath.Clear();
                     _lineRenderer.positionCount = 0;
                     HideAllLinkPointMarkers();
+                    HideLinkRing();
                 }
             }
         }
@@ -600,15 +627,116 @@ public class PuzzleBoardView : MonoBehaviour
                 _previousLinkPath.Clear();
                 _lineRenderer.positionCount = 0;
                 HideAllLinkPointMarkers();
+                HideLinkRing();
             }
         }
     }
 
-    /// <summary>
-    /// 링크 경로의 첫 번째 블럭 스프라이트에서 대표 색상을 추출합니다.
-    /// </summary>
-    /// <param name="path">현재 링크 경로 좌표 리스트</param>
-    /// <returns>블럭의 대표 색상 (추출 실패 시 반투명 흰색)</returns>
+    /// <summary> 링크가 처음 성립한 <paramref name="pos"/>에서 원을 한 번 펼칩니다.</summary>
+    private void PlayLinkRing(GridPos pos)
+    {
+        if (_linkRing == null)
+        {
+            GameObject ring = new GameObject("LinkReadyRing");
+            ring.transform.SetParent(transform, false);
+            _linkRing = ring.AddComponent<LineRenderer>();
+            _linkRing.sharedMaterial = _lineMaterial;
+            _linkRing.useWorldSpace = false;
+            _linkRing.loop = true;
+            _linkRing.sortingLayerName = "Ingame";
+            _linkRing.sortingOrder = 102;
+            _linkRing.positionCount = 32;
+            for (int i = 0; i < _linkRing.positionCount; i++)
+            {
+                float angle = 2f * Mathf.PI * i / _linkRing.positionCount;
+                _linkRing.SetPosition(i, new Vector3(Mathf.Cos(angle), Mathf.Sin(angle)) * cellSize * 0.48f);
+            }
+        }
+        HideLinkRing();
+        _linkRing.gameObject.SetActive(true);
+        _linkRing.transform.localPosition = GetLocalPos(pos);
+        _linkRing.transform.localScale = Vector3.one * 0.3f;
+        _linkRing.widthMultiplier = cellSize * 0.035f;
+        _linkRing.transform.DOScale(1f, 0.18f).SetEase(Ease.OutQuad)
+            .OnComplete(() => _linkRing.gameObject.SetActive(false));
+    }
+
+    /// <summary> 진행 중인 링크 성립 표시를 즉시 숨깁니다.</summary>
+    private void HideLinkRing()
+    {
+        if (_linkRing != null)
+        {
+            _linkRing.transform.DOKill();
+            _linkRing.gameObject.SetActive(false);
+        }
+    }
+
+    /// <summary> 파괴되는 <paramref name="block"/>의 스프라이트를 작은 파편 세 개로 흩뿌립니다.</summary>
+    private void PlayMatchFragments(PuzzleBlockView block)
+    {
+        SpriteRenderer source = block.SpriteRenderer;
+        if (source == null || source.sprite == null)
+        {
+            return;
+        }
+        Vector3 origin = transform.InverseTransformPoint(source.bounds.center);
+        for (int i = 0; i < 3; i++)
+        {
+            SpriteRenderer fragment = GetFreeFragment();
+            if (fragment == null)
+            {
+                return;
+            }
+            fragment.sprite = source.sprite;
+            fragment.gameObject.SetActive(true);
+            float angle = (90f + 120f * i) * Mathf.Deg2Rad;
+            Vector3 direction = new Vector3(Mathf.Cos(angle), Mathf.Sin(angle));
+            float scale = cellSize * 0.17f / source.sprite.bounds.size.x;
+            fragment.transform.localPosition = origin;
+            fragment.transform.localScale = Vector3.one * scale;
+            fragment.transform.DOScale(0f, 0.19f).SetEase(Ease.InQuad);
+            fragment.transform.DOLocalMove(origin + direction * cellSize * 0.48f, 0.19f)
+                .SetEase(Ease.OutQuad).OnComplete(() => fragment.gameObject.SetActive(false));
+        }
+    }
+
+    /// <summary> 보드의 동시 표시 상한 안에서 재사용할 파편을 가져옵니다.</summary>
+    private SpriteRenderer GetFreeFragment()
+    {
+        foreach (SpriteRenderer fragment in _matchFragments)
+        {
+            if (!fragment.gameObject.activeSelf)
+            {
+                return fragment;
+            }
+        }
+        if (_matchFragments.Count >= MaxMatchFragments)
+        {
+            return null;
+        }
+        GameObject obj = new GameObject("MatchFragment");
+        obj.transform.SetParent(transform, false);
+        SpriteRenderer renderer = obj.AddComponent<SpriteRenderer>();
+        renderer.sortingLayerName = "Ingame";
+        renderer.sortingOrder = 20;
+        _matchFragments.Add(renderer);
+        return renderer;
+    }
+
+    /// <summary> 보드를 비우거나 종료할 때 파편과 링크 표시의 트윈을 정리합니다.</summary>
+    private void ClearFeedback()
+    {
+        HideLinkRing();
+        foreach (SpriteRenderer fragment in _matchFragments)
+        {
+            if (fragment != null)
+            {
+                fragment.transform.DOKill();
+                fragment.sprite = null;
+                fragment.gameObject.SetActive(false);
+            }
+        }
+    }
 
     /// <summary>
     /// 링크 경로의 각 연결 지점에 원형 포인트 마커를 표시합니다.
@@ -864,6 +992,7 @@ public class PuzzleBoardView : MonoBehaviour
                         }
                     }
 
+                    PlayMatchFragments(dView);
                     dView.PlayDestroyAnimation(OnDestroyCompleted);
                 }
                 else

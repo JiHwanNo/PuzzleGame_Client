@@ -9,6 +9,9 @@ namespace Puzzle.Core
     /// </summary>
     public class LinkPuzzleBoard : IPuzzleBoard
     {
+        /// <summary> 손을 놓았을 때 매치로 인정하는 최소 연결 개수입니다. </summary>
+        public const int MinimumLinkLength = 3;
+
         public BoardState State { get; private set; } = BoardState.Waiting;
         public PuzzleRandom Random { get; private set; }
         public ObjectiveManager Objective { get; private set; }
@@ -233,7 +236,7 @@ namespace Puzzle.Core
                 return false;
             }
 
-            if (_linkPath.Count >= 3)
+            if (_linkPath.Count >= MinimumLinkLength)
             {
                 // 3개 이상 연결 시 파괴 페이즈로 전환
                 State = BoardState.Matching;
@@ -340,7 +343,7 @@ namespace Puzzle.Core
         /// <summary> 매칭된 블럭을 파괴하고 점수와 기믹 및 연출 액션을 갱신합니다. </summary>
         private bool ProcessMatching()
         {
-            if (_linkPath == null || _linkPath.Count < 3)
+            if (_linkPath == null || _linkPath.Count < MinimumLinkLength)
             {
                 return false;
             }
