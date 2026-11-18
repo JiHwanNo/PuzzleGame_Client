@@ -181,7 +181,7 @@ PuzzleGameController.Start()
 PuzzleGameController.Update()
   → BoardState.Finish 감지
     → ReplayStorage.Save(replayData) — 모드/시간/완료 틱/점수 포함
-      → Stage: 즉시 로비 이동 / Battle: 점수 비교를 4초간 표시 후 로비 이동
+      → 결과 화면에서 선택 → 같은 시드·상대로 GameScene 재시작 또는 LobbyScene 이동
 ```
 
 ## 새 매니저 구현 시 체크리스트

@@ -161,7 +161,7 @@
                 → GameScene
                   → Board 생성 + Initialize + View 그리기 → 게임 루프
                   → (리플레이 있으면) ReplayController 초기화 → 우측 상단 자동 재생
-                    → 게임 종료(Finish) → 리플레이 JSON 저장 → LobbyScene 이동
+                    → 게임 종료(Finish) → 리플레이 JSON 저장 → 결과 확인 → 같은 조건으로 재도전 또는 LobbyScene 이동
 ```
 
 씬 전환 상세: `SCENE.md`

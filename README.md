@@ -6,7 +6,7 @@
 
 1. 프로젝트에 지정된 Unity 에디터로 열고 `TitleScene`에서 Play를 누릅니다. 에디터 버전은 [ProjectVersion.txt](ProjectSettings/ProjectVersion.txt), URP·Addressables·Input System 버전은 [manifest.json](Packages/manifest.json)에 있습니다.
 2. 타이틀이 표시될 때 `Main`이 공통 매니저와 카메라가 있는 `SharedScene`을 추가로 로드합니다. 타이틀 연출이 끝나면 로딩 씬을 거쳐 로비로 이동합니다.
-3. 로비에서 Stage 또는 Battle 90s를 누르면 준비 팝업이 열립니다. START를 누르면 슬롯이 링크·3매치·탭 매치 중 한 모드에 멈추고 라이프 1개를 사용해 시작합니다. Battle 90s에서는 추첨된 모드로 90초 대전을 진행하고, 최근 리플레이는 로비에서 바로 선택합니다. 플레이가 끝나면 기록을 로컬에 저장하고 로비로 돌아옵니다.
+3. 로비에서 Stage 또는 Battle 90s를 누르면 준비 팝업이 열립니다. START를 누르면 슬롯이 링크·3매치·탭 매치 중 한 모드에 멈추고 라이프 1개를 사용해 시작합니다. Battle 90s에서는 추첨된 모드로 90초 대전을 진행하고, 최근 리플레이는 로비에서 바로 선택합니다. 플레이가 끝나면 기록을 로컬에 저장합니다. 결과 화면에서 같은 보드에 다시 도전하거나 로비로 돌아가 다른 모드를 선택할 수 있습니다.
 
 ## 코드 읽기
 

@@ -259,6 +259,10 @@ namespace Puzzle.Core
             CurrentScore = unchecked(CurrentScore + (int)(score * multiplier));
         }
 
+        /// <summary> 목표 블록의 누적 수집량을 반환합니다. </summary>
+        /// <param name="blockId">목표 블록의 식별자</param>
+        public int GetCollectedCount(string blockId) => _currentCounts.TryGetValue(blockId, out int count) ? count : 0;
+
         /// <summary>
         /// 현재 설정된 모든 클리어 조건이 만족되었는지 검사합니다.
         /// </summary>
@@ -284,8 +288,7 @@ namespace Puzzle.Core
 
                     case ObjectiveType.CollectBlock:
                         // 특정 블럭을 목표 개수만큼 모았는지 체크
-                        _currentCounts.TryGetValue(obj.targetId, out int count);
-                        if (count < obj.count)
+                        if (GetCollectedCount(obj.targetId) < obj.count)
                         {
                             return false;
                         }

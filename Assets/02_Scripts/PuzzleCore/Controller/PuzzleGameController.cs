@@ -2,7 +2,7 @@
 using System;
 using Battle.Pivot;
 using System.Collections.Generic;
-using System.Collections;
+using System.Text;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -35,7 +35,12 @@ public class PuzzleGameController : MonoBehaviour
     /// <summary> 두 보드를 함께 진행한 총 논리 틱 수입니다. </summary>
     private ulong _elapsedFrames;
     /// <summary> 상대 기록이 있는 대전인지 여부입니다. </summary>
-    private bool _hasOpponent;
+    private ReplayData _opponent;
+    [SerializeField] private GameObject _resultPanel;
+    [SerializeField] private TMP_Text _summaryText;
+    private string _playHint;
+    private List<ObjectiveData> _objectives;
+    private int _lastDestroyed = -1;
 
     /// <summary> 퍼즐 보드의 핵심 로직을 처리하는 모델 인터페이스 </summary>
     private IPuzzleBoard _board;
@@ -80,11 +85,13 @@ public class PuzzleGameController : MonoBehaviour
 
         if (gameSpec == null || gameSpec.stageData == null)
         {
-            Debug.LogWarning("GameSpec이 주입되지 않았거나 비어 있습니다! 테스트용 더미 데이터로 초기화합니다.");
-            if (gameSpec == null)
+            // 게임 씬을 직접 실행한 경우에도 로비와 같은 데이터 로드 경로를 사용합니다.
+            if (!StageInjection.Instance.MakeGameSpec("ThreeMatchRule", "Stage"))
             {
-                gameSpec = new GameSpec();
+                ShowStartError("스테이지를 불러올 수 없습니다.");
+                return;
             }
+            gameSpec = StageInjection.Instance.GetGameSpec();
         }
 
         // 게임 타입에 따라 적절한 보드 구현체 생성
@@ -112,7 +119,7 @@ public class PuzzleGameController : MonoBehaviour
         {
             if (gameSpec.pivotSettings == null)
             {
-                Debug.LogError("[PuzzleGameController] Rule JSON의 pivotSettings가 주입되지 않았습니다.");
+                ShowStartError("대전 피벗 설정이 없습니다.");
                 return;
             }
             try
@@ -121,7 +128,7 @@ public class PuzzleGameController : MonoBehaviour
             }
             catch (ArgumentOutOfRangeException exception)
             {
-                Debug.LogError($"[PuzzleGameController] 피벗 설정 오류: {exception.Message}");
+                ShowStartError($"대전 피벗 설정 오류: {exception.Message}");
                 return;
             }
             _pivotSession = new BattlePivotSession(_board, _mode, _pivotSettings);
@@ -141,12 +148,15 @@ public class PuzzleGameController : MonoBehaviour
 
         // 상대방 리플레이 데이터가 있으면 리플레이 컨트롤러 초기화
         ReplayData replayData = StageInjection.Instance.GetReplayData();
-        _hasOpponent = replayData != null;
-        if (_resultText != null)
+        _opponent = replayData;
+        _objectives = gameSpec.rule.objectives;
+        _playHint = gameSpec.rule.puzzleType switch
         {
-            _resultText.text = _mode == GameMode.Battle ?
-                (_hasOpponent ? "90초 대전" : "90초 대전 · 첫 기록 도전") : "";
-        }
+            PuzzleType.Link => "같은 색 블록을 3개 이상 이어 보세요",
+            PuzzleType.TapMatch => "같은 색 블록이 2개 이상 붙은 곳을 누르세요",
+            _ => "이웃한 블록을 바꿔 같은 색 3개를 한 줄로 맞추세요"
+        };
+        UpdatePlayHint();
         if (replayData != null && replayController != null)
         {
             replayController.Initialize(replayData);
@@ -159,7 +169,7 @@ public class PuzzleGameController : MonoBehaviour
     /// </summary>
     private void Update()
     {
-        if (!_isInitialized || _board == null)
+        if (!_isInitialized || _board == null || _replaySaved)
         {
             return;
         }
@@ -196,7 +206,7 @@ public class PuzzleGameController : MonoBehaviour
         }
 
         // 2. 마우스/터치를 뗐는가? -> 입력 종료 및 경로 초기화
-        if (IsPointerReleased())
+        if (_board.State != BoardState.Finish && IsPointerReleased())
         {
             _board.InputEnd();
             _lastHoveredPos = null; // 포인터를 떼면 초기화
@@ -210,21 +220,20 @@ public class PuzzleGameController : MonoBehaviour
             _pivotGaugeView.Refresh();
         }
 
-        // 게임 종료 시 기록을 저장하고, 대전이면 점수 비교를 표시한 뒤 로비로 이동합니다.
-        if (_board.State == BoardState.Finish && !_replaySaved)
+        if (_board.State == BoardState.Finish)
         {
             _replaySaved = true;
-            SaveReplay();
-            if (_mode == GameMode.Battle)
+            string summary = _mode == GameMode.Battle ? GetBattleResult() :
+                $"{(_board.Objective.IsAllObjectivesCleared() ? "스테이지 클리어" : "시간 종료")}\n최종 점수 {_board.Objective.CurrentScore}점";
+            if (!SaveReplay())
             {
-                ShowBattleResult();
-                StartCoroutine(ReturnToLobbyAfterResult());
+                summary += "\n리플레이를 저장하지 못했습니다";
             }
-            else
-            {
-                Main.Instance.MoveScene(SceneEnum.GameScene, SceneEnum.LobbyScene);
-            }
+            _summaryText.text = summary;
+            _resultPanel.SetActive(true);
+            return;
         }
+        UpdatePlayHint();
     }
 
     /// <summary>
@@ -243,7 +252,7 @@ public class PuzzleGameController : MonoBehaviour
         {
             _pivotSession.AdvanceAfterBoardTick();
         }
-        if (_hasOpponent && replayController != null && replayController.IsInitialized)
+        if (_opponent != null && replayController != null && replayController.IsInitialized)
         {
             replayController.AdvanceFrame();
         }
@@ -251,11 +260,11 @@ public class PuzzleGameController : MonoBehaviour
     }
 
     /// <summary> 공통 제한 시간이 끝난 뒤 점수와 승패를 표시합니다. </summary>
-    private void ShowBattleResult()
+    private string GetBattleResult()
     {
         int score = _board.Objective.CurrentScore;
         string result;
-        if (!_hasOpponent)
+        if (_opponent == null)
         {
             result = $"대전 기록 완료 · {score}점";
         }
@@ -270,19 +279,68 @@ public class PuzzleGameController : MonoBehaviour
             string verdict = score > opponentScore ? "승리" : (score < opponentScore ? "패배" : "무승부");
             result = $"{verdict}\n내 점수 {score} : 상대 점수 {opponentScore}";
         }
-        if (_resultText != null)
-        {
-            _resultText.text = result + "\n잠시 후 로비로 이동합니다";
-        }
-        Debug.Log($"[PuzzleGameController] {result}");
+        return result;
     }
 
-    /// <summary> 최종 점수 비교를 읽을 수 있도록 표시한 후 로비로 이동합니다. </summary>
-    /// <returns>결과 표시 대기 코루틴</returns>
-    private IEnumerator ReturnToLobbyAfterResult()
+    /// <summary> 같은 시드와 상대 기록으로 새 보드를 시작합니다. </summary>
+    private void OnClickRetry()
     {
-        yield return new WaitForSecondsRealtime(4f);
+        if (Main.Instance.IsMovingScene)
+        {
+            return;
+        }
+        StageInjection.Instance.SetReplayData(_opponent);
+        Main.Instance.MoveScene(SceneEnum.GameScene, SceneEnum.GameScene);
+    }
+
+    /// <summary> 결과 확인을 끝내고 로비로 돌아갑니다. </summary>
+    private void OnClickLobby()
+    {
         Main.Instance.MoveScene(SceneEnum.GameScene, SceneEnum.LobbyScene);
+    }
+
+    /// <summary> 초기화에 실패하면 다시 시도하거나 로비로 돌아갈 수 있도록 안내합니다. </summary>
+    /// <param name="message">실패한 항목을 설명하는 메시지</param>
+    private void ShowStartError(string message)
+    {
+        Debug.LogError($"[PuzzleGameController] {message}");
+        _summaryText.text = message;
+        _resultPanel.SetActive(true);
+    }
+
+    /// <summary> 조작법과 현재 목표 진행도를 보드에 맞춰 표시합니다. </summary>
+    private void UpdatePlayHint()
+    {
+        ObjectiveManager objective = _board.Objective;
+        if (_resultText == null || _lastDestroyed == objective.TotalDestroyedBlocks ||
+            (_mode == GameMode.Battle && _lastDestroyed >= 0))
+        {
+            return;
+        }
+        _lastDestroyed = objective.TotalDestroyedBlocks;
+        if (_mode == GameMode.Battle)
+        {
+            string title = _opponent == null ? "90초 대전 · 첫 기록 도전" : "90초 대전 · 상대 점수에 도전";
+            _resultText.text = title + "\n" + _playHint;
+            return;
+        }
+        StringBuilder hint = new StringBuilder(_playHint);
+        if (_objectives != null)
+        {
+            foreach (ObjectiveData target in _objectives)
+            {
+                if (target.type == ObjectiveType.Score)
+                {
+                    hint.Append($"\n점수 {Math.Min(objective.CurrentScore, target.count)} / {target.count}");
+                }
+                else if (target.type == ObjectiveType.CollectBlock)
+                {
+                    string name = target.targetId == "100-1" ? "빨간 블록" : $"블록 {target.targetId}";
+                    hint.Append($"\n{name} {Math.Min(objective.GetCollectedCount(target.targetId), target.count)} / {target.count}");
+                }
+            }
+        }
+        _resultText.text = hint.ToString();
     }
 
     /// <summary>
@@ -380,13 +438,13 @@ public class PuzzleGameController : MonoBehaviour
     /// <summary>
     /// 게임 종료 시 리플레이 데이터를 수집하여 로컬 JSON 파일로 저장합니다.
     /// </summary>
-    private void SaveReplay()
+    private bool SaveReplay()
     {
         GameSpec spec = StageInjection.Instance.GetGameSpec();
         if (spec == null)
         {
             Debug.LogError("[PuzzleGameController] GameSpec이 null이므로 리플레이를 저장할 수 없습니다.");
-            return;
+            return false;
         }
 
         ReplayData replayData = new ReplayData
@@ -410,7 +468,7 @@ public class PuzzleGameController : MonoBehaviour
         {
             replayData.pivotSettings = _pivotSettings.CopyValidated();
         }
-        ReplayStorage.Save(replayData);
+        return ReplayStorage.Save(replayData) != null;
     }
 
     /// <summary> 컨트롤러가 생성한 피벗 표시를 정리합니다. </summary>

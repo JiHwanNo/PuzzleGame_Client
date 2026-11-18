@@ -11,7 +11,7 @@
 
 | 찾는 콘텐츠 | 담당 C# 파일 | 주요 메서드·타입·멤버 |
 |---|---|---|
-| 입력, 게임 루프, 종료 후 저장, 점수/타이머 UI | [PuzzleGameController.cs](../Assets/02_Scripts/PuzzleCore/Controller/PuzzleGameController.cs) | `Start`, `Update`(입력 수집/UI), `FixedUpdate`(양쪽 공통 틱), `SaveReplay`, `ShowBattleResult`, `UpdateTimerUI` |
+| 입력, 게임 루프, 종료 후 저장, 점수/타이머 UI | [PuzzleGameController.cs](../Assets/02_Scripts/PuzzleCore/Controller/PuzzleGameController.cs) | `Start`, `Update`(입력 수집/UI), `FixedUpdate`(양쪽 공통 틱), `SaveReplay`, `GetBattleResult`, `UpdatePlayHint`, `OnClickRetry`, `OnClickLobby`, `UpdateTimerUI` |
 | 보드 공통 계약 | [IPuzzleBoard.cs](../Assets/02_Scripts/PuzzleCore/Module/Board/IPuzzleBoard.cs) | `IPuzzleBoard`, `BoardViewAction` |
 | 3매치 스왑·매칭·낙하·셔플 | [ThreeMatchPuzzleBoard.cs](../Assets/02_Scripts/PuzzleCore/Module/Board/ThreeMatchPuzzleBoard.cs) | `ProcessSwapInput`, `FindMatches`, `ProcessFallingAndFilling`, `FillFromGenerator`, `CheckAndShuffleIfNoMoves`, `MatchTargetsExpanding` |
 | 드래그 링크 성립 기준·연결·해제·낙하·매칭 대상 확장 | [LinkPuzzleBoard.cs](../Assets/02_Scripts/PuzzleCore/Module/Board/LinkPuzzleBoard.cs) | `MinimumLinkLength`, `Input`, `InputEnd`(큐 등록), `FixedUpdate`, `UpdateState`, `ProcessFallingAndFilling`, `FillFromGenerator`, `HasEmptyCell`, `MatchTargetsExpanding` |
@@ -24,7 +24,7 @@
 | 공통 파괴·목표 갱신·뷰 액션 등록 | [GimmickUtil.cs](../Assets/02_Scripts/PuzzleCore/Module/Gimmick/GimmickUtil.cs) | `DestroyBlock` |
 | 셀 상태와 블럭 보관 | [PuzzleCell.cs](../Assets/02_Scripts/PuzzleCore/Module/PuzzleCell.cs) | `PuzzleCell` |
 | 바닥 패널 기본 타입 | [PuzzlePanel.cs](../Assets/02_Scripts/PuzzleCore/Module/PuzzlePanel.cs) | `PuzzlePanel`, `NormalPanel` |
-| 점수·콤보·피버·시간 제한·목표 판정·누적 파괴/조작 성공 수 | [ObjectiveManager.cs](../Assets/02_Scripts/PuzzleCore/Module/ObjectiveManager.cs) | `OnMatchEvent`, `OnBlockDestroyed`, `UpdateTimer`, `ShouldFinish`, `IsAllObjectivesCleared`, `TotalDestroyedBlocks`, `TotalPlayerMatches`, `IsValidTimeLimit`, `GetTimeLimitFrames`, `RemainingSeconds` |
+| 점수·콤보·피버·시간 제한·목표 판정·누적 파괴/조작 성공 수 | [ObjectiveManager.cs](../Assets/02_Scripts/PuzzleCore/Module/ObjectiveManager.cs) | `OnMatchEvent`, `OnBlockDestroyed`, `UpdateTimer`, `ShouldFinish`, `IsAllObjectivesCleared`, `GetCollectedCount`, `TotalDestroyedBlocks`, `TotalPlayerMatches`, `IsValidTimeLimit`, `GetTimeLimitFrames`, `RemainingSeconds` |
 | 보드 배치·좌표 변환·뷰 액션 순서·링크 성립 표시·파괴 파편·폭탄 충격파 | [PuzzleBoardView.cs](../Assets/02_Scripts/PuzzleCore/View/PuzzleBoardView.cs) | `DrawBoard`, `Shape`, `GetLocalPos`, `ExecuteBatchMovement`, `UpdateLineRenderer`, `CacheLinkPathIfChanged`, `AnimateLinkTip`, `PlayLinkRing`, `PlayMatchFragments`, `PlayBombWaves` |
 | 블럭 스프라이트·클릭/이동/낙하/파괴 연출 | [PuzzleBlockView.cs](../Assets/02_Scripts/PuzzleCore/View/PuzzleBlockView.cs) | `UpdateVisual`, `PlayMoveAnimation`, `PlayFallAnimation`, `PlayDestroyAnimation` |
 | 사각·육각 보드 타일과 셀 상태 표시 | [PuzzleCellView.cs](../Assets/02_Scripts/PuzzleCore/View/PuzzleCellView.cs) | `Initialize`, `UpdateVisual` |
