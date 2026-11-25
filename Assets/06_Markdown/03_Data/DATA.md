@@ -176,7 +176,7 @@ JSON에는 **가독성을 위해 문자열 목록**으로 두고, 게임 로직�
 2. `blockId` 고유 값 지정
 3. `inputType` 조작 방법 문자열 목록 설정 (예: `["Swap","Touch"]`)
 4. 기존 기믹은 `gimmickIds`에 이름을 지정한다. 새 행동은 [블럭 기믹 확장 지침](../02_Ingame/INGAME_GIMMICK.md)에 따라 등록한다.
-5. 블럭 스프라이트를 `Assets/04_Resources/Block/`에 추가 후 Addressable 등록
+5. 블럭 스프라이트를 `Assets/04_Resources/Ingame/Block/`에 추가하고 `Block_{blockId}` 주소로 Addressables에 등록한다. 예를 들어 `blockId`가 `200-1`이면 주소는 `Block_200-1`이다.
 
 ---
 

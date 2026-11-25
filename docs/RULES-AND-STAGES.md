@@ -166,4 +166,4 @@ JSON에는 **가독성을 위해 문자열 목록**으로 두고, 게임 로직�
 4. 특수 행동이 필요하면 `gimmickIds`에 기믹 문자열 추가 (예: `["Bomb"]`).
    - **새 기믹 타입**이면 `PuzzleDefine.cs`의 `GimmickType` enum 값 + `GimmickFactory` 분기 + (`GimmickBase` 상속) 기믹 클래스를 함께 추가 → 상세: `INGAME.md` "새 블럭(기믹) 추가 절차"
    - 일반 색 블럭은 코드 변경 없이 JSON 추가만으로 동작
-5. 블럭 이미지를 단일 Sprite로 임포트하고 `BuildIn_Resource` 그룹에 `Block_{blockId}` 주소로 등록한다. 예를 들어 [원형 폭탄 스프라이트](../Assets/04_Resources/Block/Block_200-1.png)의 주소는 `Block_200-1`이다. [PuzzleBlockView](../Assets/02_Scripts/PuzzleCore/View/PuzzleBlockView.cs)가 이 주소로 이미지를 로드한다.
+5. 블럭 이미지를 단일 Sprite로 임포트하고 `BuildIn_Resource` 그룹에 `Block_{blockId}` 주소로 등록한다. 예를 들어 [원형 폭탄 스프라이트](../Assets/04_Resources/Ingame/Block/Block_200-1.png)의 주소는 `Block_200-1`이다. [PuzzleBlockView](../Assets/02_Scripts/PuzzleCore/View/PuzzleBlockView.cs)가 이 주소로 이미지를 로드한다.
