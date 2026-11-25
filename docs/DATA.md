@@ -126,6 +126,7 @@ GameSpec
 | 필드 | 타입 | 설명 |
 |------|------|------|
 | `formatVersion` | int | 현재 1. 없으면 이전 형식 0으로 읽음 |
+| `restoresBlockedLinks` | bool | 새 링크 기록은 막힌 경로를 복구한다. 필드가 없는 링크 기록은 기존 배치로 재생하며 현재 링크 대전 상대에서 제외한다. |
 | `comboRuleVersion` | int | 현재 1은 유저 조작 성공만 콤보로 계산. 없는 기존 기록의 0은 당시 자동 매칭/파괴 포함 규칙을 복원 |
 | `mode` | GameMode | Stage(0), Battle(1) |
 | `timeLimit` | float | 기록 당시 제한 시간(초). 유한·음이 아닌 값이며 정수 틱 범위 이내 |

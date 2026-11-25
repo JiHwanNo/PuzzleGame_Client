@@ -19,6 +19,8 @@ namespace Puzzle.Core
         public const int CurrentNumericRuleVersion = 1;
         /// <summary> 수치 계산 버전입니다. 필드가 없는 기존 기록의 0은 이전 실수 계산을 복원합니다. </summary>
         public int numericRuleVersion;
+        /// <summary>막힌 링크 경로를 복구하는 규칙으로 기록했는지 표시합니다.</summary>
+        public bool restoresBlockedLinks;
         /// <summary> 콤보 판정 버전입니다. 없는 기존 기록의 0은 자동 연쇄 포함 규칙을 사용합니다. </summary>
         public int comboRuleVersion;
         /// <summary> 없으면 이전 형식으로 읽으며 대전 상대로 사용하지 않습니다. </summary>
@@ -70,12 +72,10 @@ namespace Puzzle.Core
             return true;
         }
 
-        /// <summary> 현재 콤보 및 피벗 규칙과 동일한 조건의 대전 상대인지 검사합니다. </summary>
-        /// <param name="currentSettings">현재 플레이에 적용할 피벗 설정</param>
-        /// <returns>완주 기록이며 현재 규칙으로 점수를 비교할 수 있으면 true</returns>
-        public bool HasCompatibleBattleRules(PivotSettings currentSettings)
+        /// <summary><paramref name="currentSettings"/>와 기록의 대전 규칙을 대조하고, <paramref name="isLink"/>이면 링크 복구 규칙도 검사합니다.</summary>
+        public bool HasCompatibleBattleRules(PivotSettings currentSettings, bool isLink = false)
         {
-            if (!IsCompleteBattleRecord() || timeLimit != GameSpec.BattleDurationSeconds || comboRuleVersion != CurrentComboRuleVersion ||
+            if ((isLink && !restoresBlockedLinks) || !IsCompleteBattleRecord() || timeLimit != GameSpec.BattleDurationSeconds || comboRuleVersion != CurrentComboRuleVersion ||
                 numericRuleVersion != CurrentNumericRuleVersion || currentSettings == null || !currentSettings.IsValid())
             {
                 return false;

@@ -14,7 +14,7 @@
 | 입력, 게임 루프, 종료 후 저장, 점수/타이머 UI | [PuzzleGameController.cs](../Assets/02_Scripts/PuzzleCore/Controller/PuzzleGameController.cs) | `Start`, `Update`(입력 수집/UI), `FixedUpdate`(양쪽 공통 틱), `SaveReplay`, `GetBattleResult`, `UpdatePlayHint`, `OnClickRetry`, `OnClickLobby`, `UpdateTimerUI` |
 | 보드 공통 계약 | [IPuzzleBoard.cs](../Assets/02_Scripts/PuzzleCore/Module/Board/IPuzzleBoard.cs) | `IPuzzleBoard`, `BoardViewAction` |
 | 3매치 스왑·매칭·낙하·셔플 | [ThreeMatchPuzzleBoard.cs](../Assets/02_Scripts/PuzzleCore/Module/Board/ThreeMatchPuzzleBoard.cs) | `ProcessSwapInput`, `FindMatches`, `ProcessFallingAndFilling`, `FillFromGenerator`, `CheckAndShuffleIfNoMoves`, `MatchTargetsExpanding` |
-| 드래그 링크 성립 기준·연결·해제·낙하·매칭 대상 확장 | [LinkPuzzleBoard.cs](../Assets/02_Scripts/PuzzleCore/Module/Board/LinkPuzzleBoard.cs) | `MinimumLinkLength`, `Input`, `InputEnd`(큐 등록), `FixedUpdate`, `UpdateState`, `ProcessFallingAndFilling`, `FillFromGenerator`, `HasEmptyCell`, `MatchTargetsExpanding` |
+| 드래그 링크 성립 기준·연결·해제·낙하·매칭 대상 확장 | [LinkPuzzleBoard.cs](../Assets/02_Scripts/PuzzleCore/Module/Board/LinkPuzzleBoard.cs) | `MinimumLinkLength`, `Input`, `InputEnd`(큐 등록), `FixedUpdate`, `UpdateState`, `ProcessFallingAndFilling`, `FillFromGenerator`, `HasEmptyCell`, `EnsurePlayableLink`, `MatchTargetsExpanding` |
 | 탭 매치 연결 블럭 탐색·파괴 | [TapMatchPuzzleBoard.cs](../Assets/02_Scripts/PuzzleCore/Module/Board/TapMatchPuzzleBoard.cs) | `Input`, `InputEnd`(큐 등록), `FixedUpdate`, `UpdateState`, `GetConnectedBlocks`, `FillFromGenerator`, `CheckAndShuffleIfNoMoves`, `MatchTargetsExpanding` |
 | 블럭 상태·입력 플래그·기믹 발화 | [Block.cs](../Assets/02_Scripts/PuzzleCore/Module/Block/Block.cs) | `Block`, `GetInputType`, `FireDestroyed` |
 | 블럭 생성·기믹 부착 | [PuzzleBlockFactory.cs](../Assets/02_Scripts/PuzzleCore/Module/Block/PuzzleBlockFactory.cs) | `PuzzleBlockFactory` |
@@ -60,6 +60,8 @@ Waiting: 매칭 없으면 복귀, HasPossibleMoves() 실패 시 자동 셔플
   ↓ 목표 달성 또는 시간 종료
 Finish
 ```
+
+링크 보드는 초기 배치와 낙하·보충 직후에 가능한 경로를 검사한다. 같은 색 세 칸을 연결할 수 없으면 링크 가능한 인접 세 칸을 골라 양 끝을 중심 색으로 맞춘다. 이때 점수와 파괴 수는 증가하지 않는다.
 
 ## IPuzzleBoard 인터페이스
 

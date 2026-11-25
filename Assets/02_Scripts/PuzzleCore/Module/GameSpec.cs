@@ -28,6 +28,9 @@ namespace Puzzle.Core
         /// <summary> 이전 수치 규칙 리플레이에서만 실수 기반 계산을 복원합니다. </summary>
         [NonSerialized]
         public bool UseLegacyNumericRules;
+        /// <summary>이전 링크 기록의 막힌 배치를 그대로 재생합니다.</summary>
+        [NonSerialized]
+        public bool UseLegacyLinkLayout;
         /// <summary> Rule JSON에서 주입한 피벗 규칙입니다. 대전 진입 시 검증합니다. </summary>
         public PivotSettings pivotSettings;
         /// <summary> 현재 스테이지의 세부 구성 데이터 </summary>

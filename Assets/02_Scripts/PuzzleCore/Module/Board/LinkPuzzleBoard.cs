@@ -108,6 +108,10 @@ namespace Puzzle.Core
 
             // 초기 빈칸이 있으면 첫 고정 틱에서 한 번 낙하·생성한 뒤 입력을 받습니다.
             State = HasEmptyCell() ? BoardState.Falling : BoardState.Waiting;
+            if (State == BoardState.Waiting)
+            {
+                EnsurePlayableLink(false);
+            }
         }
 
         /// <summary> 좌표 입력을 다음 고정 틱의 처리 대기열에 추가합니다. </summary>
@@ -197,17 +201,7 @@ namespace Puzzle.Core
             }
 
             // 인접 여부 체크 (육각형 or 사각형)
-            bool isAdjacent = false;
-            if (gameSpec.rule.boardShape == BoardShape.Hexagon)
-            {
-                isAdjacent = GridPos.IsAdjacentHexagon(currentPos, input);
-            }
-            else
-            {
-                isAdjacent = GridPos.IsAdjacentSquare(currentPos, input);
-            }
-
-            if (!isAdjacent)
+            if (!AreNeighbors(currentPos, input))
             {
                 return;
             }
@@ -299,6 +293,7 @@ namespace Puzzle.Core
 
                 case BoardState.Falling:
                     ProcessFallingAndFilling();
+                    EnsurePlayableLink(true);
                     // 링크 게임은 자동 매칭이 없으므로 낙하/보충 후 바로 대기 상태로 전환
                     State = BoardState.Waiting;
                     _currentOrderIndex = 0;
@@ -388,6 +383,111 @@ namespace Puzzle.Core
             _matchTargets.Clear();
             _linkPath.Clear();
             return true;
+        }
+
+        /// <summary><paramref name="a"/>와 <paramref name="b"/>가 현재 보드에서 연결 가능한 이웃인지 확인합니다.</summary>
+        private bool AreNeighbors(GridPos a, GridPos b) => gameSpec.rule.boardShape == BoardShape.Hexagon
+            ? GridPos.IsAdjacentHexagon(a, b) : GridPos.IsAdjacentSquare(a, b);
+
+        /// <summary><paramref name="pos"/>에 링크 가능한 블럭이 있는 셀을 찾습니다.</summary>
+        private PuzzleCell GetLinkCell(GridPos pos)
+        {
+            PuzzleCell cell = GetCell(pos);
+            if (cell == null || cell.Block == null || (cell.CellType != CellType.Normal && cell.CellType != CellType.Generator))
+            {
+                return null;
+            }
+            return (cell.Block.GetInputType() & InputType.Link) != 0 ? cell : null;
+        }
+
+        /// <summary>가능한 링크가 없으면 이웃 두 칸을 중심 색으로 맞추고 <paramref name="notifyView"/>에 따라 변경을 표시합니다.</summary>
+        private void EnsurePlayableLink(bool notifyView)
+        {
+            if (gameSpec.UseLegacyLinkLayout)
+            {
+                return;
+            }
+
+            if (TryFindLink(true, out _, out _, out _))
+            {
+                return;
+            }
+            if (!TryFindLink(false, out PuzzleCell center, out PuzzleCell first, out PuzzleCell second))
+            {
+                Log("링크 가능한 세 칸이 인접한 구간이 없습니다.");
+                return;
+            }
+
+            BlockData color = gameSpec.GetBlock(center.Block.GetBlockId());
+            uint order = _currentOrderIndex++;
+            RestoreLinkColor(first, color, order, notifyView);
+            RestoreLinkColor(second, color, order, notifyView);
+        }
+
+        /// <summary><paramref name="center"/> 양쪽의 <paramref name="first"/>와 <paramref name="second"/>를 찾습니다.
+        /// <paramref name="sameColor"/>가 참이면 현재 입력으로 연결할 수 있는 같은 색만 검사합니다.</summary>
+        private bool TryFindLink(bool sameColor, out PuzzleCell center, out PuzzleCell first, out PuzzleCell second)
+        {
+            first = null;
+            second = null;
+            for (int y = 0; y < Height; y++)
+            {
+                for (int x = 0; x < Width; x++)
+                {
+                    center = GetLinkCell(new GridPos(x, y));
+                    if (center != null && TryFindNeighbors(center, sameColor, out first, out second))
+                    {
+                        return true;
+                    }
+                }
+            }
+            center = null;
+            return false;
+        }
+
+        /// <summary><paramref name="center"/>의 링크 가능한 이웃 두 칸을 <paramref name="first"/>와 <paramref name="second"/>에 담습니다.
+        /// <paramref name="sameColor"/>는 중심과 색이 같아야 하는지 지정합니다.</summary>
+        private bool TryFindNeighbors(PuzzleCell center, bool sameColor, out PuzzleCell first, out PuzzleCell second)
+        {
+            first = null;
+            second = null;
+            for (int dy = -1; dy <= 1; dy++)
+            {
+                for (int dx = -1; dx <= 1; dx++)
+                {
+                    GridPos pos = new GridPos(center.Position.X + dx, center.Position.Y + dy);
+                    if (!AreNeighbors(center.Position, pos))
+                    {
+                        continue;
+                    }
+                    PuzzleCell neighbor = GetLinkCell(pos);
+                    if (neighbor == null || (sameColor && neighbor.Block.GetBlockId() != center.Block.GetBlockId()))
+                    {
+                        continue;
+                    }
+                    if (first != null)
+                    {
+                        second = neighbor;
+                        return true;
+                    }
+                    first = neighbor;
+                }
+            }
+            return false;
+        }
+
+        /// <summary><paramref name="cell"/>을 <paramref name="color"/>로 교체하고 <paramref name="notifyView"/>가 참이면 <paramref name="order"/>에 표시합니다.</summary>
+        private void RestoreLinkColor(PuzzleCell cell, BlockData color, uint order, bool notifyView)
+        {
+            if (cell.Block.GetBlockId() == color.blockId)
+            {
+                return;
+            }
+            cell.Block = _blockFactory.Create(color);
+            if (notifyView)
+            {
+                AddView(new BoardViewAction { type = ViewType.Create, position = cell.Position, blockData = cell.Block }, order);
+            }
         }
 
         /// <summary> 블럭을 아래로 이동하고 각 생성기의 공급 구간에 빈칸을 채웁니다. </summary>

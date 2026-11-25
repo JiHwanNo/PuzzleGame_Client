@@ -250,22 +250,25 @@ public class PuzzleGameController : MonoBehaviour
     /// </summary>
     private void FixedUpdate()
     {
-        if (!_isInitialized || _board == null || _board.State == BoardState.Finish)
+        if (!_isInitialized || _board == null)
         {
             return;
         }
 
         // Unity의 컴포넌트 실행 순서와 무관하게 두 보드를 같은 공통 틱에서 진행합니다.
-        _board.FixedUpdate();
-        if (_pivotSession != null)
+        if (_board.State != BoardState.Finish)
         {
-            _pivotSession.AdvanceAfterBoardTick();
+            _board.FixedUpdate();
+            if (_pivotSession != null)
+            {
+                _pivotSession.AdvanceAfterBoardTick();
+            }
+            _elapsedFrames++;
         }
         if (_opponent != null && replayController != null && replayController.IsInitialized)
         {
             replayController.AdvanceFrame();
         }
-        _elapsedFrames++;
     }
 
     /// <summary> 공통 제한 시간이 끝난 뒤 점수와 승패를 표시합니다. </summary>
@@ -460,6 +463,7 @@ public class PuzzleGameController : MonoBehaviour
         {
             formatVersion = ReplayData.CurrentFormatVersion,
             comboRuleVersion = ReplayData.CurrentComboRuleVersion,
+            restoresBlockedLinks = spec.rule.puzzleType == PuzzleType.Link && !spec.UseLegacyLinkLayout,
             numericRuleVersion = ReplayData.CurrentNumericRuleVersion,
             mode = _mode,
             timeLimit = _board.Objective.TotalLimitTime,

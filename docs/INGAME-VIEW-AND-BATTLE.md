@@ -117,7 +117,7 @@ ReplayData 로드 → GameSpec 복원 (동일 Rule/Stage + 동일 시드)
 ```
 
 ### ReplayController 배치
-- 별도 모델/뷰를 사용하지만 논리 틱은 `PuzzleGameController.FixedUpdate()`가 함께 진행한다. `ReplayController`는 자체 `FixedUpdate()`를 실행하지 않는다.
+- 별도 모델/뷰를 사용하지만 논리 틱은 `PuzzleGameController.FixedUpdate()`가 함께 진행한다. 플레이어가 먼저 끝나면 플레이어 틱 수와 점수를 확정하고, 게임 씬에 머무는 동안 상대 보드만 기록 종료까지 진행한다.
 - `viewScale`, `margin` 파라미터로 우측 상단에 축소 자동 배치
 - `PuzzleBoardView.skipCameraAlign = true`로 카메라 간섭 방지
 

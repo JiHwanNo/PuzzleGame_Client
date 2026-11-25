@@ -92,7 +92,7 @@ public class ReplayController : MonoBehaviour
         {
             return false;
         }
-        return _replayData.HasCompatibleBattleRules(settings);
+        return _replayData.HasCompatibleBattleRules(settings, _board is LinkPuzzleBoard);
     }
     /// <summary> 현재 리플레이 점수입니다. </summary>
     public int CurrentScore
@@ -201,6 +201,7 @@ public class ReplayController : MonoBehaviour
         // 기록된 시드를 적용하여 동일한 난수 시퀀스 재현
         replaySpec.randomSeed = _replayData.randomSeed;
         replaySpec.UseLegacyAutomaticCombos = _replayData.comboRuleVersion == 0;
+        replaySpec.UseLegacyLinkLayout = !replayData.restoresBlockedLinks;
         replaySpec.UseLegacyNumericRules = _replayData.numericRuleVersion == 0;
         if (_replayData.formatVersion == ReplayData.CurrentFormatVersion)
         {
