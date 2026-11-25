@@ -1,0 +1,10 @@
+#!/bin/sh
+set -eu
+state=$(git rev-parse --absolute-git-dir)/commit-review
+while read -r source head target base; do
+  case "$target" in refs/heads/*) ;; *) echo "브랜치 이외의 푸시는 검증할 수 없습니다: $target" >&2; exit 1 ;; esac
+  if [ ! -f "$state/$head/$base" ]; then
+    echo "푸시 보류: $target ($base → $head)의 커밋 검증 기록이 없습니다." >&2
+    exit 1
+  fi
+done
