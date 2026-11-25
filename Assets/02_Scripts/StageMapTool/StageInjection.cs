@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using Puzzle.Core;
 
 /// <summary>
@@ -123,31 +123,95 @@ public class StageInjection
     /// <param name="ruleAddress">Addressable 내 규칙 JSON 에셋 주소</param>
     /// <param name="stageAddress">Addressable 내 스테이지 JSON 에셋 주소</param>
     /// <returns>사양서 생성 성공 여부</returns>
-    public bool MakeGameSpec(string ruleAddress, string stageAddress)
+    public bool MakeGameSpec(string ruleAddress, string stageAddress, GameMode mode = GameMode.Stage)
     {
         _ruleAddress = ruleAddress;
         _stageAddress = stageAddress;
         _gameSpec = new GameSpec();
+        _gameSpec.mode = mode;
 
         // 1. 규칙(Rule) 데이터 로드 및 파싱
-        if (!TryLoadRule(ruleAddress, _gameSpec))
+        TextAsset ruleAsset = AssetManager.Instance.LoadAsset<TextAsset>(ruleAddress);
+        if (ruleAsset != null)
         {
+            GameRuleContainer ruleContainer;
+            try
+            {
+                ruleContainer = JsonUtility.FromJson<GameRuleContainer>(ruleAsset.text);
+            }
+            catch (System.ArgumentException exception)
+            {
+                Debug.LogError($"[StageInjection] 규칙 JSON 파싱 실패: {ruleAddress} / {exception.Message}");
+                _gameSpec = null;
+                return false;
+            }
+            if (ruleContainer == null)
+            {
+                Debug.LogError($"[StageInjection] 규칙 JSON 파싱 실패: {ruleAddress}");
+                _gameSpec = null;
+                return false;
+            }
+            if (!ObjectiveManager.IsValidTimeLimit(ruleContainer.rule.timeLimit))
+            {
+                Debug.LogError($"[StageInjection] 제한 시간 범위가 잘못되었습니다: {ruleAddress} / {ruleContainer.rule.timeLimit}");
+                _gameSpec = null;
+                return false;
+            }
+            _gameSpec.rule = ruleContainer.rule;
+            _gameSpec.blocks = ruleContainer.blocks;
+            _gameSpec.pivotSettings = ruleContainer.pivotSettings;
+            if (mode == GameMode.Battle)
+            {
+                if (_gameSpec.pivotSettings == null)
+                {
+                    Debug.LogError($"[StageInjection] 대전 피벗 설정이 없습니다: {ruleAddress} / pivotSettings");
+                    _gameSpec = null;
+                    return false;
+                }
+                try
+                {
+                    _gameSpec.pivotSettings = _gameSpec.pivotSettings.CopyValidated();
+                }
+                catch (System.ArgumentOutOfRangeException exception)
+                {
+                    Debug.LogError($"[StageInjection] 대전 피벗 설정 오류: {ruleAddress} / {exception.Message}");
+                    _gameSpec = null;
+                    return false;
+                }
+            }
+        }
+        else
+        {
+            Debug.LogError($"[StageInjection] 규칙 에셋 로드 실패: {ruleAddress}");
             _gameSpec = null;
             return false;
         }
 
-        // 2. 기존 메인/리플레이 경로는 Addressable 스테이지 에셋만 사용합니다.
-        if (!TryLoadLegacyStage(stageAddress, _gameSpec))
+        // 2. 스테이지(Stage) 데이터 로드 및 파싱
+        TextAsset stageAsset = AssetManager.Instance.LoadAsset<TextAsset>(stageAddress);
+        if (stageAsset != null)
         {
+            _gameSpec.stageData = JsonUtility.FromJson<StageData>(stageAsset.text);
+            if (_gameSpec.stageData == null || !_gameSpec.stageData.HasValidCoordinates())
+            {
+                Debug.LogError($"[StageInjection] 스테이지 데이터 또는 셀 좌표 범위 오류: {stageAddress}");
+                _gameSpec = null;
+                return false;
+            }
+        }
+        else
+        {
+            Debug.LogError($"[StageInjection] 스테이지 에셋 로드 실패: {stageAddress}");
             _gameSpec = null;
             return false;
         }
+
+        _replayData = null;
 
         // 3. 결정론적 리플레이를 위한 랜덤 시드 생성
         _gameSpec.randomSeed = new System.Random().Next();
         return true;
     }
-
     /// <summary>
     /// 저장하지 않은 편집 중 스테이지 데이터를 메모리에서 직접 주입해 게임 사양서를 완성합니다.
     /// 맵 툴의 "맵 시작해보기"에서 파일 저장 없이 현재 편집 맵을 즉시 플레이할 때 사용합니다.

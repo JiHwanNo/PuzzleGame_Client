@@ -52,7 +52,10 @@ public abstract class TabController : MonoBehaviour
         }
 
         target.Activate();
-        onActivated?.Invoke(target);
+        if (onActivated != null)
+        {
+            onActivated.Invoke(target);
+        }
     }
 
     /// <summary>
@@ -64,7 +67,10 @@ public abstract class TabController : MonoBehaviour
     {
         if (tab == null || tab.gameObject == null)
         {
-            onComplete?.Invoke();
+            if (onComplete != null)
+            {
+                onComplete.Invoke();
+            }
             return;
         }
 

@@ -18,9 +18,6 @@ public class TitleMain : MonoBehaviour
         Sequence sequence = DOTween.Sequence();
         sequence.Append(text_CI.DOColor(new Color32(0x00, 0xFF, 0x80, 0xFF), 1f));
         sequence.AppendInterval(1f);
-        sequence.AppendCallback(() =>
-        {
-            Main.Instance.MoveScene(SceneEnum.TitleScene ,SceneEnum.LobbyScene);
-        });
+        sequence.AppendCallback(() => Main.Instance.MoveScene(SceneEnum.TitleScene, SceneEnum.LobbyScene));
     }
 }

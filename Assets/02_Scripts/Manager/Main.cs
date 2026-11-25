@@ -13,13 +13,7 @@ public class Main : MonoBehaviour
     private static Main _instance;
 
     /// <summary> 전역 접근을 위한 싱글톤 인스턴스 </summary>
-    public static Main Instance
-    {
-        get
-        {
-            return _instance;
-        }
-    }
+    public static Main Instance => _instance;
     #endregion
 
     /// <summary> SharedScene 이름 상수 </summary>
@@ -30,6 +24,9 @@ public class Main : MonoBehaviour
 
     /// <summary> 씬 전환 중 여부 </summary>
     private bool _isMovingScene;
+
+    /// <summary> 현재 씬 전환이 완료되기를 기다리는 중인지 반환합니다. </summary>
+    internal bool IsMovingScene => _isMovingScene;
 
     /// <summary>
     /// 게임 시작 시 SharedScene을 자동 로드합니다. SharedScene 내 Main 컴포넌트가 함께 생성됩니다.
@@ -206,14 +203,14 @@ public class Main : MonoBehaviour
         AsyncOperation loadingOp = SceneManager.LoadSceneAsync(SceneEnum.LoadingScene.ToString(), LoadSceneMode.Additive);
         yield return loadingOp;
 
-        // 2. 에셋 캐시 정리 후 이전 씬 언로드
-        AssetManager.Instance.ReleaseAll();
-
+        // 2. 이전 씬과 풀의 인스턴스를 정리한 뒤 원본 에셋을 해제합니다.
         if (pre != SceneEnum.None)
         {
             AsyncOperation unloadOp = SceneManager.UnloadSceneAsync(pre.ToString());
             yield return unloadOp;
         }
+        PoolManager.ClearIfCreated();
+        AssetManager.Instance.ReleaseAll();
 
         // 3. 다음 씬 비동기 로드 (활성화 대기)
         AsyncOperation nextOp = SceneManager.LoadSceneAsync(next.ToString(), LoadSceneMode.Additive);

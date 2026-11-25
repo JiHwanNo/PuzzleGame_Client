@@ -28,6 +28,8 @@
 *.VC.db
 
 # Unity generated metadata
+/Assets/05_Table/Replay/replay_*.json
+/Assets/05_Table/Replay/replay_*.json.meta
 sysinfo.txt
 *.apk
 *.unitypackage

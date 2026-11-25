@@ -10,13 +10,7 @@ public class NetworkManager : MonoBehaviour
     private static NetworkManager _instance;
 
     /// <summary> 전역 접근을 위한 싱글톤 인스턴스 </summary>
-    public static NetworkManager Instance
-    {
-        get
-        {
-            return _instance;
-        }
-    }
+    public static NetworkManager Instance => _instance;
 
     /// <summary> HTTP 클라이언트 </summary>
     private HttpNetworkClient _client;
@@ -25,22 +19,10 @@ public class NetworkManager : MonoBehaviour
     private string _baseUrl = "http://localhost:7777";
 
     /// <summary> 현재 설정된 서버 base URL </summary>
-    public string BaseUrl
-    {
-        get
-        {
-            return _baseUrl;
-        }
-    }
+    public string BaseUrl => _baseUrl;
 
     /// <summary> 클라이언트 초기화 완료 여부 </summary>
-    public bool IsInitialized
-    {
-        get
-        {
-            return _client != null;
-        }
-    }
+    public bool IsInitialized => _client != null;
 
     /// <summary>
     /// 싱글톤 인스턴스 등록 및 중복 방지
@@ -85,7 +67,10 @@ public class NetworkManager : MonoBehaviour
         {
             string error = "[NetworkManager] 초기화되지 않았습니다. Initialize()를 먼저 호출하세요.";
             Debug.LogError(error);
-            onFailed?.Invoke(error);
+            if (onFailed != null)
+            {
+                onFailed.Invoke(error);
+            }
             return null;
         }
 
@@ -108,7 +93,10 @@ public class NetworkManager : MonoBehaviour
         {
             string error = "[NetworkManager] 초기화되지 않았습니다. Initialize()를 먼저 호출하세요.";
             Debug.LogError(error);
-            onFailed?.Invoke(error);
+            if (onFailed != null)
+            {
+                onFailed.Invoke(error);
+            }
             return null;
         }
 

@@ -2,6 +2,21 @@
 
 서버 API 연동, 공유 DTO, 네트워크 레이어 작업 시 참고.
 
+## 콘텐츠와 C# 매핑
+
+[전체 작업 지도](MAP.md) · [문서 목록](README.md)
+
+파일 링크는 이 문서 기준 상대 경로이며, 마지막 열의 이름을 파일 안에서 검색하면 구현 위치를 찾을 수 있습니다.
+
+| 찾는 콘텐츠 | 담당 C# 파일 | 주요 메서드·타입·멤버 |
+|---|---|---|
+| 서버 URL·HTTP 초기화·GET/POST 진입점 | [NetworkManager.cs](../Assets/02_Scripts/Manager/NetworkManager.cs) | `Initialize`, `Get`, `Post` |
+| UnityWebRequest·JSON 직렬화·응답/오류 처리 | [HttpNetworkClient.cs](../Assets/02_Scripts/Manager/Network/HttpNetworkClient.cs) | `CoGet`, `CoPost`, `HandleResponse`, `BuildUrl` |
+| 유저 데이터 레이어 초기화·로드·초기화 해제 | [UserDataManager.cs](../Assets/02_Scripts/Manager/UserDataManager.cs) | `Initialize`, `LoadIdentity`, `ClearAll` |
+| user/identity 요청·실패 시 더미 데이터 | [IdentityLayer.cs](../Assets/02_Scripts/Manager/UserData/IdentityLayer.cs) | `Request`, `CreateDummyData`, `Clear` |
+
+공유 DTO의 소스는 이 저장소의 C# 파일에 없습니다. 클라이언트는 [PuzleBattleShared.dll](../Assets/Plugins/PuzleBattleShared.dll)을 참조하며, DTO 수정은 서버의 공유 프로젝트에서 진행합니다.
+
 ---
 
 ## 환경
@@ -151,7 +166,7 @@ NetworkManager.Instance.Post<RequestDto, ResponseDto>(
 - 서버에서 `PascalCase`로 직렬화하면 클라이언트에서 파싱 실패 → 서버 직렬화 설정 확인 필수.
 
 ### 네트워크 초기화 순서
-- `NetworkManager.Initialize()` → `UserDataManager.Initialize()` → `LoadIdentity()` 순서 보장 필요.
+- 유저 정보를 요청하려면 `NetworkManager.Initialize()` → `UserDataManager.Initialize()` → `LoadIdentity()` 순서로 호출한다. 현재 타이틀·로비 시작 코드에는 이 호출이 연결되어 있지 않으며, 로컬 대전 상대는 `LobbyMain`이 저장된 리플레이에서 고른다.
 - `Initialize()` 전 API 호출 시 에러 콜백으로 안내 메시지 반환.
 
 ### 서버 연결 실패 폴백

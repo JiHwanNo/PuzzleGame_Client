@@ -7,21 +7,15 @@ using UnityEngine;
 public class PuzzleCellView : MonoBehaviour
 {
     /// <summary> 셀 이미지를 렌더링할 컴포넌트 </summary>
-    [SerializeField] 
+    [SerializeField]
     private SpriteRenderer _spriteRenderer;
 
     /// <summary> 셀의 물리 충돌을 담당하는 컴포넌트 </summary>
-    [SerializeField] 
+    [SerializeField]
     private PuzzleCellCollider _boxCollider;
-    
+
     /// <summary> 외부(Collider 등)에서 스프라이트 정보를 얻기 위한 프로퍼티 </summary>
-    public SpriteRenderer SpriteRenderer
-    {
-        get
-        {
-            return _spriteRenderer;
-        }
-    }
+    public SpriteRenderer SpriteRenderer => _spriteRenderer;
 
     /// <summary> 연결된 셀 모델 데이터 </summary>
     private PuzzleCell _cellData;
@@ -32,30 +26,17 @@ public class PuzzleCellView : MonoBehaviour
     /// <summary> 관리 중인 보드 뷰 참조 </summary>
     private PuzzleBoardView _boardView;
 
-    /// <summary> 현재 셀이 속한 보드 모양 </summary>
-    private BoardShape _boardShape = BoardShape.None;
-
-    /// <summary> 비동기 스프라이트 로드 결과의 최신 여부를 판별하는 버전 값 </summary>
-    private int _spriteRequestVersion;
-
-    private void OnDisable()
-    {
-        _spriteRequestVersion++;
-    }
-
     /// <summary>
     /// 셀 뷰를 특정 모델 데이터 및 좌표로 초기화합니다.
     /// </summary>
     /// <param name="cellData">연결할 셀 모델 객체</param>
     /// <param name="pos">배치될 그리드 좌표</param>
     /// <param name="boardView">보드 뷰 객체</param>
-    public void Initialize(PuzzleCell cellData, GridPos pos, PuzzleBoardView boardView, BoardShape boardShape = BoardShape.None)
+    public void Initialize(PuzzleCell cellData, GridPos pos, PuzzleBoardView boardView)
     {
         _cellData = cellData;
         _gridPos = pos;
         _boardView = boardView;
-        _boardShape = boardShape;
-        _spriteRequestVersion++;
 
         UpdateVisual();
     }
@@ -84,24 +65,18 @@ public class PuzzleCellView : MonoBehaviour
                 case CellType.Generator:
                     _spriteRenderer.gameObject.SetActive(true);
 
-                    BoardShape boardShape = _boardShape;
-                    if (boardShape == BoardShape.None)
+                    // 리플레이도 자신의 격자에 맞는 타일을 사용합니다.
+                    if (_boardView != null)
                     {
-                        GameSpec spec = StageInjection.Instance.GetGameSpec();
-                        boardShape = spec?.rule.boardShape ?? BoardShape.Quadrangle;
-                    }
+                        BoardShape requestedShape = _boardView.Shape;
+                        string spriteAddress = requestedShape == BoardShape.Hexagon ? "hexagonCell" : "squareCell";
+                        _spriteRenderer.sprite = null;
 
-                    string spriteAddress = boardShape == BoardShape.Hexagon ? "hexagonCell" : "squareCell";
-                    int requestVersion = _spriteRequestVersion;
-                    PuzzleCell expectedCell = _cellData;
-
-                    // Addressables 비동기 로드를 통해 스프라이트 교체
-                    AssetManager.Instance.LoadAssetAsync<Sprite>(new AssetManager.AssetArguments<Sprite>()
-                    {
-                        address = spriteAddress,
-                        successCallback = (sprite) =>
+                        /// <summary> 셀 스프라이트와 충돌체 크기를 갱신합니다. </summary>
+                        /// <param name="sprite">로드한 셀 스프라이트</param>
+                        void OnCellSpriteLoaded(Sprite sprite)
                         {
-                            if (_spriteRenderer != null && sprite != null && requestVersion == _spriteRequestVersion && _cellData == expectedCell)
+                            if (_spriteRenderer != null && sprite != null && _boardView != null && _boardView.Shape == requestedShape)
                             {
                                 _spriteRenderer.sprite = sprite;
 
@@ -112,7 +87,21 @@ public class PuzzleCellView : MonoBehaviour
                                 }
                             }
                         }
-                    });
+
+                        // Addressables 비동기 로드를 통해 스프라이트 교체
+                        AssetManager.Instance.LoadAssetAsync<Sprite>(new AssetManager.AssetArguments<Sprite>()
+                        {
+                            address = spriteAddress,
+                            successCallback = OnCellSpriteLoaded
+                        });
+                    }
+                    else
+                    {
+                        if (_boxCollider != null)
+                        {
+                            _boxCollider.AdjustColliderSize();
+                        }
+                    }
                     break;
 
                 case CellType.Close:

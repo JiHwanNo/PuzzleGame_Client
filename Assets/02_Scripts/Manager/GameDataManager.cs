@@ -8,13 +8,7 @@ public class GameDataManager : MonoBehaviour
     private static GameDataManager _instance;
 
     /// <summary> 전역 접근을 위한 싱글톤 인스턴스 </summary>
-    public static GameDataManager Instance
-    {
-        get
-        {
-            return _instance;
-        }
-    }
+    public static GameDataManager Instance => _instance;
 
     /// <summary>
     /// 싱글톤 인스턴스 등록 및 중복 방지

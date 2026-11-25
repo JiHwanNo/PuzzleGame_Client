@@ -20,7 +20,7 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 031baba11707f614eb13c8b61e2a2781
+  - m_GUID: acfe19f01a5243b2a9021650bee4118e
     m_Address: hexagonCell
     m_ReadOnly: 0
     m_SerializedLabels: []
@@ -40,13 +40,28 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: a39ed3ea8c94c7749805728da8909703
+  - m_GUID: de52e6470b46439ca5cf16bc66100691
     m_Address: squareCell
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: edcbbbb78d12fd74ab978925a30ca150
     m_Address: Block_100-1
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 0dc98ec3221e45ea9a689e9713e4fabd
+    m_Address: Block_200-1
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: ab9829b2fe6942c393000fc466788523
+    m_Address: PivotGaugeFrame
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 86651a2ee6de4ebeabc51310bb17098a
+    m_Address: PivotGaugeFill
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0

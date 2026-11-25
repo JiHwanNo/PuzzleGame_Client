@@ -81,6 +81,23 @@ namespace Puzzle.Core
                     return null;
                 }
 
+                if (replayData.formatVersion < 0 || replayData.formatVersion > ReplayData.CurrentFormatVersion ||
+                    replayData.comboRuleVersion < 0 || replayData.comboRuleVersion > ReplayData.CurrentComboRuleVersion ||
+                    replayData.numericRuleVersion < 0 || replayData.numericRuleVersion > ReplayData.CurrentNumericRuleVersion)
+                {
+                    Debug.LogError($"[ReplayStorage] 지원하지 않는 리플레이 버전입니다: 형식 {replayData.formatVersion}, 콤보 규칙 {replayData.comboRuleVersion}, 수치 규칙 {replayData.numericRuleVersion}");
+                    return null;
+                }
+                if (replayData.formatVersion == ReplayData.CurrentFormatVersion &&
+                    (replayData.frameCount == 0 || replayData.finalScore < 0 ||
+                     !ObjectiveManager.IsValidTimeLimit(replayData.timeLimit, replayData.numericRuleVersion == 0) ||
+                     (replayData.mode != GameMode.Stage && replayData.mode != GameMode.Battle) ||
+                     (replayData.mode == GameMode.Battle && !replayData.IsCompleteBattleRecord())))
+                {
+                    Debug.LogError($"[ReplayStorage] 종료 규칙 또는 완료 기록이 올바르지 않습니다: {filePath}");
+                    return null;
+                }
+
                 Debug.Log($"리플레이 로드 완료: {filePath}");
                 return replayData;
             }

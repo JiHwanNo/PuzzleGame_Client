@@ -1,5 +1,20 @@
 {
   "_comment_global": "게임 전체의 규칙과 블럭의 속성을 정의하는 데이터 파일입니다.",
+  "_comment_pivot": "대전 전용 피벗. 게이지 1000점, 초당 10개 파괴 기준 첫 발동 약 24초, 이후 약 30초 주기. 기본 유지 약 6초, 콤보 유지 약 8초.",
+  "pivotSettings": {
+    "_comment_charge": "Units는 0.01점 단위. 블럭당 400 Units=4점, 10콤보마다 40 Units=0.4점 추가.",
+    "Capacity": 1000,
+    "ChargePerBlockUnits": 400,
+    "ChargeComboStep": 10,
+    "ChargeBonusPerStepUnits": 40,
+    "DrainPerSecond": 167,
+    "_comment_drain": "빠른 콤보마다 기본 소비 속도에서 10%p 감소, 최소 75% 유지. 콤보 간격은 50틱=1초.",
+    "DrainReductionPercentPerCombo": 10,
+    "MinimumDrainPercent": 75,
+    "ComboWindowTicks": 50,
+    "LinkNeighborClear": false,
+    "SquareNeighborClear": true
+  },
   "rule": {
     "_comment": "사각형 탭매치 기본 룰 설정",
     "ruleId": "TapMatch_Quadrangle",

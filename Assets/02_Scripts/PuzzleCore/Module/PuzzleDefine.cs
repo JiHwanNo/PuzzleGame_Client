@@ -1,5 +1,6 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
+using Battle.Pivot;
 
 namespace Puzzle.Core
 {
@@ -14,6 +15,9 @@ namespace Puzzle.Core
         /// <summary> 세로 좌표 (Y축) </summary>
         public int Y;
 
+        /// <summary> 지정한 가로와 세로 좌표로 격자 위치를 생성합니다. </summary>
+        /// <param name="x">가로 좌표</param>
+        /// <param name="y">세로 좌표</param>
         public GridPos(int x, int y)
         {
             X = x;
@@ -34,10 +38,12 @@ namespace Puzzle.Core
         /// <summary>
         /// 일반 사각형 그리드에서 두 좌표가 상하좌우로 인접해 있는지 확인합니다.
         /// </summary>
+        /// <param name="a">첫 번째 격자 좌표</param>
+        /// <param name="b">두 번째 격자 좌표</param>
         public static bool IsAdjacentSquare(GridPos a, GridPos b)
         {
-            int dx = Math.Abs(a.X - b.X);
-            int dy = Math.Abs(a.Y - b.Y);
+            long dx = Math.Abs((long)a.X - b.X);
+            long dy = Math.Abs((long)a.Y - b.Y);
             return (dx == 1 && dy == 0) || (dx == 0 && dy == 1);
         }
 
@@ -45,10 +51,12 @@ namespace Puzzle.Core
         /// Flat-Top(Even-Q) 육각형 그리드에서 두 좌표가 6방향으로 인접해 있는지 확인합니다.
         /// 짝수 열(Column)이 반 칸 아래로 내려가 있는 형태를 기준으로 합니다.
         /// </summary>
+        /// <param name="a">첫 번째 격자 좌표</param>
+        /// <param name="b">두 번째 격자 좌표</param>
         public static bool IsAdjacentHexagon(GridPos a, GridPos b)
         {
-            int dx = b.X - a.X;
-            int dy = b.Y - a.Y;
+            long dx = (long)b.X - a.X;
+            long dy = (long)b.Y - a.Y;
 
             if (dx == 0) // 같은 열(위, 아래)
             {
@@ -71,36 +79,35 @@ namespace Puzzle.Core
         }
 
         // --- 연산자 오버로딩 ---
-        public static GridPos operator +(GridPos a, GridPos b)
-        {
-            return new GridPos(a.X + b.X, a.Y + b.Y);
-        }
+        /// <summary> 두 격자 좌표의 각 성분을 더합니다. </summary>
+        /// <param name="a">첫 번째 격자 좌표</param>
+        /// <param name="b">두 번째 격자 좌표</param>
+        public static GridPos operator +(GridPos a, GridPos b) => new GridPos(a.X + b.X, a.Y + b.Y);
 
-        public static GridPos operator -(GridPos a, GridPos b)
-        {
-            return new GridPos(a.X - b.X, a.Y - b.Y);
-        }
+        /// <summary> 두 격자 좌표의 각 성분을 뺍니다. </summary>
+        /// <param name="a">첫 번째 격자 좌표</param>
+        /// <param name="b">두 번째 격자 좌표</param>
+        public static GridPos operator -(GridPos a, GridPos b) => new GridPos(a.X - b.X, a.Y - b.Y);
 
-        public static bool operator ==(GridPos a, GridPos b)
-        {
-            return a.X == b.X && a.Y == b.Y;
-        }
+        /// <summary> 두 격자 좌표가 같은지 확인합니다. </summary>
+        /// <param name="a">첫 번째 격자 좌표</param>
+        /// <param name="b">두 번째 격자 좌표</param>
+        public static bool operator ==(GridPos a, GridPos b) => a.X == b.X && a.Y == b.Y;
 
-        public static bool operator !=(GridPos a, GridPos b)
-        {
-            return !(a == b);
-        }
+        /// <summary> 두 격자 좌표가 다른지 확인합니다. </summary>
+        /// <param name="a">첫 번째 격자 좌표</param>
+        /// <param name="b">두 번째 격자 좌표</param>
+        public static bool operator !=(GridPos a, GridPos b) => !(a == b);
 
-        public bool Equals(GridPos other)
-        {
-            return X == other.X && Y == other.Y;
-        }
+        /// <summary> 대상과 현재 격자 좌표가 같은지 확인합니다. </summary>
+        /// <param name="other">비교할 격자 좌표</param>
+        public bool Equals(GridPos other) => X == other.X && Y == other.Y;
 
-        public override bool Equals(object obj)
-        {
-            return obj is GridPos other && Equals(other);
-        }
+        /// <summary> 대상과 현재 격자 좌표가 같은지 확인합니다. </summary>
+        /// <param name="obj">비교할 객체</param>
+        public override bool Equals(object obj) => obj is GridPos other && Equals(other);
 
+        /// <summary> 격자 좌표의 해시 코드를 반환합니다. </summary>
         public override int GetHashCode()
         {
             // 구버전 닷넷 호환성을 고려한 해시 생성
@@ -110,10 +117,8 @@ namespace Puzzle.Core
             }
         }
 
-        public override string ToString()
-        {
-            return $"({X}, {Y})";
-        }
+        /// <summary> 격자 좌표를 문자열로 반환합니다. </summary>
+        public override string ToString() => $"({X}, {Y})";
     }
 
     /// <summary>
@@ -126,6 +131,9 @@ namespace Puzzle.Core
         public RuleData rule;
         /// <summary> 블럭 정보 리스트 </summary>
         public List<BlockData> blocks;
+
+        /// <summary> Rule JSON에서 지정하는 대전 전용 피벗 충전과 유지 규칙입니다. </summary>
+        public PivotSettings pivotSettings;
     }
 
     /// <summary>
@@ -160,6 +168,15 @@ namespace Puzzle.Core
         public int count;
     }
 
+    /// <summary> 스테이지 공략과 제한 시간 점수 대전의 종료 규칙을 구분합니다. </summary>
+    public enum GameMode
+    {
+        /// <summary> 목표 달성 또는 제한 시간 종료 </summary>
+        Stage = 0,
+        /// <summary> 목표 달성과 무관하게 공통 제한 시간까지 진행 </summary>
+        Battle = 1
+    }
+
     /// <summary>
     /// 게임 클리어 목표의 종류를 정의합니다.
     /// </summary>
@@ -168,9 +185,7 @@ namespace Puzzle.Core
         /// <summary> 특정 점수 도달 </summary>
         Score = 0,
         /// <summary> 특정 ID의 블럭 수집(파괴) </summary>
-        CollectBlock = 1,
-        /// <summary> 특정 셀 모두 제거 </summary>
-        ClearCell = 2
+        CollectBlock = 1
     }
 
     /// <summary>
@@ -185,30 +200,10 @@ namespace Puzzle.Core
         public List<string> inputType;
         /// <summary> 파괴 조건 </summary>
         public DestroyType destroyType;
-        /// <summary> 내구도(HP). 데미지 소스에 맞는 피격마다 1씩 감소하며 0이 되면 파괴. (미지정/0이면 1로 취급) </summary>
+        /// <summary> 내구도/생명력 </summary>
         public int life;
-        /// <summary>
-        /// 이 블럭의 HP를 깎을 수 있는 데미지 소스 목록 (문자열, 예: ["Match","Splash"]).
-        /// 비어있으면 일반 블럭 기본값(Match|Splash)으로 취급. 장애물은 ["NeighborMatch","Splash"] 등으로 데이터화.
-        /// </summary>
-        public List<string> damagedBy;
-        /// <summary> 이 블럭에 부착할 효과 동사 목록 (트리거+동작). 없거나 비어있으면 효과 없음. </summary>
-        public List<EffectData> effects;
-    }
-
-    /// <summary>
-    /// 블럭에 부착되는 "효과 동사" 하나를 데이터로 기술합니다.
-    /// 어떤 시점(trigger)에 어떤 동작(action)을 어떤 파라미터(param)로 수행할지를 정의합니다.
-    /// </summary>
-    [Serializable]
-    public class EffectData
-    {
-        /// <summary> 발화 시점 (문자열, 예: "OnDestroyed" / "OnSwapped" → EffectTrigger로 변환) </summary>
-        public string trigger;
-        /// <summary> 수행할 동작 동사 (예: "DestroyRadius" / "DestroyLine" / "DestroySameColor") </summary>
-        public string action;
-        /// <summary> 동작별 보조 파라미터 (예: 반경 "2", 라인 방향 "Cross"). 동작이 알아서 해석. </summary>
-        public string param;
+        /// <summary> 이 블럭에 연동할 기믹 id 목록 (없거나 비어있으면 기믹 없음) </summary>
+        public List<string> gimmickIds;
     }
 
     // ==========================================================
@@ -311,43 +306,13 @@ namespace Puzzle.Core
         Bomb = 51
     }
 
-    /// <summary>
-    /// 블럭이 데미지를 받는 경로(원인)입니다. 블럭 데이터의 damagedBy(어떤 데미지에 HP가 깎이는지)와
-    /// 효과 동사가 가하는 데미지를 매칭하는 데 사용합니다. (JSON에는 문자열 목록, 내부 처리는 이 플래그)
-    /// </summary>
-    [Flags]
-    public enum DamageSource
+    /// <summary> 블럭/판넬에 부착되는 기믹의 종류 (JSON에는 문자열, 내부 처리는 이 enum) </summary>
+    public enum GimmickType
     {
         /// <summary> 없음 </summary>
         None = 0,
-        /// <summary> 자신이 매치에 포함되어 터짐 (일반팡) </summary>
-        Match = 1 << 0,
-        /// <summary> 직교 인접 칸에서 매치가 발생 (과자 등 인접 파괴형) </summary>
-        NeighborMatch = 1 << 1,
-        /// <summary> 폭발 여파 — 폭탄/라인/무지개 등 효과 동사에 의한 파괴 (폭탄팡) </summary>
-        Splash = 1 << 2
-    }
-
-    /// <summary> 효과 동사(IBlockEffect)가 발화되는 시점입니다. (JSON에는 문자열, 내부 처리는 이 enum) </summary>
-    public enum EffectTrigger
-    {
-        /// <summary> 없음 </summary>
-        None = 0,
-        /// <summary> 블럭이 파괴(HP 0)될 때 (예: 라인/원형 폭발) </summary>
-        OnDestroyed = 1,
-        /// <summary> 블럭이 스왑될 때 (예: 무지개 — 스왑을 소비) </summary>
-        OnSwapped = 2
-    }
-
-    /// <summary> 라인 폭탄의 파괴 방향 </summary>
-    public enum LineDirection
-    {
-        /// <summary> 가로(행) 한 줄 </summary>
-        Horizontal = 0,
-        /// <summary> 세로(열) 한 줄 </summary>
-        Vertical = 1,
-        /// <summary> 가로 + 세로 십자 </summary>
-        Cross = 2
+        /// <summary> 원형 폭탄 (파괴 시 주변 반경을 함께 파괴) </summary>
+        Bomb = 1
     }
 
     /// <summary> 방향 정의 </summary>
@@ -414,6 +379,8 @@ namespace Puzzle.Core
     {
         /// <summary> 조작이 발생한 게임 로직 프레임 </summary>
         public ulong frame;
+        /// <summary> 같은 프레임의 좌표 입력과 종료 입력 사이의 처리 순서 </summary>
+        public ulong sequence;
         /// <summary> 클릭/터치된 그리드 좌표 </summary>
         public GridPos position;
 
@@ -422,9 +389,11 @@ namespace Puzzle.Core
         /// </summary>
         /// <param name="frame">조작이 발생한 프레임</param>
         /// <param name="pos">클릭/터치된 그리드 좌표</param>
-        public InputRecord(ulong frame, GridPos pos)
+        /// <param name="sequence">입력 이벤트의 기록 순서</param>
+        public InputRecord(ulong frame, GridPos pos, ulong sequence = 0)
         {
             this.frame = frame;
+            this.sequence = sequence;
             this.position = pos;
         }
     }
@@ -437,14 +406,18 @@ namespace Puzzle.Core
     {
         /// <summary> 입력 종료가 발생한 게임 로직 프레임 </summary>
         public ulong frame;
+        /// <summary> 같은 프레임의 좌표 입력과 종료 입력 사이의 처리 순서 </summary>
+        public ulong sequence;
 
         /// <summary>
         /// 입력 종료 기록을 생성합니다.
         /// </summary>
         /// <param name="frame">입력 종료가 발생한 프레임</param>
-        public InputEndRecord(ulong frame)
+        /// <param name="sequence">입력 이벤트의 기록 순서</param>
+        public InputEndRecord(ulong frame, ulong sequence = 0)
         {
             this.frame = frame;
+            this.sequence = sequence;
         }
     }
 }

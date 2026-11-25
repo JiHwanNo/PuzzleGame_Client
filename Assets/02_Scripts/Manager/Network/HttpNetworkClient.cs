@@ -35,10 +35,7 @@ public class HttpNetworkClient
     /// <param name="onSuccess">성공 시 호출되는 콜백</param>
     /// <param name="onFailed">실패 시 호출되는 콜백</param>
     /// <returns>코루틴 핸들</returns>
-    public Coroutine Get<TResponse>(string endpoint, Action<TResponse> onSuccess, Action<string> onFailed)
-    {
-        return _coroutineRunner.StartCoroutine(CoGet(endpoint, onSuccess, onFailed));
-    }
+    public Coroutine Get<TResponse>(string endpoint, Action<TResponse> onSuccess, Action<string> onFailed) => _coroutineRunner.StartCoroutine(CoGet(endpoint, onSuccess, onFailed));
 
     /// <summary>
     /// POST 요청을 전송하고 응답을 역직렬화하여 콜백으로 반환합니다.
@@ -50,10 +47,7 @@ public class HttpNetworkClient
     /// <param name="onSuccess">성공 시 호출되는 콜백</param>
     /// <param name="onFailed">실패 시 호출되는 콜백</param>
     /// <returns>코루틴 핸들</returns>
-    public Coroutine Post<TRequest, TResponse>(string endpoint, TRequest body, Action<TResponse> onSuccess, Action<string> onFailed)
-    {
-        return _coroutineRunner.StartCoroutine(CoPost(endpoint, body, onSuccess, onFailed));
-    }
+    public Coroutine Post<TRequest, TResponse>(string endpoint, TRequest body, Action<TResponse> onSuccess, Action<string> onFailed) => _coroutineRunner.StartCoroutine(CoPost(endpoint, body, onSuccess, onFailed));
 
     /// <summary>
     /// GET 요청 코루틴. UnityWebRequest로 서버에 요청을 보내고 JSON 응답을 파싱합니다.
@@ -116,7 +110,10 @@ public class HttpNetworkClient
         {
             string errorMessage = $"[HttpNetworkClient] 요청 실패: {request.url} / {request.error}";
             Debug.LogError(errorMessage);
-            onFailed?.Invoke(errorMessage);
+            if (onFailed != null)
+            {
+                onFailed.Invoke(errorMessage);
+            }
             return;
         }
 
@@ -125,13 +122,19 @@ public class HttpNetworkClient
         try
         {
             TResponse responseData = JsonUtility.FromJson<TResponse>(responseJson);
-            onSuccess?.Invoke(responseData);
+            if (onSuccess != null)
+            {
+                onSuccess.Invoke(responseData);
+            }
         }
         catch (Exception e)
         {
             string errorMessage = $"[HttpNetworkClient] JSON 파싱 실패: {request.url} / {e.Message}";
             Debug.LogError(errorMessage);
-            onFailed?.Invoke(errorMessage);
+            if (onFailed != null)
+            {
+                onFailed.Invoke(errorMessage);
+            }
         }
     }
 

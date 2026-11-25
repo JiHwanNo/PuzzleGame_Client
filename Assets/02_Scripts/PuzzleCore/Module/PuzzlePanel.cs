@@ -31,6 +31,7 @@ namespace Puzzle.Core
     /// </summary>
     public class NormalPanel : PuzzlePanel
     {
+        /// <summary> 특수 기능이 없는 기본 바닥판을 생성합니다. </summary>
         public NormalPanel() : base("Normal")
         {
         }

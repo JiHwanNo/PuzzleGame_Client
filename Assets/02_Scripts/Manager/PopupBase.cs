@@ -17,22 +17,10 @@ public class PopupBase : MonoBehaviour, IDomainNode
     public string PopupName { get; private set; }
 
     /// <inheritdoc/>
-    public string DomainName
-    {
-        get
-        {
-            return PopupName;
-        }
-    }
+    public string DomainName => PopupName;
 
     /// <inheritdoc/>
-    public DomainType DomainType
-    {
-        get
-        {
-            return DomainType.Popup;
-        }
-    }
+    public DomainType DomainType => DomainType.Popup;
 
     #endregion
 
@@ -122,7 +110,10 @@ public class PopupBase : MonoBehaviour, IDomainNode
     /// </summary>
     private void OnDestroy()
     {
-        _currentSequence?.Kill();
+        if (_currentSequence != null)
+        {
+            _currentSequence.Kill();
+        }
         OnOpened = null;
         OnClosed = null;
     }
@@ -173,7 +164,10 @@ public class PopupBase : MonoBehaviour, IDomainNode
 
         _currentSequence = null;
         IsAnimating = false;
-        OnOpened?.Invoke(this);
+        if (OnOpened != null)
+        {
+            OnOpened.Invoke(this);
+        }
     }
 
     /// <summary>
@@ -204,7 +198,13 @@ public class PopupBase : MonoBehaviour, IDomainNode
 
         _currentSequence = null;
         IsAnimating = false;
-        OnClosed?.Invoke(this);
-        onComplete?.Invoke();
+        if (OnClosed != null)
+        {
+            OnClosed.Invoke(this);
+        }
+        if (onComplete != null)
+        {
+            onComplete.Invoke();
+        }
     }
 }

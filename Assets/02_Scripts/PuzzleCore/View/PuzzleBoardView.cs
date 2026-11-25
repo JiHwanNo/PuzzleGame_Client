@@ -3,6 +3,7 @@ using System.Collections.Generic;
 
 using Puzzle.Core;
 using System.Collections;
+using DG.Tweening;
 
 /// <summary>
 /// 퍼즐 보드의 데이터(Model)를 받아 화면에 시각적으로 렌더링하는 View 클래스입니다.
@@ -45,8 +46,14 @@ public class PuzzleBoardView : MonoBehaviour
     /// <summary> 현재 연결된 보드 모델 데이터 </summary>
     private IPuzzleBoard _board;
 
+    /// <summary> 사용자 입력 전달 허용 여부입니다. 리플레이 보드는 비활성화합니다. </summary>
+    public bool InputEnabled { get; set; } = true;
+
     /// <summary> 캐싱된 보드 모양 (GetLocalPos 최적화용) </summary>
     private BoardShape _cachedBoardShape = BoardShape.None;
+
+    /// <summary> 이 보드를 그릴 때 지정한 사각 또는 육각 격자 모양입니다. </summary>
+    public BoardShape Shape => _cachedBoardShape;
 
     /// <summary> 로드된 셀 프리팹 캐시 </summary>
     private GameObject _cellPrefabObj;
@@ -87,12 +94,17 @@ public class PuzzleBoardView : MonoBehaviour
     /// <summary> 포인트 마커용 스프라이트 </summary>
     private Sprite _circleSprite;
 
-    /// <summary> LineRenderer 갱신 판단을 위한 이전 링크 경로 수 </summary>
-    private int _prevLinkPathCount = 0;
+    /// <summary> 마지막으로 화면에 반영한 링크 경로의 좌표 복사본입니다. </summary>
+    private readonly List<GridPos> _previousLinkPath = new List<GridPos>();
 
-    /// <summary> LineRenderer 갱신 판단을 위한 이전 링크 경로 마지막 좌표 </summary>
-    private GridPos _prevLinkPathLast;
-
+    private const int MaxMatchFragments = 24;
+    private readonly List<SpriteRenderer> _matchFragments = new List<SpriteRenderer>(MaxMatchFragments);
+    private LineRenderer _linkRing;
+    private Tween _linkTipTravel;
+    private Tween _linkTipPulse;
+    private static readonly Color _linkTrailColor = new Color(0.22f, 0.86f, 0.85f);
+    private static readonly Color _readyTrailColor = new Color(1f, 0.76f, 0.31f);
+    private readonly List<LineRenderer> _bombWaves = new List<LineRenderer>();
 
     /// <summary> 현재 보드가 애니메이션 연출 중인지 여부를 반환합니다. </summary>
     public bool IsAnimating => _isAnimating;
@@ -120,7 +132,7 @@ public class PuzzleBoardView : MonoBehaviour
         }
         GUIStyle style = _debugStyle;
 
-        foreach (var kvp in _board.Cells)
+        foreach (KeyValuePair<GridPos, PuzzleCell> kvp in _board.Cells)
         {
             GridPos pos = kvp.Key;
             PuzzleCell cell = kvp.Value;
@@ -132,7 +144,17 @@ public class PuzzleBoardView : MonoBehaviour
 
             if (_blockViews.TryGetValue(pos, out PuzzleBlockView blockView))
             {
-                info += $"\nID: {blockView.GetBlockData()?.GetBlockId() ?? "NullData"}";
+                Block blockData = blockView.GetBlockData();
+                string blockId = null;
+                if (blockData != null)
+                {
+                    blockId = blockData.GetBlockId();
+                }
+                if (blockId == null)
+                {
+                    blockId = "NullData";
+                }
+                info += $"\nID: {blockId}";
             }
             else if (cell.Block != null)
             {
@@ -161,6 +183,19 @@ public class PuzzleBoardView : MonoBehaviour
     }
 #endif
 
+    /// <summary> 보드가 화면에서 사라지면 진행 중인 일회성 효과를 정리합니다.</summary>
+    private void OnDisable()
+    {
+        ClearFeedback();
+        HideAllLinkPointMarkers();
+        _previousLinkPath.Clear();
+        if (_lineRenderer != null)
+        {
+            _lineRenderer.positionCount = 0;
+        }
+    }
+
+    /// <summary> 코루틴을 중단하고 애니메이션 상태와 링크 표시 리소스를 정리합니다. </summary>
     private void OnDestroy()
     {
         StopAllCoroutines();
@@ -200,7 +235,11 @@ public class PuzzleBoardView : MonoBehaviour
         else
         {
             GameSpec spec = StageInjection.Instance.GetGameSpec();
-            _cachedBoardShape = spec?.rule.boardShape ?? BoardShape.None;
+            _cachedBoardShape = BoardShape.None;
+            if (spec != null)
+            {
+                _cachedBoardShape = spec.rule.boardShape;
+            }
         }
 
         if (_board.Cells == null)
@@ -229,7 +268,7 @@ public class PuzzleBoardView : MonoBehaviour
             blockRoot = this.transform;
         }
 
-        foreach (var kvp in _board.Cells)
+        foreach (KeyValuePair<GridPos, PuzzleCell> kvp in _board.Cells)
         {
             GridPos gridPos = kvp.Key;
             PuzzleCell cell = kvp.Value;
@@ -248,6 +287,7 @@ public class PuzzleBoardView : MonoBehaviour
         }
     }
 
+    /// <summary> 링크 경로를 표시할 선과 마커 리소스를 준비합니다. </summary>
     private void SetupLineRenderer()
     {
         if (_lineRenderer == null)
@@ -279,8 +319,9 @@ public class PuzzleBoardView : MonoBehaviour
                 Debug.LogError("[PuzzleBoardView] LineRenderer용 셰이더를 찾을 수 없습니다.");
             }
 
-            // 초기 색상은 흰색, 드래그 시 블럭 색상으로 동적 교체됨
-            _lineRenderer.startColor = Color.white;
+            _lineRenderer.numCornerVertices = 4;
+            _lineRenderer.numCapVertices = 4;
+            _lineRenderer.startColor = _linkTrailColor;
             _lineRenderer.endColor = Color.white;
         }
         _lineRenderer.positionCount = 0;
@@ -330,6 +371,8 @@ public class PuzzleBoardView : MonoBehaviour
         return tex;
     }
 
+    /// <summary> 격자 좌표를 보드 형태에 맞는 로컬 위치로 변환합니다. </summary>
+    /// <param name="pos">대상 격자 좌표</param>
     public Vector3 GetLocalPos(GridPos pos)
     {
         if (_board == null)
@@ -355,6 +398,7 @@ public class PuzzleBoardView : MonoBehaviour
         return new Vector3(xPos, yPos, 0);
     }
 
+    /// <summary> 보드를 화면 중앙에 배치하고 카메라 크기를 조정합니다. </summary>
     private void AlignBoardToCenter()
     {
         if (_board == null)
@@ -396,11 +440,10 @@ public class PuzzleBoardView : MonoBehaviour
         transform.localPosition = new Vector3(0, finalY, 0);
     }
 
+    /// <summary> 기존 셀과 블럭 뷰를 반환하고 보드 표시 상태를 비웁니다. </summary>
     private void ClearBoard()
     {
-        StopAllCoroutines();
-
-        foreach (var view in _cellViews.Values)
+        foreach (PuzzleCellView view in _cellViews.Values)
         {
             if (view != null)
             {
@@ -408,7 +451,7 @@ public class PuzzleBoardView : MonoBehaviour
             }
         }
 
-        foreach (var view in _blockViews.Values)
+        foreach (PuzzleBlockView view in _blockViews.Values)
         {
             if (view != null)
             {
@@ -425,6 +468,9 @@ public class PuzzleBoardView : MonoBehaviour
         }
 
         _isAnimating = false;
+        _previousLinkPath.Clear();
+        HideAllLinkPointMarkers();
+        ClearFeedback();
 
         if (_lineRenderer != null)
         {
@@ -432,6 +478,9 @@ public class PuzzleBoardView : MonoBehaviour
         }
     }
 
+    /// <summary> 지정 좌표에 셀 뷰를 생성하고 초기화합니다. </summary>
+    /// <param name="gridPos">뷰를 배치할 격자 좌표</param>
+    /// <param name="cellData">표시할 셀 데이터</param>
     private void CreateCellView(GridPos gridPos, PuzzleCell cellData)
     {
         if (_cellPrefabObj == null)
@@ -449,10 +498,13 @@ public class PuzzleBoardView : MonoBehaviour
             cellView = cellObj.AddComponent<PuzzleCellView>();
         }
 
-        cellView.Initialize(cellData, gridPos, this, _cachedBoardShape);
+        cellView.Initialize(cellData, gridPos, this);
         _cellViews[gridPos] = cellView;
     }
 
+    /// <summary> 지정 좌표에 블럭 뷰를 생성하고 초기화합니다. </summary>
+    /// <param name="gridPos">뷰를 배치할 격자 좌표</param>
+    /// <param name="blockData">표시할 블럭 데이터</param>
     private void CreateBlockView(GridPos gridPos, Block blockData)
     {
         if (_blockPrefabObj == null)
@@ -472,6 +524,7 @@ public class PuzzleBoardView : MonoBehaviour
         }
     }
 
+    /// <summary> 블럭 상태와 링크 경로를 갱신하고 모델의 연출 액션을 수집합니다. </summary>
     private void Update()
     {
         if (_board == null)
@@ -481,7 +534,7 @@ public class PuzzleBoardView : MonoBehaviour
 
         UpdateLineRenderer();
 
-        foreach (var kvp in _blockViews)
+        foreach (KeyValuePair<GridPos, PuzzleBlockView> kvp in _blockViews)
         {
             if (kvp.Value != null)
             {
@@ -502,6 +555,33 @@ public class PuzzleBoardView : MonoBehaviour
         }
     }
 
+    /// <summary> 링크의 전체 좌표를 비교하고 변경된 경로를 별도 버퍼에 복사합니다. </summary>
+    /// <param name="path">현재 모델의 읽기 전용 링크 경로</param>
+    /// <returns>화면에 반영할 경로가 변경되었으면 참</returns>
+    private bool CacheLinkPathIfChanged(IReadOnlyList<GridPos> path)
+    {
+        bool changed = path.Count != _previousLinkPath.Count;
+        for (int i = 0; !changed && i < path.Count; i++)
+        {
+            if (path[i] != _previousLinkPath[i])
+            {
+                changed = true;
+            }
+        }
+        if (!changed)
+        {
+            return false;
+        }
+
+        _previousLinkPath.Clear();
+        for (int i = 0; i < path.Count; i++)
+        {
+            _previousLinkPath.Add(path[i]);
+        }
+        return true;
+    }
+
+    /// <summary> 변경된 링크 경로를 선과 포인트 마커에 반영합니다. </summary>
     private void UpdateLineRenderer()
     {
         if (_lineRenderer == null)
@@ -514,14 +594,13 @@ public class PuzzleBoardView : MonoBehaviour
             IReadOnlyList<GridPos> path = linkBoard.GetCurrentLinkPath();
             if (path != null && path.Count > 0)
             {
-                // 경로가 변경되지 않았으면 갱신 생략
-                GridPos lastPos = path[path.Count - 1];
-                if (path.Count == _prevLinkPathCount && lastPos == _prevLinkPathLast)
+                bool wasReady = _previousLinkPath.Count >= LinkPuzzleBoard.MinimumLinkLength;
+                bool hasNewSegment = HasNewTipSegment(_previousLinkPath, path);
+                // 길이와 끝점이 같아도 중간 경로가 달라졌으면 다시 그립니다.
+                if (!CacheLinkPathIfChanged(path))
                 {
                     return;
                 }
-                _prevLinkPathCount = path.Count;
-                _prevLinkPathLast = lastPos;
 
                 // LineRenderer는 최소 2개 포인트가 필요하므로,
                 // 포인트가 1개일 때는 같은 위치에 2개를 찍어 점으로 표시
@@ -544,45 +623,212 @@ public class PuzzleBoardView : MonoBehaviour
 
                 // 각 연결 지점에 포인트 마커 표시
                 UpdateLinkPointMarkers(path);
+                bool isReady = path.Count >= LinkPuzzleBoard.MinimumLinkLength;
+                _lineRenderer.startColor = isReady ? _readyTrailColor : _linkTrailColor;
+                AnimateLinkTip(path, hasNewSegment);
+                float width = isReady ? 0.15f : 0.1f;
+                float worldWidth = cellSize * Mathf.Abs(transform.lossyScale.x) * width;
+                _lineRenderer.startWidth = worldWidth;
+                _lineRenderer.endWidth = worldWidth;
+                if (!wasReady && isReady)
+                {
+                    PlayLinkRing(path[LinkPuzzleBoard.MinimumLinkLength - 1]);
+                }
+                else if (!isReady)
+                {
+                    HideLinkRing();
+                }
             }
             else
             {
-                if (_prevLinkPathCount != 0)
+                if (_previousLinkPath.Count != 0)
                 {
-                    _prevLinkPathCount = 0;
+                    _previousLinkPath.Clear();
                     _lineRenderer.positionCount = 0;
                     HideAllLinkPointMarkers();
+                    HideLinkRing();
                 }
             }
         }
         else
         {
-            if (_prevLinkPathCount != 0)
+            if (_previousLinkPath.Count != 0)
             {
-                _prevLinkPathCount = 0;
+                _previousLinkPath.Clear();
                 _lineRenderer.positionCount = 0;
                 HideAllLinkPointMarkers();
+                HideLinkRing();
             }
         }
     }
 
-    /// <summary>
-    /// 링크 경로의 첫 번째 블럭 스프라이트에서 대표 색상을 추출합니다.
-    /// </summary>
-    /// <param name="path">현재 링크 경로 좌표 리스트</param>
-    /// <returns>블럭의 대표 색상 (추출 실패 시 반투명 흰색)</returns>
+    /// <summary> 링크가 처음 성립한 <paramref name="pos"/>에서 원을 한 번 펼칩니다.</summary>
+    private void PlayLinkRing(GridPos pos)
+    {
+        if (_linkRing == null)
+        {
+            _linkRing = CreateRing("LinkReadyRing", 102, cellSize * 0.48f);
+        }
+        HideLinkRing();
+        _linkRing.gameObject.SetActive(true);
+        _linkRing.transform.localPosition = GetLocalPos(pos);
+        _linkRing.transform.localScale = Vector3.one * 0.3f;
+        _linkRing.widthMultiplier = cellSize * 0.035f;
+        _linkRing.transform.DOScale(1f, 0.18f).SetEase(Ease.OutQuad)
+            .OnComplete(() => _linkRing.gameObject.SetActive(false));
+    }
 
-    /// <summary>
-    /// 링크 경로의 각 연결 지점에 원형 포인트 마커를 표시합니다.
-    /// </summary>
-    /// <param name="path">현재 링크 경로 좌표 리스트</param>
+    /// <summary> 진행 중인 링크 성립 표시를 즉시 숨깁니다.</summary>
+    private void HideLinkRing()
+    {
+        if (_linkRing != null)
+        {
+            _linkRing.transform.DOKill();
+            _linkRing.gameObject.SetActive(false);
+        }
+    }
+
+    /// <summary> 주어진 이름과 정렬 순서로 보드의 로컬 좌표에 지정한 반경의 원을 만듭니다. </summary>
+    private LineRenderer CreateRing(string objectName, int sortingOrder, float radius)
+    {
+        GameObject obj = new GameObject(objectName);
+        obj.transform.SetParent(transform, false);
+        LineRenderer ring = obj.AddComponent<LineRenderer>();
+        ring.sharedMaterial = _lineMaterial;
+        ring.useWorldSpace = false;
+        ring.loop = true;
+        ring.sortingLayerName = "Ingame";
+        ring.sortingOrder = sortingOrder;
+        ring.positionCount = 32;
+        for (int i = 0; i < ring.positionCount; i++)
+        {
+            float angle = 2f * Mathf.PI * i / ring.positionCount;
+            ring.SetPosition(i, new Vector3(Mathf.Cos(angle), Mathf.Sin(angle)) * radius);
+        }
+        return ring;
+    }
+
+    /// <summary> 파괴 액션에 담긴 폭탄마다 해당 좌표에서 판정 반경까지 충격파를 펼칩니다. </summary>
+    private void PlayBombWaves(BoardViewAction action)
+    {
+        if (action.blockData == null)
+        {
+            return;
+        }
+        foreach (IGimmick gimmick in action.blockData.Gimmicks)
+        {
+            if (gimmick is BombGimmick bomb)
+            {
+                LineRenderer wave = GetBombWave();
+                wave.gameObject.SetActive(true);
+                wave.transform.localPosition = GetLocalPos(action.position);
+                wave.transform.localScale = Vector3.one * 0.12f;
+                wave.widthMultiplier = cellSize * 0.045f / bomb.Radius;
+                wave.transform.DOScale((float)bomb.Radius, 0.24f).SetEase(Ease.OutQuad)
+                    .OnComplete(() => wave.gameObject.SetActive(false));
+            }
+        }
+    }
+
+    /// <summary> 쉬고 있는 충격파를 재사용하고, 연쇄 폭발로 모두 사용 중이면 하나를 추가합니다. </summary>
+    private LineRenderer GetBombWave()
+    {
+        foreach (LineRenderer wave in _bombWaves)
+        {
+            if (!wave.gameObject.activeSelf)
+            {
+                return wave;
+            }
+        }
+        LineRenderer created = CreateRing("BombShockwave", 21, cellSize);
+        Color orange = new Color(1f, 0.62f, 0.18f, 0.85f);
+        created.startColor = orange;
+        created.endColor = orange;
+        _bombWaves.Add(created);
+        return created;
+    }
+
+    /// <summary> 파괴되는 <paramref name="block"/>의 스프라이트를 작은 파편 세 개로 흩뿌립니다.</summary>
+    private void PlayMatchFragments(PuzzleBlockView block)
+    {
+        SpriteRenderer source = block.SpriteRenderer;
+        if (source == null || source.sprite == null)
+        {
+            return;
+        }
+        Vector3 origin = transform.InverseTransformPoint(source.bounds.center);
+        for (int i = 0; i < 3; i++)
+        {
+            SpriteRenderer fragment = GetFreeFragment();
+            if (fragment == null)
+            {
+                return;
+            }
+            fragment.sprite = source.sprite;
+            fragment.gameObject.SetActive(true);
+            float angle = (90f + 120f * i) * Mathf.Deg2Rad;
+            Vector3 direction = new Vector3(Mathf.Cos(angle), Mathf.Sin(angle));
+            float scale = cellSize * 0.17f / source.sprite.bounds.size.x;
+            fragment.transform.localPosition = origin;
+            fragment.transform.localScale = Vector3.one * scale;
+            fragment.transform.DOScale(0f, 0.19f).SetEase(Ease.InQuad);
+            fragment.transform.DOLocalMove(origin + direction * cellSize * 0.48f, 0.19f)
+                .SetEase(Ease.OutQuad).OnComplete(() => fragment.gameObject.SetActive(false));
+        }
+    }
+
+    /// <summary> 보드의 동시 표시 상한 안에서 재사용할 파편을 가져옵니다.</summary>
+    private SpriteRenderer GetFreeFragment()
+    {
+        foreach (SpriteRenderer fragment in _matchFragments)
+        {
+            if (!fragment.gameObject.activeSelf)
+            {
+                return fragment;
+            }
+        }
+        if (_matchFragments.Count >= MaxMatchFragments)
+        {
+            return null;
+        }
+        GameObject obj = new GameObject("MatchFragment");
+        obj.transform.SetParent(transform, false);
+        SpriteRenderer renderer = obj.AddComponent<SpriteRenderer>();
+        renderer.sortingLayerName = "Ingame";
+        renderer.sortingOrder = 20;
+        _matchFragments.Add(renderer);
+        return renderer;
+    }
+
+    /// <summary> 보드를 비우거나 종료할 때 파편과 링크 표시의 트윈을 정리합니다.</summary>
+    private void ClearFeedback()
+    {
+        HideLinkRing();
+        foreach (LineRenderer wave in _bombWaves)
+        {
+            wave.transform.DOKill();
+            wave.gameObject.SetActive(false);
+        }
+        foreach (SpriteRenderer fragment in _matchFragments)
+        {
+            if (fragment != null)
+            {
+                fragment.transform.DOKill();
+                fragment.sprite = null;
+                fragment.gameObject.SetActive(false);
+            }
+        }
+    }
+
+    /// <summary> 현재 경로의 지점을 표시하고 이전 끝점의 이동과 크기를 초기화합니다. </summary>
     private void UpdateLinkPointMarkers(IReadOnlyList<GridPos> path)
     {
+        StopLinkTipAnimation();
         // 필요한 만큼 마커 오브젝트 확보
         while (_linkPointMarkers.Count < path.Count)
         {
             GameObject marker = new GameObject("LinkPoint");
-            marker.transform.SetParent(this.transform);
+            marker.transform.SetParent(transform, false);
 
             SpriteRenderer sr = marker.AddComponent<SpriteRenderer>();
             sr.sprite = _circleSprite;
@@ -601,6 +847,7 @@ public class PuzzleBoardView : MonoBehaviour
             Vector3 localPos = GetLocalPos(path[i]);
             localPos.z = -2f;
             marker.transform.localPosition = localPos;
+            marker.transform.localScale = Vector3.one * GetLinkMarkerScale(0.19f);
 
             marker.SetActive(true);
         }
@@ -612,11 +859,71 @@ public class PuzzleBoardView : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// 모든 포인트 마커를 비활성화합니다.
-    /// </summary>
+    /// <summary> 셀 너비에 대한 마커 지름 비율을 스프라이트 배율로 바꿉니다. </summary>
+    private float GetLinkMarkerScale(float diameterRatio) => cellSize * diameterRatio / _circleSprite.bounds.size.x;
+
+    /// <summary> 이전 경로와 현재 경로의 마지막 선분을 비교해 같은 프레임에 되짚고 새로 이은 경우도 찾습니다. </summary>
+    private static bool HasNewTipSegment(IReadOnlyList<GridPos> previous, IReadOnlyList<GridPos> current)
+    {
+        int last = current.Count - 1;
+        if (last < 1)
+        {
+            return false;
+        }
+        if (last >= previous.Count)
+        {
+            return true;
+        }
+        return current[last] != previous[last] || current[last - 1] != previous[last - 1];
+    }
+
+    /// <summary> 경로의 끝점을 강조하고 새 선분이 생겼을 때 그 구간을 따라 빛이 이동하게 합니다. </summary>
+    private void AnimateLinkTip(IReadOnlyList<GridPos> path, bool hasNewSegment)
+    {
+        int last = path.Count - 1;
+        Transform tip = _linkPointMarkers[last].transform;
+        float restingScale = GetLinkMarkerScale(0.31f);
+        tip.localScale = Vector3.one * restingScale;
+        if (!hasNewSegment)
+        {
+            return;
+        }
+
+        Vector3 destination = tip.localPosition;
+        tip.localPosition = _linkPointMarkers[last - 1].transform.localPosition;
+        UpdateTipLine();
+        _linkTipTravel = tip.DOLocalMove(destination, 0.07f).SetRecyclable(false).SetEase(Ease.OutQuad).OnUpdate(UpdateTipLine);
+        tip.localScale = Vector3.one * GetLinkMarkerScale(0.43f);
+        _linkTipPulse = tip.DOScale(restingScale, 0.14f).SetRecyclable(false).SetEase(Ease.OutQuad);
+
+        /// <summary> 마지막 선분이 이동 중인 끝점 마커에 닿도록 갱신합니다. </summary>
+        void UpdateTipLine()
+        {
+            Vector3 point = tip.localPosition;
+            point.z = -1f;
+            _lineRenderer.SetPosition(last, transform.TransformPoint(point));
+        }
+    }
+
+    /// <summary> 드래그 경로가 바뀌거나 닫힐 때 이전 끝점 연출을 멈춥니다. </summary>
+    private void StopLinkTipAnimation()
+    {
+        if (_linkTipTravel != null)
+        {
+            _linkTipTravel.Kill();
+            _linkTipTravel = null;
+        }
+        if (_linkTipPulse != null)
+        {
+            _linkTipPulse.Kill();
+            _linkTipPulse = null;
+        }
+    }
+
+    /// <summary> 드래그 끝점 연출을 중단하고 모든 포인트 마커를 숨깁니다. </summary>
     private void HideAllLinkPointMarkers()
     {
+        StopLinkTipAnimation();
         for (int i = 0; i < _linkPointMarkers.Count; i++)
         {
             _linkPointMarkers[i].SetActive(false);
@@ -688,6 +995,7 @@ public class PuzzleBoardView : MonoBehaviour
     /// <summary> ProcessActionQueue 내부에서 기타 액션을 재사용하는 임시 리스트 </summary>
     private readonly List<BoardViewAction> _tempOtherActions = new List<BoardViewAction>();
 
+    /// <summary> 연출 액션 그룹을 순서대로 재생하고 완료를 기다립니다. </summary>
     private IEnumerator ProcessActionQueue()
     {
         _isAnimating = true;
@@ -744,6 +1052,8 @@ public class PuzzleBoardView : MonoBehaviour
     private readonly List<BoardViewAction> _batchActions = new List<BoardViewAction>();
     private readonly List<PuzzleBlockView> _batchViews = new List<PuzzleBlockView>();
 
+    /// <summary> 기존 블럭 이동을 먼저 확보한 뒤 생성 낙하를 준비하고 함께 재생합니다. </summary>
+    /// <param name="moveActions">함께 재생할 이동 및 낙하 액션 목록</param>
     private System.Collections.IEnumerator ExecuteBatchMovement(List<BoardViewAction> moveActions)
     {
         int completedCount = 0;
@@ -809,7 +1119,6 @@ public class PuzzleBoardView : MonoBehaviour
                 view.Initialize(view.GetBlockData(), to, this);
                 completedCount++;
             };
-
             if (action.type == ViewType.Move)
             {
                 view.PlayMoveAnimation(targetPos, onComplete);
@@ -832,23 +1141,37 @@ public class PuzzleBoardView : MonoBehaviour
         }
     }
 
+    /// <summary> 단일 연출 액션을 실행하고 완료 콜백을 전달합니다. </summary>
+    /// <param name="action">실행할 연출 액션</param>
+    /// <param name="onComplete">연출 완료 시 호출할 콜백</param>
     private void ExecuteSingleAction(BoardViewAction action, System.Action onComplete)
     {
         switch (action.type)
         {
             case ViewType.Destroy:
+                PlayBombWaves(action);
                 if (_blockViews.TryGetValue(action.position, out PuzzleBlockView dView))
                 {
                     _blockViews.Remove(action.position);
-                    dView.PlayDestroyAnimation(() => 
+                    /// <summary> 파괴 연출 후 뷰를 풀에 반환하고 완료를 알립니다. </summary>
+                    void OnDestroyCompleted()
                     {
                         PoolManager.Instance.Release(dView.gameObject);
-                        onComplete?.Invoke();
-                    });
+                        if (onComplete != null)
+                        {
+                            onComplete.Invoke();
+                        }
+                    }
+
+                    PlayMatchFragments(dView);
+                    dView.PlayDestroyAnimation(OnDestroyCompleted);
                 }
                 else
                 {
-                    onComplete?.Invoke();
+                    if (onComplete != null)
+                    {
+                        onComplete.Invoke();
+                    }
                 }
                 break;
 
@@ -875,26 +1198,40 @@ public class PuzzleBoardView : MonoBehaviour
                         }
                         else
                         {
-                            onComplete?.Invoke();
+                            if (onComplete != null)
+                            {
+                                onComplete.Invoke();
+                            }
                         }
                     }
                     else
                     {
-                        onComplete?.Invoke();
+                        if (onComplete != null)
+                        {
+                            onComplete.Invoke();
+                        }
                     }
                 }
                 else
                 {
-                    onComplete?.Invoke();
+                    if (onComplete != null)
+                    {
+                        onComplete.Invoke();
+                    }
                 }
                 break;
 
             default:
-                onComplete?.Invoke();
+                if (onComplete != null)
+                {
+                    onComplete.Invoke();
+                }
                 break;
         }
     }
 
+    /// <summary> 지정 좌표의 블럭 뷰를 즉시 제거하고 풀에 반환합니다. </summary>
+    /// <param name="pos">대상 격자 좌표</param>
     private void HandleImmediateDestroy(GridPos pos)
     {
         if (_blockViews.TryGetValue(pos, out PuzzleBlockView view))
@@ -908,14 +1245,17 @@ public class PuzzleBoardView : MonoBehaviour
         }
     }
 
+    /// <summary> 사용자 입력이 허용된 보드에만 좌표를 전달합니다. </summary>
+    /// <param name="pos">입력한 셀 좌표</param>
     public void OnBlockInput(GridPos pos)
     {
-        if (_board != null)
+        if (InputEnabled && _board != null)
         {
             _board.Input(pos);
         }
     }
 
+    /// <summary> 현재 모델의 블럭 배치에 맞춰 블럭 뷰를 다시 생성합니다. </summary>
     public void RefreshBlocks()
     {
         if (_board == null)
@@ -923,7 +1263,7 @@ public class PuzzleBoardView : MonoBehaviour
             return;
         }
 
-        foreach (var view in _blockViews.Values)
+        foreach (PuzzleBlockView view in _blockViews.Values)
         {
             if (view != null && view.gameObject != null)
             {
@@ -932,7 +1272,7 @@ public class PuzzleBoardView : MonoBehaviour
         }
         _blockViews.Clear();
 
-        foreach (var kvp in _board.Cells)
+        foreach (KeyValuePair<GridPos, PuzzleCell> kvp in _board.Cells)
         {
             GridPos gridPos = kvp.Key;
             PuzzleCell cell = kvp.Value;
