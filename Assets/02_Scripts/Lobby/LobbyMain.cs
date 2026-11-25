@@ -18,34 +18,35 @@ public class LobbyMain : MonoBehaviour
     /// <summary>최근 기록의 조건으로 게임을 시작하고 상대 보드에 기록을 재생합니다.</summary>
     private void OnClickReplay()
     {
-        // 가장 최근 리플레이 파일 탐색
-        string replayDir = ReplayStorage.GetReplayDirectoryPath();
-        string[] files = Directory.Exists(replayDir) ? Directory.GetFiles(replayDir, "replay_*.json") : System.Array.Empty<string>();
+        if (!TryGetReplayFiles(out string[] files))
+        {
+            _statusText.text = "플레이 기록 폴더를 읽을 수 없습니다. 잠시 후 다시 시도해 주세요.";
+            return;
+        }
         if (files.Length == 0)
         {
             _statusText.text = "아직 플레이 기록이 없습니다.\nStage 또는 Battle을 한 판 마치면 다시 볼 수 있어요.";
             return;
         }
 
-        // 파일명 기준 정렬하여 가장 최근 파일 선택
-        System.Array.Sort(files, System.StringComparer.Ordinal);
         ReplayData replayData = null;
-        for (int i = files.Length - 1; i >= 0 && replayData == null; i--)
+        for (int i = files.Length - 1; i >= 0; i--)
         {
-            replayData = ReplayStorage.Load(files[i]);
+            ReplayData candidate = ReplayStorage.Load(files[i]);
+            if (candidate == null)
+            {
+                continue;
+            }
+            GameMode mode = candidate.formatVersion == ReplayData.CurrentFormatVersion ? candidate.mode : GameMode.Stage;
+            if (StageInjection.Instance.MakeGameSpec(candidate.ruleAddress, candidate.stageAddress, mode))
+            {
+                replayData = candidate;
+                break;
+            }
         }
         if (replayData == null)
         {
             _statusText.text = "재생할 수 있는 기록이 없습니다.\nStage 또는 Battle에서 새 기록을 만들어 보세요.";
-            return;
-        }
-
-        // 유저 게임 데이터 준비 (리플레이와 동일한 규칙/스테이지 사용)
-        GameMode replayMode = replayData.formatVersion == ReplayData.CurrentFormatVersion ? replayData.mode : GameMode.Stage;
-        if (!StageInjection.Instance.MakeGameSpec(replayData.ruleAddress, replayData.stageAddress, replayMode))
-        {
-            Debug.LogError("[LobbyMain] 리플레이용 GameSpec 준비에 실패했습니다.");
-            _statusText.text = "기록의 스테이지를 불러오지 못했습니다. 다른 모드를 선택해 주세요.";
             return;
         }
 
@@ -61,6 +62,27 @@ public class LobbyMain : MonoBehaviour
         Main.Instance.MoveScene(SceneEnum.LobbyScene, SceneEnum.GameScene);
     }
 
+    /// <summary>로컬 기록 경로를 파일명 순으로 정렬해 <paramref name="files"/>에 반환한다.</summary>
+    private static bool TryGetReplayFiles(out string[] files)
+    {
+        files = System.Array.Empty<string>();
+        try
+        {
+            files = Directory.GetFiles(ReplayStorage.GetReplayDirectoryPath(), "replay_*.json");
+            System.Array.Sort(files, System.StringComparer.Ordinal);
+            return true;
+        }
+        catch (DirectoryNotFoundException)
+        {
+            return true;
+        }
+        catch (System.Exception exception) when (exception is IOException || exception is System.UnauthorizedAccessException)
+        {
+            Debug.LogWarning($"[LobbyMain] 리플레이 목록을 읽지 못했습니다. {exception.Message}");
+            return false;
+        }
+    }
+
     /// <summary>90초 대전용 준비 팝업을 엽니다.</summary>
     private void OnClickBattle()
     {
@@ -74,11 +96,8 @@ public class LobbyMain : MonoBehaviour
         ReplayData opponent = null;
         GameSpec spec = null;
         Dictionary<(string Rule, string Stage), GameSpec> candidateSpecs = new Dictionary<(string Rule, string Stage), GameSpec>();
-        string directory = ReplayStorage.GetReplayDirectoryPath();
-        if (Directory.Exists(directory))
+        if (TryGetReplayFiles(out string[] files))
         {
-            string[] files = Directory.GetFiles(directory, "replay_*.json");
-            System.Array.Sort(files, System.StringComparer.Ordinal);
             for (int i = files.Length - 1; i >= 0; i--)
             {
                 ReplayData candidate = ReplayStorage.Load(files[i]);
