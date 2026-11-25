@@ -31,7 +31,7 @@
 | 문서 | 상위 문서 | 내용 |
 |------|----------|------|
 | `ARCHITECTURE_FLOW.md` | `ARCHITECTURE.md` | 메인 대전/사이드 스테이지 게임 흐름 상세 |
-| `INGAME_GIMMICK.md` | `INGAME.md` | 효과 동사/HP·피격소스/파괴 연쇄/새 동작 추가 절차 |
+| [INGAME_GIMMICK.md](02_Ingame/INGAME_GIMMICK.md) | `INGAME.md` | 기믹 생성·부착, 폭탄 파괴 연쇄, 새 행동 등록 절차 |
 | `INGAME_REPLAY.md` | `INGAME.md` | 리플레이 기록/재생 흐름 상세 |
 | `DATA_SCHEMA.md` | `DATA.md` | GameSpec 전체 필드 스키마 트리 + ReplayData JSON |
 | `DATA_STAGE.md` | `DATA.md` | 스테이지 저장소(StageStorage)·맵 툴(StageMapTool) 레퍼런스 |

@@ -100,13 +100,9 @@ MVC 엄격 분리, 데이터 기반 생성, 결정론적 리플레이, 인터페
 ### 뷰 액션 처리 순서
 - `ExecuteBatchMovement`는 Move/Fall → CreateAndFall 순서 분리 필수. 상세: `docs/INGAME-VIEW-AND-BATTLE.md` "ExecuteBatchMovement 처리 순서 규칙".
 
-### 효과(기믹) = 속성 데이터 + 효과 동사 / 연출 책임 분리
-- 기믹은 클래스(명사)가 아니라 **블럭 속성 데이터 + 효과 동사(`IBlockEffect`, verb)의 조합**이다. `BaseBlock`/`NormalBlock`/`BombBlock` 서브클래스, `IGimmick`/`GimmickFactory`/`GimmickUtil` 모두 폐기됨 — 새 행동은 상속/기믹클래스가 아니라 **데이터 조합 또는 새 동사**로 추가.
-- 블럭은 무엇에 파괴되는지(`damagedBy`, HP=`life`)와 무엇을 하는지(`effects`)를 **데이터로 분리**해 정의. 장애물(과자·금이간벽돌)은 동사 없이 `damagedBy`만으로 성립(클래스 불필요).
-- 조작 가능 여부(스왑/링크/터치)는 데이터(`inputType` 플래그)로 보드에서 게이팅. 블럭/동사에 `return true` 하드코딩 금지.
-- **효과/`Block`은 `frame`/`orderIndex`(연출 데이터)를 다루지 않는다.** 파괴 큐 등록은 `BlockDamage.Damage` → `board.AddView`가 담당하며, frame 스탬프/order 부여는 `AddView`의 책임.
-- 데미지/파괴는 `BlockDamage.Damage(board, pos, source)`로만: **피격소스 게이팅(`damagedBy`) → HP 감소 → 0이면 파괴 + `FireDestroyed`(OnDestroyed 동사 연쇄)**. 빈 칸/막힘·잠금 셀/면역 블럭에서 종료하므로 무한 연쇄 방지.
-- `inputType`/`damagedBy`는 JSON 문자열 목록 → `Enum.TryParse`(`Block`), `effects`는 `EffectFactory`로 동사 변환. 기존 동사 조합은 데이터만 추가, **진짜 새 동작**만 `IBlockEffect` 동사 + `EffectFactory` 분기 추가. 상세: `Assets/06_Markdown/02_Ingame/INGAME_GIMMICK.md`, `Assets/06_Markdown/03_Data/DATA.md`.
+### 블럭 기믹 확장
+- `PuzzleBlockFactory`는 `BlockData.gimmickIds`를 `GimmickType`으로 변환하고 `GimmickFactory.Create`가 생성한 기믹을 `Block`에 부착한다.
+- 새 기믹 구현과 파괴 연쇄는 [블럭 기믹 확장 지침](Assets/06_Markdown/02_Ingame/INGAME_GIMMICK.md)을 따른다.
 
 ### 결정론 (Model 레이어)
 - `UnityEngine.Random` / `System.Random` / `Time.deltaTime` / `DateTime.Now` / Dictionary 순회 의존 금지.

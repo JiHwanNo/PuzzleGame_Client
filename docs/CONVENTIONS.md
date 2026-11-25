@@ -66,7 +66,8 @@ for (int i = 0; i < 10; i++)
 ```
 
 ### 1-4. 에셋 및 리소스
-- [ ] 에셋 로드는 **`AssetManager` 경유**. `Addressables.LoadAssetAsync` **직접 호출 금지**.
+- [ ] 에셋 로드는 **`AssetManager` 경유**. `Addressables.LoadAssetAsync` / `Resources.Load` **직접 호출 금지**.
+- [ ] 데이터 에셋은 Addressables(`LoadAsset`), **프리팹은 Resources(`LoadResource`/`LoadGameObjectFromResources`)**. 프리팹 실물은 `Assets/Resources/Prefab/` 하위.
 - [ ] 인게임 시각 요소는 **`Ingame` Sorting Layer**에서 렌더링.
 
 ### 1-5. 람다 및 null 처리
@@ -171,7 +172,7 @@ if (ruleContainer == null) { ... }
 
 ### 리뷰 결과 처리
 
-- [ ] 커밋 제목은 [Git 작성 규칙](../AGENTS.md#git-커밋과-푸시)에 맞는 이모지로 시작하고 설명은 한글로 작성했다.
+- [ ] [Git 작성 규칙](../AGENTS.md#git-커밋과-푸시)에 따라 대표 이모지 하나와 공백 한 칸 뒤에 변경 대상과 결과를 한글로 적어 의도가 드러나는지 확인한다.
 
 - [ ] 커밋/리뷰 작업에서 사용자가 스테이징을 요청한 경우, 수정한 파일을 `git add <파일경로>`로 재스테이징.
 - [ ] 수정 결과는 **한 줄 요약**으로 보고.
