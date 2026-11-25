@@ -1,5 +1,9 @@
 #!/bin/sh
 set -eu
+# 에이전트 세션에서 시작한 Git 작업에만 검증을 적용한다.
+if [ -z "${CODEX_THREAD_ID:-}${CODEX_SESSION_ID:-}" ] && [ "${PUZZLE_AGENT_GIT:-}" != 1 ]; then
+  exit 0
+fi
 state=$(git rev-parse --absolute-git-dir)/commit-review
 while read -r source head target base; do
   case "$target" in refs/heads/*) ;; *) echo "브랜치 이외의 푸시는 검증할 수 없습니다: $target" >&2; exit 1 ;; esac
