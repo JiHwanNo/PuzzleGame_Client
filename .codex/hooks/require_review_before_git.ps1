@@ -1,4 +1,5 @@
-$ErrorActionPreference = "Stop"
+﻿$ErrorActionPreference = "Stop"
+[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
 
 $inputJson = [Console]::In.ReadToEnd()
 if ([string]::IsNullOrWhiteSpace($inputJson))

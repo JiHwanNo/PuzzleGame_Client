@@ -1,0 +1,4 @@
+interface:
+  display_name: "Unity 8방향 캐릭터"
+  short_description: "캐릭터 원화로 8방향 리그와 대기·공격·걷기·스페셜 제작"
+  default_prompt: "$unity-8way-character로 첨부한 원화를 8방향 uGUI 캐릭터로 리깅하고 대기·공격·걷기·스페셜을 만들어줘."

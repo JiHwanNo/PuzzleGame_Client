@@ -1,0 +1,76 @@
+﻿using System;
+using UnityEditor;
+using UnityEditor.Animations;
+using UnityEngine;
+
+/// <summary>방향 리그를 전환하고 동작별 반복과 복귀를 설정하는 클립을 생성한다.</summary>
+public static class DirectionalClips
+{
+    private static readonly string[] _facings = { "S", "SE", "E", "NE", "N", "NW", "W", "SW" };
+    private static readonly string[] _modes = { "Idle", "Attack", "Walk", "Special" };
+
+    /// <summary><paramref name="folder"/>에 <paramref name="keyPose"/>가 방향과 동작별로 키를 채운 클립과 컨트롤러를 저장한다.</summary>
+    public static AnimatorController Bake(string folder, Action<AnimationClip, string, string> keyPose)
+    {
+        string directory = AssetDatabase.GenerateUniqueAssetPath(folder + "/DirectionalMotion");
+        string guid = AssetDatabase.CreateFolder(folder, System.IO.Path.GetFileName(directory));
+        if (string.IsNullOrEmpty(guid))
+        {
+            throw new InvalidOperationException("클립 폴더를 만들 수 없습니다.");
+        }
+        directory = AssetDatabase.GUIDToAssetPath(guid);
+        try
+        {
+            AnimatorController controller = AnimatorController.CreateAnimatorControllerAtPath(directory + "/Character.controller");
+            AnimatorStateMachine machine = controller.layers[0].stateMachine;
+            foreach (string facing in _facings)
+            {
+                AnimatorState idle = null;
+                foreach (string mode in _modes)
+                {
+                    AnimationClip clip = new AnimationClip { name = facing + "_" + mode, frameRate = 60f };
+                    keyPose(clip, facing, mode);
+                    float duration = clip.length;
+                    if (duration <= 0f)
+                    {
+                        throw new InvalidOperationException(clip.name + " 동작 키가 필요합니다.");
+                    }
+                    foreach (string direction in _facings)
+                    {
+                        float active = direction == facing ? 1f : 0f;
+                        EditorCurveBinding binding = EditorCurveBinding.FloatCurve(direction, typeof(GameObject), "m_IsActive");
+                        AnimationUtility.SetEditorCurve(clip, binding, AnimationCurve.Constant(0f, duration, active));
+                    }
+                    AnimationClipSettings settings = AnimationUtility.GetAnimationClipSettings(clip);
+                    settings.loopTime = mode == "Idle" || mode == "Walk";
+                    AnimationUtility.SetAnimationClipSettings(clip, settings);
+                    AssetDatabase.CreateAsset(clip, directory + "/" + clip.name + ".anim");
+                    AnimatorState state = machine.AddState(clip.name);
+                    state.motion = clip;
+                    if (mode == "Idle")
+                    {
+                        idle = state;
+                        if (facing == "S")
+                        {
+                            machine.defaultState = state;
+                        }
+                    }
+                    else if (!settings.loopTime)
+                    {
+                        AnimatorStateTransition recovery = state.AddTransition(idle);
+                        recovery.hasExitTime = true;
+                        recovery.exitTime = 1f;
+                        recovery.duration = 0f;
+                    }
+                }
+            }
+            AssetDatabase.SaveAssets();
+            return controller;
+        }
+        catch
+        {
+            AssetDatabase.DeleteAsset(directory);
+            throw;
+        }
+    }
+}
