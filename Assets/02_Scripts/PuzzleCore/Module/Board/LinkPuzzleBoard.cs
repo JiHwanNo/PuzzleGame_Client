@@ -428,21 +428,30 @@ namespace Puzzle.Core
         /// <paramref name="sameColor"/>가 참이면 현재 입력으로 연결할 수 있는 같은 색만 검사합니다.</summary>
         private bool TryFindLink(bool sameColor, out PuzzleCell center, out PuzzleCell first, out PuzzleCell second)
         {
+            center = null;
             first = null;
             second = null;
-            for (int y = 0; y < Height; y++)
+            // 복구 위치는 셀 저장 순서에 관계없이 기존처럼 행, 열 순서상 첫 경로를 선택합니다.
+            foreach (CellData cell in gameSpec.stageData.cells)
             {
-                for (int x = 0; x < Width; x++)
+                if (center != null && (cell.y > center.Position.Y || (cell.y == center.Position.Y && cell.x >= center.Position.X)))
                 {
-                    center = GetLinkCell(new GridPos(x, y));
-                    if (center != null && TryFindNeighbors(center, sameColor, out first, out second))
-                    {
-                        return true;
-                    }
+                    continue;
+                }
+                PuzzleCell candidate = GetLinkCell(new GridPos(cell.x, cell.y));
+                if (candidate == null || !TryFindNeighbors(candidate, sameColor, out PuzzleCell left, out PuzzleCell right))
+                {
+                    continue;
+                }
+                center = candidate;
+                first = left;
+                second = right;
+                if (sameColor)
+                {
+                    return true;
                 }
             }
-            center = null;
-            return false;
+            return center != null;
         }
 
         /// <summary><paramref name="center"/>의 링크 가능한 이웃 두 칸을 <paramref name="first"/>와 <paramref name="second"/>에 담습니다.
