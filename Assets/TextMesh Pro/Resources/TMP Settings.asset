@@ -38,6 +38,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 66b30be4e95688c4c98f8f6e79c0258c, type: 2}
   - {fileID: 11400000, guid: f0019f5a3510f7a44993e5be076b17f2, type: 2}
   - {fileID: 11400000, guid: 3af8cdcff80d31047b859a8cdfcfdb6f, type: 2}
+  - {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_matchMaterialPreset: 1
   m_HideSubTextObjects: 0
   m_defaultSpriteAsset: {fileID: 11400000, guid: c41005c129ba4d66911b75229fd70b45, type: 2}
