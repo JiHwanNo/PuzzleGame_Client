@@ -130,7 +130,8 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
             {
                 for (int column = 0; column < PageWidth; column++)
                 {
-                    LobbyDefenseBoard.Piece piece = _session.PieceAt(row * LobbyDefenseBoard.Width + _first + column);
+                    int cell = row * LobbyDefenseBoard.Width + _first + column;
+                    LobbyDefenseBoard.Piece piece = _session.PieceAt(cell);
                     if (piece != LobbyDefenseBoard.Piece.Archer && piece != LobbyDefenseBoard.Piece.Wall)
                     {
                         continue;
@@ -141,6 +142,7 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
                     }
                     RawImage icon = _unitIcons[used++];
                     icon.enabled = true;
+                    icon.color = cell == _selected ? new Color(1f, 1f, 1f, 0.35f) : Color.white;
                     icon.uvRect = UnitRegion(piece);
                     icon.rectTransform.anchoredPosition = new Vector2(rectTransform.rect.xMin + (column + 0.5f) * size, rectTransform.rect.yMax - (row + 0.5f) * size);
                 }
