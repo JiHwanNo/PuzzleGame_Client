@@ -25,7 +25,7 @@
 | 피격·방어 | 몸을 낮추고 머리와 발을 안으로 거둔다. 완전히 숨은 동안에도 둥근 등딱지 위 떡잎과 잎무늬가 남는다. 피격 시 상대가 있는 쪽을 바라보고, 고개를 다시 내민 뒤에도 그 방향을 유지한다. |
 | 사수 | [사수 방향 시트](../Assets/04_Resources/Images/LobbyArcher8Way.png)에서 활과 화살촉을 표식으로 쓴다. 전장에서는 명중한 적을 향해 활을 내민 뒤 대기로 돌아온다. |
 
-프리팹 Animator에서 동작과 방향을 함께 선택한다. `Idle_SE`는 오른쪽 아래를 보는 대기 자세, `Special_SE`는 같은 방향에서 등딱지에 숨는 방어 동작이다. 서쪽 세 방향은 동쪽 몸통을 반전한다. [방향별 몸통·양발용 발 파츠·움츠린 등딱지](../Assets/Resources/Texture/LobbyTurtle) · [Unity에서 렌더링한 32개 동작](art/lobby-units/LobbyTurtle-preview.png)
+프리팹 Animator에서 동작과 방향을 함께 선택한다. `Idle_SE`는 오른쪽 아래를 보는 대기 자세, `Special_SE`는 같은 방향에서 등딱지에 숨는 방어 동작이다. 몸통 5방향과 발, 움츠린 등딱지를 한 장에 담았다. 서쪽 세 방향과 반대쪽 발은 같은 영역을 좌우 반전해 사용한다. 파츠 사이에는 필터링 번짐을 막는 여백이 있다. [새싹거북 파츠 아틀라스](../Assets/Resources/Texture/LobbyTurtle/LobbyTurtleAtlas.png) · [Unity에서 렌더링한 32개 동작](art/lobby-units/LobbyTurtle-preview.png)
 
 ### 초기 제작 참고용 방향 시트
 
