@@ -12,7 +12,7 @@
 | [../CLAUDE.md](../CLAUDE.md) | Claude Code 호환용 기존 가이드 | Claude Code 사용 시 |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | MVC, 데이터 흐름, 리플레이, 게임 흐름, 폴더 구조 | 아키텍처 이해 시 |
 | [LOBBY-DEFENSE.md](LOBBY-DEFENSE.md) | 100열 × 10행 로비 디펜스 규칙·구현 순서·검증 시나리오 | 아웃게임 배치·전투·퍼즐 연동 개발 시 |
-| [CONVENTIONS.md](CONVENTIONS.md) | 코드 리뷰 체크리스트, 위반 예시, 수정 가이드 | 커밋 전 리뷰 시 필독 |
+| [CONVENTIONS.md](CONVENTIONS.md) | 코드 리뷰 체크리스트, 위반 예시, 수정 가이드 | 코드 리뷰 및 [호출 시점 커밋 검증](../.agents/skills/review-commit/SKILL.md) 시 |
 | [INGAME.md](INGAME.md) | 게임 루프, 보드 상태, 블럭, 매칭, 뷰 동기화, 애니메이션, 리플레이 | 인게임 퍼즐 작업 시 |
 | [DATA.md](DATA.md) | JSON 구조, GameSpec, Rule/Stage/Replay 데이터, 추가 방법 | 데이터/설정 작업 시 |
 | [UI.md](UI.md) | 도메인 시스템, 팝업/탭 생명주기, UIButton, 추가 방법 | UI 작업 시 |

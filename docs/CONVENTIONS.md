@@ -5,13 +5,7 @@
 
 ## 0. 리뷰 원칙
 
-- 이 저장소에서 `git config --local core.hooksPath .githooks`로 훅을 활성화한다. Git for Windows, Codex CLI 인증, Unity CLI와 프로젝트 버전의 에디터가 필요하다.
-- GitHub Desktop과 일반 터미널의 수동 커밋·푸시는 사용자가 직접 진행한다. Codex 세션은 `CODEX_THREAD_ID` 또는 `CODEX_SESSION_ID`로 식별하며, 다른 에이전트는 Git 프로세스에 `PUZZLE_AGENT_GIT=1`을 전달한다.
-- 에이전트 커밋 후 별도 복제본에서 원격 브랜치 대비 변경을 검증한다. 통과하면 추적 브랜치(미설정 시 origin의 같은 이름)로 푸시한다.
-- 커밋만 요청했거나 사용자가 직접 푸시할 때는 커밋 프로세스에 `PUZZLE_AGENT_COMMIT_ONLY=1`을 설정해 검증 결과를 기록한 뒤 종료한다.
-- 정상·경계·실패 사례를 다루는 임시 테스트는 Unity CLI로 실행하고 각 사례의 결과를 확인한다.
-- 실패 시 커밋 명령 출력과 Git 디렉터리의 `commit-review/run.*/result`에서 리뷰를 확인하고 수정 커밋한다. 환경 문제 해결 후 같은 커밋은 `git hook run post-commit`으로 재시도한다.
-- 로컬 훅은 우회할 수 있다. 커밋 명령의 종료 코드와 별도로 리뷰 출력과 푸시 결과를 확인한다.
+- 커밋 검증을 요청하면 [review-commit 스킬](../.agents/skills/review-commit/SKILL.md)로 호출 시점의 커밋을 기록하고 격리된 복제본에서 검증한다.
 
 - **스타일 교정 시 실행 로직/메서드 호출/조건문 결과를 절대 변경하지 않는다.**
 - 판단이 애매하면 수정하지 말고 그대로 둔다.

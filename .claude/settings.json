@@ -1,19 +1,3 @@
 {
-  "$schema": "https://json.schemastore.org/claude-code-settings.json",
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "agent",
-            "if": "Bash(git commit*)",
-            "prompt": "커밋 전 코드 리뷰를 수행합니다.\n\n## 0. 필독 문서 (작업 시작 전 반드시 읽을 것)\n**먼저 프로젝트 루트의 `CONVENTIONS.md`를 Read 도구로 전체 읽으세요.** 이 문서가 리뷰 기준/위반 예시/수정 방법의 단일 소스입니다. 보조로 `CLAUDE.md`도 함께 참조하세요. 두 문서를 읽지 않고 리뷰를 시작하지 마세요.\n\n## 절차\n1. `CONVENTIONS.md`와 `CLAUDE.md`를 Read 도구로 읽어 리뷰 기준을 숙지합니다.\n2. `git diff --cached`로 스테이징된 변경분을 확인합니다. 변경이 없으면 즉시 종료합니다.\n3. 변경된 각 파일을 `CONVENTIONS.md`의 체크리스트(코딩 규칙 / 아키텍처 / Known Pitfalls / 명백한 버그)에 따라 리뷰합니다.\n4. 문제를 발견하면 Edit 도구로 직접 수정합니다. 수정 시 `CONVENTIONS.md`의 \"리뷰 원칙\"(실행 로직 변경 금지, 애매하면 수정 안 함)을 엄격히 지키세요.\n5. 수정한 파일은 반드시 `git add <파일경로>`로 재스테이징합니다.\n6. 리뷰 결과를 한 줄 요약으로 보고합니다. (예: `수정 3건: Allman 위반 2, Debug.LogError 1 (Model 레이어)` 또는 `문제 없음`)\n\n## 제외 대상\n`.meta` 파일, JSON 데이터 파일, 자동 생성 파일, `Plugins/*.dll` 관련 파일은 검토에서 제외합니다.\n\nHook 입력: $ARGUMENTS",
-            "timeout": 300,
-            "statusMessage": "커밋 전 코드 리뷰 중..."
-          }
-        ]
-      }
-    ]
-  }
+  "$schema": "https://json.schemastore.org/claude-code-settings.json"
 }
