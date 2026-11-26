@@ -142,8 +142,9 @@ public class PuzzleBlockView : MonoBehaviour
                 break;
 
             case BlockState.Matched:
-                // 매칭 시 반투명하게 표시
-                _spriteRenderer.color = new Color(1.0f, 1.0f, 1.0f, 0.5f);
+                // 모델 판정이 스왑·낙하 연출보다 앞서도 3매치 블럭이 미리 흐려지지 않게 합니다.
+                _spriteRenderer.color = _boardView != null && _boardView.KeepMatchedBlockColor
+                    ? Color.white : new Color(1f, 1f, 1f, 0.5f);
                 break;
 
             default:

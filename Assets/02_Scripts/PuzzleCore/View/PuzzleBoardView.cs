@@ -55,6 +55,9 @@ public class PuzzleBoardView : MonoBehaviour
     /// <summary> 이 보드를 그릴 때 지정한 사각 또는 육각 격자 모양입니다. </summary>
     public BoardShape Shape => _cachedBoardShape;
 
+    /// <summary>3매치는 스왑부터 파괴 연출까지 블럭 원색을 유지합니다.</summary>
+    internal bool KeepMatchedBlockColor => _board is ThreeMatchPuzzleBoard;
+
     /// <summary> 로드된 셀 프리팹 캐시 </summary>
     private GameObject _cellPrefabObj;
 

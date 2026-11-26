@@ -720,15 +720,20 @@ namespace Puzzle.Core
             return res;
         }
 
-        /// <summary>
-        /// 화면 연출용 액션을 추가합니다. 추가될 때마다 orderIndex가 자동으로 증가하여 순차적 연출을 보장합니다.
-        /// </summary>
-        /// <param name="view">등록할 연출 액션</param>
-        /// <param name="customOrder">직접 지정할 연출 순서이며 생략하면 내부 순서를 사용</param>
+        /// <summary><paramref name="view"/>에 현재 틱과 연출 순서를 기록합니다.
+        /// <paramref name="customOrder"/>를 생략한 연속 파괴는 같은 틱의 직전 파괴와 함께 재생합니다.</summary>
         public void AddView(BoardViewAction view, uint? customOrder = null)
         {
             // 연출 프레임/순서는 큐 소유자(보드)가 스탬프한다. (Model의 연출 데이터 책임 분리)
             view.frame = (uint)_frameCount;
+            if (!customOrder.HasValue && view.type == ViewType.Destroy && _views.Count > 0)
+            {
+                BoardViewAction previous = _views[_views.Count - 1];
+                if (previous.type == ViewType.Destroy && previous.frame == view.frame)
+                {
+                    customOrder = previous.orderIndex;
+                }
+            }
             if (customOrder.HasValue)
             {
                 view.orderIndex = customOrder.Value;
