@@ -234,6 +234,7 @@ internal sealed class LobbyDefenseBoard
                 Wave++;
                 _spawned = 0;
                 _waveTime = 0;
+                SpawnMonster();
             }
             return;
         }
