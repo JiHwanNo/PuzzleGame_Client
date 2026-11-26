@@ -1,12 +1,9 @@
 # PuzleBattleGame UI/도메인 시스템 참고 문서
 
-UI, 팝업, 탭 관련 작업 시 이 문서를 참고.
 
 ## 콘텐츠와 C# 매핑
 
 [전체 작업 지도](MAP.md) · [문서 목록](README.md)
-
-파일 링크는 이 문서 기준 상대 경로이며, 마지막 열의 이름을 파일 안에서 검색하면 구현 위치를 찾을 수 있습니다.
 
 | 찾는 콘텐츠 | 담당 C# 파일 | 주요 메서드·타입·멤버 |
 |---|---|---|
@@ -27,7 +24,7 @@ UI, 팝업, 탭 관련 작업 시 이 문서를 참고.
 | 로비 탭 컴포넌트 (TabBase 상속) | [LobbyTabController.cs](../Assets/02_Scripts/LobbyTabController.cs) | `LobbyTabController` |
 | 대전 전용 피벗 충전·활성 게이지 | [PivotGaugeView.cs](../Assets/02_Scripts/Battle/Pivot/PivotGaugeView.cs) | `PivotGaugeView`, `Refresh`, `Dispose` |
 
-피벗 게이지는 대전 시작 시 기존 타이머 아래에 생성하며 같은 한글 폰트를 사용한다. 게임 종료 시 숨기고 컨트롤러 제거 시 UI를 정리한다. 상태 및 설정 규칙은 [INGAME-VIEW-AND-BATTLE.md](INGAME-VIEW-AND-BATTLE.md#대전-전용-피벗-모드)를 참고한다.
+대전 타이머 아래에 피벗 게이지와 발동 문구를 표시한다. 피벗이 활성인 동안 보드 바깥의 금빛 테두리(링크는 엇갈린 육각 셀의 외곽선)가 은은하게 맥동하며, 종료하면 꺼진다. 조작 안내와 목표는 화면 왼쪽 위에 배치해 플레이 보드와 상대 보드의 자리를 비운다.
 
 대전 시작은 현재 콤보 판정 버전과 Rule JSON의 피벗 설정이 일치하는 완주 기록만 상대로 선택한다. 호환되는 상대가 없으면 첫 기록 도전으로 진입한다. 이전 규칙의 리플레이는 재생할 수 있지만 승패 비교에서는 제외한다.
 

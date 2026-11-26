@@ -36,7 +36,7 @@
 | 피벗 충전량·소비량·콤보 간격 설정 | [PivotSettings.cs](../Assets/02_Scripts/Battle/Pivot/PivotSettings.cs) | `PivotSettings`, `IsValid`, `CopyValidated`, `HasSameRules` |
 | 보드 통계·모드별 효과와 독립 피벗 모듈 연결 | [BattlePivotSession.cs](../Assets/02_Scripts/Battle/Pivot/BattlePivotSession.cs) | `BattlePivotSession`, `AdvanceAfterBoardTick`, `Dispose` |
 | 세 모드 피벗의 이웃 한 겹 추가 파괴 | [LinkPivotEffect.cs](../Assets/02_Scripts/Battle/Pivot/LinkPivotEffect.cs) | `LinkPivotEffect`, `ExpandTargets`, `ExpandSquareTargets`, `ExpandNeighbors` |
-| 플레이어 피벗 게이지 프레임·충전량 표시 | [PivotGaugeView.cs](../Assets/02_Scripts/Battle/Pivot/PivotGaugeView.cs) | `PivotGaugeView`, `Refresh`, `Dispose` |
+| 플레이어 피벗 게이지·발동 문구·활성 중 보드 테두리 | [PivotGaugeView.cs](../Assets/02_Scripts/Battle/Pivot/PivotGaugeView.cs), [PuzzleBoardView.cs](../Assets/02_Scripts/PuzzleCore/View/PuzzleBoardView.cs) | `Refresh`, `PlayActivationLabel`, `SetPivotBorderVisible`, `Dispose` |
 
 규칙/좌표/입력 기록 타입과 리플레이 파일 저장은 [DATA.md](DATA.md)의 코드 표를 함께 확인하세요.
 

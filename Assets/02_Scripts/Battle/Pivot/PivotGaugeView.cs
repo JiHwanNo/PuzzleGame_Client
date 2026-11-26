@@ -1,5 +1,6 @@
 ﻿using TMPro;
 using UnityEngine;
+using DG.Tweening;
 using UnityEngine.UI;
 
 namespace Battle.Pivot
@@ -11,6 +12,8 @@ namespace Battle.Pivot
         private readonly GameObject _root;
         /// <summary> 충전 또는 활성 상태를 표시하는 텍스트입니다. </summary>
         private readonly TextMeshProUGUI _label;
+        private readonly TextMeshProUGUI _activationLabel;
+        private Sequence _announcement;
         /// <summary> 상태에 따라 색상을 변경하는 채움 이미지입니다. </summary>
         private readonly Image _fillImage;
         /// <summary> 표시할 피벗 상태입니다. </summary>
@@ -44,6 +47,22 @@ namespace Battle.Pivot
             _label.fontSize = 24f;
             _label.alignment = TextAlignmentOptions.Left;
             _label.raycastTarget = false;
+
+            RectTransform announcement = CreateRect("PivotActivation", root);
+            announcement.anchorMin = Vector2.zero;
+            announcement.anchorMax = Vector2.zero;
+            announcement.pivot = new Vector2(0f, 1f);
+            announcement.anchoredPosition = new Vector2(0f, -6f);
+            announcement.sizeDelta = new Vector2(source.sizeDelta.x, 60f);
+            _activationLabel = announcement.gameObject.AddComponent<TextMeshProUGUI>();
+            _activationLabel.font = template.font;
+            _activationLabel.fontSharedMaterial = template.fontSharedMaterial;
+            _activationLabel.fontSize = 42f;
+            _activationLabel.alignment = TextAlignmentOptions.Left;
+            _activationLabel.color = new Color(1f, 0.82f, 0.32f);
+            _activationLabel.text = "피벗 발동!";
+            _activationLabel.raycastTarget = false;
+            _activationLabel.gameObject.SetActive(false);
 
             RectTransform track = CreateRect("Track", root);
             track.anchorMin = Vector2.zero;
@@ -89,6 +108,10 @@ namespace Battle.Pivot
             if (displayedTenths != _lastDisplayedTenths || _mode.IsActive != _lastActive)
             {
                 _lastDisplayedTenths = displayedTenths;
+                if (_mode.IsActive && !_lastActive)
+                {
+                    PlayActivationLabel();
+                }
                 _lastActive = _mode.IsActive;
                 string state = _mode.IsActive ? "피벗 모드" : "피벗 충전";
                 _label.text = $"{state} · {displayedTenths / 10}.{displayedTenths % 10} / {_mode.Capacity}";
@@ -96,9 +119,30 @@ namespace Battle.Pivot
             }
         }
 
+        /// <summary>게이지 아래에 발동 문구를 한 번 띄우고 잠시 유지한 뒤 지웁니다.</summary>
+        private void PlayActivationLabel()
+        {
+            if (_announcement != null)
+            {
+                _announcement.Kill();
+            }
+            _activationLabel.gameObject.SetActive(true);
+            _activationLabel.alpha = 1f;
+            _activationLabel.rectTransform.localScale = Vector3.one * 0.75f;
+            _announcement = DOTween.Sequence();
+            _announcement.Append(_activationLabel.rectTransform.DOScale(1f, 0.22f).SetEase(Ease.OutBack));
+            _announcement.AppendInterval(0.55f);
+            _announcement.Append(_activationLabel.DOFade(0f, 0.25f));
+            _announcement.OnComplete(() => _activationLabel.gameObject.SetActive(false));
+        }
+
         /// <summary> 이 표시 객체가 생성한 UI를 제거합니다. </summary>
         public void Dispose()
         {
+            if (_announcement != null)
+            {
+                _announcement.Kill();
+            }
             if (_root != null)
             {
                 Object.Destroy(_root);

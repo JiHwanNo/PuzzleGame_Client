@@ -103,6 +103,9 @@ public class PuzzleBoardView : MonoBehaviour
     private const int MaxMatchFragments = 24;
     private readonly List<SpriteRenderer> _matchFragments = new List<SpriteRenderer>(MaxMatchFragments);
     private LineRenderer _linkRing;
+    private LineRenderer _pivotBorder;
+    private LineRenderer _pivotGlow;
+    private readonly List<Vector3> _pivotOutlinePoints = new List<Vector3>();
     private Tween _linkTipTravel;
     private Tween _linkTipPulse;
     private static readonly Color _linkTrailColor = new Color(0.22f, 0.86f, 0.85f);
@@ -694,14 +697,7 @@ public class PuzzleBoardView : MonoBehaviour
     /// <summary> 주어진 이름과 정렬 순서로 보드의 로컬 좌표에 지정한 반경의 원을 만듭니다. </summary>
     private LineRenderer CreateRing(string objectName, int sortingOrder, float radius)
     {
-        GameObject obj = new GameObject(objectName);
-        obj.transform.SetParent(transform, false);
-        LineRenderer ring = obj.AddComponent<LineRenderer>();
-        ring.sharedMaterial = _lineMaterial;
-        ring.useWorldSpace = false;
-        ring.loop = true;
-        ring.sortingLayerName = "Ingame";
-        ring.sortingOrder = sortingOrder;
+        LineRenderer ring = CreateLoop(objectName, sortingOrder);
         ring.positionCount = 32;
         for (int i = 0; i < ring.positionCount; i++)
         {
@@ -709,6 +705,125 @@ public class PuzzleBoardView : MonoBehaviour
             ring.SetPosition(i, new Vector3(Mathf.Cos(angle), Mathf.Sin(angle)) * radius);
         }
         return ring;
+    }
+
+    /// <summary><paramref name="objectName"/>의 닫힌 선을 보드의 <paramref name="sortingOrder"/> 순서에 만듭니다.</summary>
+    private LineRenderer CreateLoop(string objectName, int sortingOrder)
+    {
+        GameObject obj = new GameObject(objectName);
+        obj.transform.SetParent(transform, false);
+        LineRenderer line = obj.AddComponent<LineRenderer>();
+        line.sharedMaterial = _lineMaterial;
+        line.useWorldSpace = false;
+        line.loop = true;
+        line.sortingLayerName = "Ingame";
+        line.sortingOrder = sortingOrder;
+        return line;
+    }
+
+    /// <summary><paramref name="active"/>인 동안 보드 외곽에 금빛 테두리를 표시합니다.</summary>
+    public void SetPivotBorderVisible(bool active)
+    {
+        if (!active)
+        {
+            if (_pivotBorder != null)
+            {
+                _pivotBorder.enabled = false;
+                _pivotGlow.enabled = false;
+            }
+            return;
+        }
+        if (!isActiveAndEnabled || _board == null || _lineMaterial == null)
+        {
+            return;
+        }
+        if (_pivotBorder == null)
+        {
+            _pivotGlow = CreateOutline("PivotGlow", 95, new Color(1f, 0.55f, 0.06f, 0.42f));
+            _pivotBorder = CreateOutline("PivotBorder", 96, new Color(1f, 0.91f, 0.55f));
+        }
+        if (!_pivotBorder.enabled)
+        {
+            BuildPivotOutline();
+            _pivotBorder.positionCount = _pivotOutlinePoints.Count;
+            _pivotGlow.positionCount = _pivotOutlinePoints.Count;
+            for (int i = 0; i < _pivotOutlinePoints.Count; i++)
+            {
+                _pivotBorder.SetPosition(i, _pivotOutlinePoints[i]);
+                _pivotGlow.SetPosition(i, _pivotOutlinePoints[i]);
+            }
+            _pivotBorder.widthMultiplier = cellSize * 0.045f;
+            _pivotBorder.enabled = true;
+            _pivotGlow.enabled = true;
+        }
+        float pulse = 0.5f + 0.5f * Mathf.Sin(Time.time * 4f);
+        _pivotGlow.widthMultiplier = cellSize * Mathf.Lerp(0.12f, 0.20f, pulse);
+    }
+
+    /// <summary>셀 배치에 맞춰 보드의 바깥 꼭짓점을 시계 방향으로 수집합니다.</summary>
+    private void BuildPivotOutline()
+    {
+        _pivotOutlinePoints.Clear();
+        int lastX = _board.Width - 1;
+        int lastY = _board.Height - 1;
+        if (_cachedBoardShape != BoardShape.Hexagon)
+        {
+            float margin = cellSize * 0.55f;
+            Vector3 low = GetLocalPos(new GridPos(0, 0)) - new Vector3(margin, margin);
+            Vector3 high = GetLocalPos(new GridPos(lastX, lastY)) + new Vector3(margin, margin);
+            _pivotOutlinePoints.Add(low);
+            _pivotOutlinePoints.Add(new Vector3(low.x, high.y));
+            _pivotOutlinePoints.Add(high);
+            _pivotOutlinePoints.Add(new Vector3(high.x, low.y));
+            return;
+        }
+
+        // 평평한 윗변의 반폭은 열 간격의 1/3이고, 좌우 끝 꼭짓점까지는 2/3입니다.
+        Vector3 upperLeft = new Vector3(-cellSize / 3f, cellSize / 2f);
+        Vector3 upperRight = new Vector3(cellSize / 3f, cellSize / 2f);
+        Vector3 tip = Vector3.right * (2f * cellSize / 3f);
+        for (int x = 0; x <= lastX; x++)
+        {
+            Vector3 center = GetLocalPos(new GridPos(x, lastY));
+            _pivotOutlinePoints.Add(center + upperLeft);
+            _pivotOutlinePoints.Add(center + upperRight);
+        }
+        for (int y = lastY; y >= 0; y--)
+        {
+            Vector3 center = GetLocalPos(new GridPos(lastX, y));
+            _pivotOutlinePoints.Add(center + tip);
+            if (y > 0)
+            {
+                _pivotOutlinePoints.Add(center - upperLeft);
+            }
+        }
+        for (int x = lastX; x >= 0; x--)
+        {
+            Vector3 center = GetLocalPos(new GridPos(x, 0));
+            _pivotOutlinePoints.Add(center - upperLeft);
+            _pivotOutlinePoints.Add(center - upperRight);
+        }
+        for (int y = 0; y <= lastY; y++)
+        {
+            Vector3 center = GetLocalPos(new GridPos(0, y));
+            _pivotOutlinePoints.Add(center - tip);
+            if (y < lastY)
+            {
+                _pivotOutlinePoints.Add(center + upperLeft);
+            }
+        }
+    }
+
+    /// <summary><paramref name="objectName"/>의 외곽선을 <paramref name="sortingOrder"/> 순서에 만들고 <paramref name="color"/>로 칠합니다.</summary>
+    private LineRenderer CreateOutline(string objectName, int sortingOrder, Color color)
+    {
+        LineRenderer outline = CreateLoop(objectName, sortingOrder);
+        outline.positionCount = 4;
+        outline.numCornerVertices = 5;
+        outline.startColor = color;
+        outline.endColor = color;
+        outline.enabled = false;
+        return outline;
     }
 
     /// <summary> 파괴 액션에 담긴 폭탄마다 해당 좌표에서 판정 반경까지 충격파를 펼칩니다. </summary>
@@ -806,6 +921,7 @@ public class PuzzleBoardView : MonoBehaviour
     /// <summary> 보드를 비우거나 종료할 때 파편과 링크 표시의 트윈을 정리합니다.</summary>
     private void ClearFeedback()
     {
+        SetPivotBorderVisible(false);
         HideLinkRing();
         foreach (LineRenderer wave in _bombWaves)
         {

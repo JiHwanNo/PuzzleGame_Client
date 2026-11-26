@@ -224,6 +224,10 @@ public class PuzzleGameController : MonoBehaviour
         // 4. UI 갱신
         UpdateTimerUI();
         UpdateScoreUI();
+        if (_pivotSession != null && boardView != null)
+        {
+            boardView.SetPivotBorderVisible(_pivotSession.Mode.IsActive);
+        }
         if (_pivotGaugeView != null)
         {
             _pivotGaugeView.Refresh();
