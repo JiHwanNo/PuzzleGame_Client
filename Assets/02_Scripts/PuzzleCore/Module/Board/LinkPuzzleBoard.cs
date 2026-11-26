@@ -36,6 +36,7 @@ namespace Puzzle.Core
         private List<InputRecord> _recordedInputs = new List<InputRecord>();
         private List<InputEndRecord> _recordedInputEnds = new List<InputEndRecord>();
         private ulong _frameCount;
+        private bool _isPaused;
         /// <summary> 좌표 입력과 종료 입력을 수신 순서대로 보관합니다. null은 입력 종료입니다. </summary>
         private readonly Queue<GridPos?> _pendingInputs = new Queue<GridPos?>();
         /// <summary> 좌표 입력과 종료 입력에 공통으로 부여하는 기록 순서입니다. </summary>
@@ -70,6 +71,7 @@ namespace Puzzle.Core
             _recordedInputs = new List<InputRecord>();
             _recordedInputEnds = new List<InputEndRecord>();
             _frameCount = 0;
+            _isPaused = false;
             _pendingInputs.Clear();
             _inputSequence = 0;
             _currentOrderIndex = 0;
@@ -114,7 +116,7 @@ namespace Puzzle.Core
         /// <param name="input">입력한 셀 좌표</param>
         public void Input(GridPos input)
         {
-            if (State != BoardState.Finish)
+            if (!_isPaused && State != BoardState.Finish)
             {
                 _pendingInputs.Enqueue(input);
             }
@@ -124,7 +126,7 @@ namespace Puzzle.Core
         /// <returns>종료 이벤트가 대기열에 등록되었는지 여부입니다. 매칭 결과가 아닙니다.</returns>
         public bool InputEnd()
         {
-            if (State == BoardState.Finish)
+            if (_isPaused || State == BoardState.Finish)
             {
                 return false;
             }
@@ -313,6 +315,11 @@ namespace Puzzle.Core
         /// <summary> 입력 판정, 상태 전환, 타이머 갱신을 한 논리 틱에서 처리합니다. </summary>
         public void FixedUpdate()
         {
+            if (_isPaused)
+            {
+                return;
+            }
+
             if (State == BoardState.Finish)
             {
                 _pendingInputs.Clear();
@@ -527,11 +534,8 @@ namespace Puzzle.Core
             return false;
         }
 
-        /// <summary> 일시정지 요청을 받습니다. 현재 구현에서는 보드 상태를 변경하지 않습니다. </summary>
-        /// <param name="pause">일시정지 요청 여부</param>
-        public void Pause(bool pause)
-        {
-        }
+        /// <summary><paramref name="pause"/>가 참이면 입력 접수와 논리 틱을 멈추고, 거짓이면 재개합니다.</summary>
+        public void Pause(bool pause) => _isPaused = pause;
 
         /// <summary> 기록한 좌표 입력 목록의 복사본을 반환합니다. </summary>
         public List<InputRecord> GetRecordedInputs() => new List<InputRecord>(_recordedInputs);
