@@ -19,6 +19,15 @@ internal sealed class LobbyDefenseBoard
     private readonly Piece[] _pieces = new Piece[Count];
     private readonly int[] _strength = new int[Count];
     private readonly int[] _readyAt = new int[Count];
+    /// <summary>사격 또는 방어 유닛 피격이 일어난 논리 초와 상대 칸까지의 방향을 보관한다.</summary>
+    internal struct UnitContact
+    {
+        public int Second;
+        public int ColumnDelta;
+        public int RowDelta;
+    }
+
+    private readonly UnitContact[] _contacts = new UnitContact[Count];
     private int _seconds;
     private int _regularCount;
     private int _archers;
@@ -49,6 +58,21 @@ internal sealed class LobbyDefenseBoard
     public bool SpawnsFinished => _spawned == 6;
     public int RouteLength => _distance[Entrance];
     public bool PreviewSiege { get; private set; }
+    public int Seconds => _seconds;
+
+    /// <summary><paramref name="cell"/>의 유닛이 마지막으로 사격하거나 피격된 방향을 반환한다.</summary>
+    public UnitContact ContactAt(int cell) => _contacts[cell];
+
+    /// <summary><paramref name="unit"/>에서 <paramref name="opponent"/> 방향으로 발생한 전투 접촉을 기록한다.</summary>
+    private void RecordContact(int unit, int opponent)
+    {
+        _contacts[unit] = new UnitContact
+        {
+            Second = _seconds,
+            ColumnDelta = opponent % Width - unit % Width,
+            RowDelta = opponent / Width - unit / Width
+        };
+    }
 
     /// <summary>빈 보드의 출구까지 거리를 초기화한다.</summary>
     public LobbyDefenseBoard()
@@ -122,6 +146,7 @@ internal sealed class LobbyDefenseBoard
         }
         Gold -= cost;
         _pieces[cell] = piece;
+        _contacts[cell] = default;
         _strength[cell] = piece == Piece.Wall ? 36 : 12;
         _readyAt[cell] = _seconds;
         if (piece == Piece.Archer)
@@ -157,6 +182,8 @@ internal sealed class LobbyDefenseBoard
         }
         _pieces[cell] = _pieces[source];
         _pieces[source] = Piece.Empty;
+        _contacts[cell] = _contacts[source];
+        _contacts[source] = default;
         _strength[cell] = _strength[source];
         _readyAt[cell] = _readyAt[source];
         _units[_units.IndexOf(source)] = cell;
@@ -286,6 +313,10 @@ internal sealed class LobbyDefenseBoard
             if (piece == Piece.Archer || piece == Piece.Wall)
             {
                 _strength[next] -= piece == Piece.Wall ? 2 : 4;
+                if (piece == Piece.Wall)
+                {
+                    RecordContact(next, monster.Cell);
+                }
                 if (_strength[next] <= 0)
                 {
                     if (piece == Piece.Archer)
@@ -343,6 +374,7 @@ internal sealed class LobbyDefenseBoard
             return;
         }
         target.Health -= 4;
+        RecordContact(unit, target.Cell);
         if (target.Health <= 0)
         {
             _monsters.Remove(target);

@@ -9,10 +9,15 @@ using UnityEngine.UI;
 internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
 {
     private const int PageWidth = 20;
+    private const int WestDirection = 6;
     private static LobbyDefenseBoard _session;
     private TMP_FontAsset _font;
-    private Texture2D _unitSheet;
+    private Texture2D _archerSheet;
+    private GameObject _turtlePrefab;
+    private static readonly string[] _directions = { "S", "SE", "E", "NE", "N", "NW", "W", "SW" };
+    private readonly List<TurtleActor> _turtles = new List<TurtleActor>();
     private readonly List<RawImage> _unitIcons = new List<RawImage>();
+    private readonly List<int> _visibleCells = new List<int>();
     private TMP_Text _summary;
     private TMP_Text _hint;
     private TMP_Text _page;
@@ -26,6 +31,15 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
     private float _elapsed;
     private RectTransform _canvasRect;
     private Vector2 _canvasSize;
+    /// <summary>재사용할 거북이 리그와 마지막으로 재생한 칸의 피격 정보를 보관한다.</summary>
+    private sealed class TurtleActor
+    {
+        public RectTransform Rect;
+        public Animator Animator;
+        public CanvasGroup Group;
+        public int Cell = -1;
+        public int ContactSecond = -1;
+    }
 
     /// <summary>새 플레이 세션의 로비 전투 상태를 초기화한다.</summary>
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -45,7 +59,8 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
         RectTransform board = Element("DefenseBoard", status.transform.parent, 0, 225, 720, 360);
         LobbyDefenseView view = board.gameObject.AddComponent<LobbyDefenseView>();
         view._font = status.font;
-        view._unitSheet = AssetManager.Instance.LoadAsset<Texture2D>("LobbyAnimalUnits");
+        view._archerSheet = AssetManager.Instance.LoadAsset<Texture2D>("LobbyArcher8Way");
+        view._turtlePrefab = AssetManager.Instance.LoadResource<GameObject>("Prefab/LobbyTurtle");
         view._canvasRect = (RectTransform)status.canvas.rootCanvas.transform;
         view.FitTab();
         view.BuildControls();
@@ -95,26 +110,45 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
     /// <summary><paramref name="button"/>의 글자 옆에 <paramref name="piece"/>의 초상을 배치한다.</summary>
     private void AddPortrait(Button button, LobbyDefenseBoard.Piece piece)
     {
-        if (_unitSheet == null)
+        if (!HasUnitArt(piece))
         {
             return;
         }
         RectTransform label = button.GetComponentInChildren<TMP_Text>().rectTransform;
         label.anchoredPosition = new Vector2(23f, 0f);
         label.sizeDelta = new Vector2(150f, 60f);
+        Vector2 position = new Vector2(-72f, 0f);
+        if (piece == LobbyDefenseBoard.Piece.Wall)
+        {
+            MakeTurtle(button.transform, 56f).anchoredPosition = position;
+            return;
+        }
         RawImage icon = MakeIcon(button.transform, 56f);
-        icon.rectTransform.anchoredPosition = new Vector2(-72f, 0f);
-        icon.uvRect = UnitRegion(piece);
+        icon.rectTransform.anchoredPosition = position;
+        icon.texture = _archerSheet;
+        icon.uvRect = PoseRegion(0, false);
     }
 
-    /// <summary><paramref name="piece"/>가 사용하는 투명 시트의 절반을 반환한다.</summary>
-    private static Rect UnitRegion(LobbyDefenseBoard.Piece piece) => new Rect(piece == LobbyDefenseBoard.Piece.Wall ? 0f : 0.5f, 0f, 0.5f, 1f);
+    /// <summary><paramref name="piece"/>의 전장 표시용 원화 또는 프리팹을 사용할 수 있는지 확인한다.</summary>
+    private bool HasUnitArt(LobbyDefenseBoard.Piece piece) =>
+        (piece == LobbyDefenseBoard.Piece.Archer && _archerSheet != null) ||
+        (piece == LobbyDefenseBoard.Piece.Wall && _turtlePrefab != null);
+
+    /// <summary><paramref name="parent"/> 아래에 거북이 리그를 만들고 <paramref name="size"/>에 맞춰 축소한다.</summary>
+    private RectTransform MakeTurtle(Transform parent, float size)
+    {
+        RectTransform rect = (RectTransform)Instantiate(_turtlePrefab, parent, false).transform;
+        rect.localScale = Vector3.one * (size / rect.rect.width);
+        return rect;
+    }
+
+    /// <summary><paramref name="direction"/> 열의 대기 또는 <paramref name="action"/> 동작 칸을 UV로 반환한다.</summary>
+    private static Rect PoseRegion(int direction, bool action) => new Rect(direction * 0.125f, action ? 0.25f : 0.75f, 0.125f, 0.25f);
 
     /// <summary><paramref name="parent"/> 아래에 한 변이 <paramref name="size"/>인 비입력 캐릭터 이미지를 만든다.</summary>
     private RawImage MakeIcon(Transform parent, float size)
     {
         RawImage icon = Element("UnitPortrait", parent, 0f, 0f, size, size).gameObject.AddComponent<RawImage>();
-        icon.texture = _unitSheet;
         icon.raycastTarget = false;
         return icon;
     }
@@ -122,8 +156,9 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
     /// <summary>확대 구역의 배치 유닛에 초상을 표시하고 기존 이미지 객체를 재사용한다.</summary>
     private void RefreshUnitIcons()
     {
-        int used = 0;
-        if (_columns == PageWidth && _unitSheet != null)
+        _visibleCells.Clear();
+        int turtleCount = 0;
+        if (_columns == PageWidth)
         {
             float size = rectTransform.rect.width / PageWidth;
             for (int row = 0; row < LobbyDefenseBoard.Height; row++)
@@ -132,25 +167,113 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
                 {
                     int cell = row * LobbyDefenseBoard.Width + _first + column;
                     LobbyDefenseBoard.Piece piece = _session.PieceAt(cell);
-                    if (piece != LobbyDefenseBoard.Piece.Archer && piece != LobbyDefenseBoard.Piece.Wall)
+                    if (!HasUnitArt(piece))
                     {
                         continue;
                     }
+                    if (piece == LobbyDefenseBoard.Piece.Wall)
+                    {
+                        ShowTurtle(turtleCount, cell, size);
+                        turtleCount++;
+                        continue;
+                    }
+                    int used = _visibleCells.Count;
                     if (used == _unitIcons.Count)
                     {
                         _unitIcons.Add(MakeIcon(transform, size));
                     }
-                    RawImage icon = _unitIcons[used++];
+                    RawImage icon = _unitIcons[used];
+                    _visibleCells.Add(cell);
                     icon.enabled = true;
                     icon.color = cell == _selected ? new Color(1f, 1f, 1f, 0.35f) : Color.white;
-                    icon.uvRect = UnitRegion(piece);
-                    icon.rectTransform.anchoredPosition = new Vector2(rectTransform.rect.xMin + (column + 0.5f) * size, rectTransform.rect.yMax - (row + 0.5f) * size);
+                    icon.texture = _archerSheet;
                 }
             }
         }
-        for (int i = used; i < _unitIcons.Count; i++)
+        for (int i = _visibleCells.Count; i < _unitIcons.Count; i++)
         {
             _unitIcons[i].enabled = false;
+        }
+        for (int i = turtleCount; i < _turtles.Count; i++)
+        {
+            TurtleActor turtle = _turtles[i];
+            turtle.Rect.gameObject.SetActive(false);
+            turtle.Cell = -1;
+        }
+        AnimateUnits();
+    }
+
+    /// <summary><paramref name="index"/>의 리그를 <paramref name="cell"/>에 <paramref name="size"/> 크기로 배치하고 새 피격을 재생한다.</summary>
+    private void ShowTurtle(int index, int cell, float size)
+    {
+        if (index == _turtles.Count)
+        {
+            RectTransform rect = MakeTurtle(transform, size);
+            CanvasGroup group = rect.gameObject.AddComponent<CanvasGroup>();
+            group.blocksRaycasts = false;
+            Animator animator = rect.GetComponent<Animator>();
+            animator.keepAnimatorStateOnDisable = true;
+            _turtles.Add(new TurtleActor { Rect = rect, Animator = animator, Group = group });
+        }
+        TurtleActor turtle = _turtles[index];
+        turtle.Rect.gameObject.SetActive(true);
+        turtle.Rect.anchoredPosition = CellCenter(cell, size);
+        turtle.Group.alpha = cell == _selected ? 0.35f : 1f;
+        LobbyDefenseBoard.UnitContact contact = _session.ContactAt(cell);
+        if (turtle.Cell == cell && turtle.ContactSecond == contact.Second)
+        {
+            return;
+        }
+        bool blocking = contact.Second > 0 && contact.Second == _session.Seconds;
+        string pose = blocking ? "Special_" : "Idle_";
+        Vector2 aim = new Vector2(contact.ColumnDelta, -contact.RowDelta);
+        turtle.Animator.Play(pose + _directions[DirectionIndex(aim)], 0, 0f);
+        turtle.Cell = cell;
+        turtle.ContactSecond = contact.Second;
+    }
+
+    /// <summary>확대 전장에서 한 변이 <paramref name="size"/>인 <paramref name="cell"/>의 중심을 구한다.</summary>
+    private Vector2 CellCenter(int cell, float size)
+    {
+        float x = rectTransform.rect.xMin + (cell % LobbyDefenseBoard.Width - _first + 0.5f) * size;
+        float y = rectTransform.rect.yMax - (cell / LobbyDefenseBoard.Width + 0.5f) * size;
+        return new Vector2(x, y);
+    }
+
+    /// <summary>화면상 <paramref name="aim"/>을 여덟 방향으로 바꾸고 첫 교전 전에는 서쪽 입구를 바라본다.</summary>
+    private static int DirectionIndex(Vector2 aim)
+    {
+        if (aim == Vector2.zero)
+        {
+            return WestDirection;
+        }
+        float angle = Mathf.Atan2(aim.x, -aim.y) * Mathf.Rad2Deg;
+        return (Mathf.RoundToInt(angle / 45f) + 8) % 8;
+    }
+
+    /// <summary>화면에 보이는 유닛만 마지막 교전 방향으로 움직이고 타격 후 같은 방향의 대기로 되돌린다.</summary>
+    private void AnimateUnits()
+    {
+        for (int i = 0; i < _visibleCells.Count; i++)
+        {
+            int cell = _visibleCells[i];
+            RawImage icon = _unitIcons[i];
+            LobbyDefenseBoard.UnitContact contact = _session.ContactAt(cell);
+            Vector2 aim = new Vector2(contact.ColumnDelta, -contact.RowDelta).normalized;
+            int direction = DirectionIndex(aim);
+            bool action = contact.Second > 0 && contact.Second == _session.Seconds && _elapsed < 0.42f;
+            icon.uvRect = PoseRegion(direction, action);
+            RectTransform rect = icon.rectTransform;
+            float breath = 0.04f * Mathf.Sin((_session.Seconds % 2 + _elapsed) * Mathf.PI + cell);
+            rect.localScale = new Vector3(1f - breath * 0.5f, 1f + breath, 1f);
+            float size = rect.sizeDelta.x;
+            Vector2 position = CellCenter(cell, size);
+            if (action)
+            {
+                float reach = Mathf.Sin(_elapsed / 0.42f * Mathf.PI);
+                position += aim * (size * 0.16f * reach);
+            }
+            rect.anchoredPosition = position;
         }
     }
 
@@ -197,6 +320,7 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
         _elapsed += Time.deltaTime;
         if (_elapsed < 1f)
         {
+            AnimateUnits();
             return;
         }
         while (_elapsed >= 1f)
@@ -299,7 +423,7 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
         string pieceName = "공격 유닛";
         if (_piece == LobbyDefenseBoard.Piece.Wall)
         {
-            pieceName = "길막 유닛";
+            pieceName = "새싹거북";
         }
         else if (_piece == LobbyDefenseBoard.Piece.Trap)
         {
@@ -355,7 +479,8 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
         {
             if (_session.HasUnit(cell))
             {
-                if (_columns == PageWidth && _unitSheet != null && _session.PieceAt(cell) != LobbyDefenseBoard.Piece.Trap)
+                LobbyDefenseBoard.Piece piece = _session.PieceAt(cell);
+                if (_columns == PageWidth && HasUnitArt(piece))
                 {
                     continue;
                 }

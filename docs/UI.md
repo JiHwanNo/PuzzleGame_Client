@@ -20,7 +20,7 @@ UI, 팝업, 탭 관련 작업 시 이 문서를 참고.
 | Inspector 버튼 콜백 연결 | [UIButton.cs](../Assets/02_Scripts/UI/UIButton.cs) | `OnClickEvent` |
 | 스테이지·90초 대전 준비·슬롯 연출·게임 진입 | [PopupReady.cs](../Assets/02_Scripts/UI/Popup/PopupReady.cs) | `ConfigureBattle`, `OnClickStart`, `SpinAndStart`, `OnClickClose` |
 | 로비 튜토리얼·대전 진입 | [LobbyMain.cs](../Assets/02_Scripts/Lobby/LobbyMain.cs) | `OnClickPlay`, `PrepareBattle` |
-| 로비 자동 전투·배치·동물 초상·구역 확대 | [LobbyDefenseBoard.cs](../Assets/02_Scripts/Lobby/LobbyDefenseBoard.cs) · [LobbyDefenseView.cs](../Assets/02_Scripts/Lobby/LobbyDefenseView.cs) | `StartFirstWave`, `Tick`, `Confirm`, `RefreshUnitIcons` |
+| 로비 자동 전투·배치·입구 방향 대기·8방향 사격·새싹거북의 등딱지 방어·구역 확대 | [LobbyDefenseBoard.cs](../Assets/02_Scripts/Lobby/LobbyDefenseBoard.cs) · [LobbyDefenseView.cs](../Assets/02_Scripts/Lobby/LobbyDefenseView.cs) | `StartFirstWave`, `Tick`, `ContactAt`, `Confirm`, `AnimateUnits`, `ShowTurtle` |
 | 준비 팝업 라이프·오프라인 충전 | [PlayerLives.cs](../Assets/02_Scripts/Lobby/PlayerLives.cs) | `GetRemaining`, `TrySpend` |
 | Shared 공용 팝업 등록 | [SharedPopupController.cs](../Assets/02_Scripts/Manager/SharedPopupController.cs) | `ControllerName` |
 | 로비 팝업 등록·로비 직접 실행 시 매니저 대기 | [LobbyPopupController.cs](../Assets/02_Scripts/Lobby/LobbyPopupController.cs) | `ControllerName`, `RegisterWhenReady` |
