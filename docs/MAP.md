@@ -45,6 +45,7 @@
 
 | 찾는 기능·수정할 내용 | 먼저 볼 C# 파일 | 관련 코드 전체 표 |
 |---|---|---|
+| 로비 방치형 디펜스·배치·웨이브 | [LobbyMain.cs](../Assets/02_Scripts/Lobby/LobbyMain.cs) | [UI.md](UI.md#콘텐츠와-c-매핑) |
 | 스테이지·90초 대전 준비 팝업·슬롯·라이프 | [PopupReady.cs](../Assets/02_Scripts/UI/Popup/PopupReady.cs) | [UI.md](UI.md#콘텐츠와-c-매핑) |
 | 로비 대전·리플레이 진입 | [LobbyMain.cs](../Assets/02_Scripts/Lobby/LobbyMain.cs) | [UI.md](UI.md#준비-팝업의-플레이-진입) |
 | 퍼즐 입력·게임 루프·종료 처리 | [PuzzleGameController.cs](../Assets/02_Scripts/PuzzleCore/Controller/PuzzleGameController.cs) | [INGAME.md](INGAME.md#콘텐츠와-c-매핑) |
