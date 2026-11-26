@@ -15,6 +15,11 @@ MonoBehaviour:
   m_GroupName: BuildIn_Resource
   m_GUID: 3c204a621933ec14f9306ea4f6c9c0d2
   m_SerializeEntries:
+  - m_GUID: 79c199f8461ea314689235baa5bcf4e6
+    m_Address: LobbyAnimalUnits
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 0186b3af00425a143b06f69c2886bbf0
     m_Address: Block_100-2
     m_ReadOnly: 0

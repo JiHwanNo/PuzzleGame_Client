@@ -1,5 +1,6 @@
 ﻿using TMPro;
 using UnityEngine;
+using System.Collections.Generic;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
@@ -10,6 +11,8 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
     private const int PageWidth = 20;
     private static LobbyDefenseBoard _session;
     private TMP_FontAsset _font;
+    private Texture2D _unitSheet;
+    private readonly List<RawImage> _unitIcons = new List<RawImage>();
     private TMP_Text _summary;
     private TMP_Text _hint;
     private TMP_Text _page;
@@ -42,6 +45,7 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
         RectTransform board = Element("DefenseBoard", status.transform.parent, 0, 225, 720, 360);
         LobbyDefenseView view = board.gameObject.AddComponent<LobbyDefenseView>();
         view._font = status.font;
+        view._unitSheet = AssetManager.Instance.LoadAsset<Texture2D>("LobbyAnimalUnits");
         view._canvasRect = (RectTransform)status.canvas.rootCanvas.transform;
         view.FitTab();
         view.BuildControls();
@@ -81,9 +85,71 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
         _page = pageButton.GetComponentInChildren<TMP_Text>();
         MakeButton("다음", 65, 104, NextPage);
         _hire = MakeButton("배치 확정", 248, 216, Confirm);
-        MakeButton("공격 유닛", -240, 216, () => SelectPiece(LobbyDefenseBoard.Piece.Archer), 328);
-        MakeButton("길막 유닛", 0, 216, () => SelectPiece(LobbyDefenseBoard.Piece.Wall), 328);
+        Button archer = MakeButton("공격 유닛", -240, 216, () => SelectPiece(LobbyDefenseBoard.Piece.Archer), 328);
+        Button wall = MakeButton("길막 유닛", 0, 216, () => SelectPiece(LobbyDefenseBoard.Piece.Wall), 328);
+        AddPortrait(archer, LobbyDefenseBoard.Piece.Archer);
+        AddPortrait(wall, LobbyDefenseBoard.Piece.Wall);
         MakeButton("마비 트랩", 240, 216, () => SelectPiece(LobbyDefenseBoard.Piece.Trap), 328);
+    }
+
+    /// <summary><paramref name="button"/>의 글자 옆에 <paramref name="piece"/>의 초상을 배치한다.</summary>
+    private void AddPortrait(Button button, LobbyDefenseBoard.Piece piece)
+    {
+        if (_unitSheet == null)
+        {
+            return;
+        }
+        RectTransform label = button.GetComponentInChildren<TMP_Text>().rectTransform;
+        label.anchoredPosition = new Vector2(23f, 0f);
+        label.sizeDelta = new Vector2(150f, 60f);
+        RawImage icon = MakeIcon(button.transform, 56f);
+        icon.rectTransform.anchoredPosition = new Vector2(-72f, 0f);
+        icon.uvRect = UnitRegion(piece);
+    }
+
+    /// <summary><paramref name="piece"/>가 사용하는 투명 시트의 절반을 반환한다.</summary>
+    private static Rect UnitRegion(LobbyDefenseBoard.Piece piece) => new Rect(piece == LobbyDefenseBoard.Piece.Wall ? 0f : 0.5f, 0f, 0.5f, 1f);
+
+    /// <summary><paramref name="parent"/> 아래에 한 변이 <paramref name="size"/>인 비입력 캐릭터 이미지를 만든다.</summary>
+    private RawImage MakeIcon(Transform parent, float size)
+    {
+        RawImage icon = Element("UnitPortrait", parent, 0f, 0f, size, size).gameObject.AddComponent<RawImage>();
+        icon.texture = _unitSheet;
+        icon.raycastTarget = false;
+        return icon;
+    }
+
+    /// <summary>확대 구역의 배치 유닛에 초상을 표시하고 기존 이미지 객체를 재사용한다.</summary>
+    private void RefreshUnitIcons()
+    {
+        int used = 0;
+        if (_columns == PageWidth && _unitSheet != null)
+        {
+            float size = rectTransform.rect.width / PageWidth;
+            for (int row = 0; row < LobbyDefenseBoard.Height; row++)
+            {
+                for (int column = 0; column < PageWidth; column++)
+                {
+                    LobbyDefenseBoard.Piece piece = _session.PieceAt(row * LobbyDefenseBoard.Width + _first + column);
+                    if (piece != LobbyDefenseBoard.Piece.Archer && piece != LobbyDefenseBoard.Piece.Wall)
+                    {
+                        continue;
+                    }
+                    if (used == _unitIcons.Count)
+                    {
+                        _unitIcons.Add(MakeIcon(transform, size));
+                    }
+                    RawImage icon = _unitIcons[used++];
+                    icon.enabled = true;
+                    icon.uvRect = UnitRegion(piece);
+                    icon.rectTransform.anchoredPosition = new Vector2(rectTransform.rect.xMin + (column + 0.5f) * size, rectTransform.rect.yMax - (row + 0.5f) * size);
+                }
+            }
+        }
+        for (int i = used; i < _unitIcons.Count; i++)
+        {
+            _unitIcons[i].enabled = false;
+        }
     }
 
     /// <summary><paramref name="piece"/>를 선택하고 이동 중이던 유닛 선택을 해제한다.</summary>
@@ -251,6 +317,7 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
             _hint.text = $"{order}   /   {result}";
         }
         _hire.interactable = _previewLength != LobbyDefenseBoard.InvalidPlacement && (_moving >= 0 || _session.Gold >= cost);
+        RefreshUnitIcons();
         SetVerticesDirty();
     }
 
@@ -286,6 +353,10 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
         {
             if (_session.HasUnit(cell))
             {
+                if (_columns == PageWidth && _unitSheet != null && _session.PieceAt(cell) != LobbyDefenseBoard.Piece.Trap)
+                {
+                    continue;
+                }
                 Color32 tint = new Color32(104, 201, 255, 255);
                 if (_session.PieceAt(cell) == LobbyDefenseBoard.Piece.Wall)
                 {
