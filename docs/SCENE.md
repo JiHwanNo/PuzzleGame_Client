@@ -10,7 +10,7 @@
 |---|---|---|
 | SharedScene 자동 로드·중복 정리·씬 전환 | [Main.cs](../Assets/02_Scripts/Manager/Main.cs) | `SceneEnum`, `AutoCreate`, `MoveScene`, `CoMoveScene`, `IsMovingScene` |
 | 타이틀 CI 연출·로비 진입 | [TitleMain.cs](../Assets/02_Scripts/Title/TitleMain.cs) | `Start` |
-| 로비 준비 팝업·대전·최근 리플레이 | [LobbyMain.cs](../Assets/02_Scripts/Lobby/LobbyMain.cs) | `OnClickStartStage`, `OnClickBattle`, `OnClickReplay` |
+| 로비 튜토리얼·대전 진입 | [LobbyMain.cs](../Assets/02_Scripts/Lobby/LobbyMain.cs) | `OnClickPlay`, `PrepareBattle` |
 | 에셋 로딩 요청 공유·캐시·해제 | [AssetManager.cs](../Assets/02_Scripts/Manager/AssetManager.cs) | `AssetArguments`, `LoadAsset`, `LoadAssetAsync`, `MarkPersistent`, `ReleaseAll` |
 | 오브젝트 풀 대여·반환·씬 전환 시 정리 | [PoolManager.cs](../Assets/02_Scripts/Manager/PoolManager.cs) | `Get`, `Release`, `ClearIfCreated`, `Clear` |
 | 메인 카메라 접근·중복 처리 | [CameraController.cs](../Assets/02_Scripts/CameraController.cs) | `MainCamera` |
@@ -151,18 +151,9 @@ TitleMain.Start()
 
 ### LobbyScene
 ```
-LobbyMain.OnClickStartStage()
-  → DomainManager.OpenPopup("PopupReady")
-    → [스타트] 미리 고른 퍼즐 모드 공개
-      → StageInjection.MakeGameSpec(rulePath, stagePath) → 라이프 1개 사용
-        → Main.MoveScene(LobbyScene, GameScene)
-LobbyMain.OnClickReplay()
-      → 최근 리플레이 JSON 로드 → 기록의 Rule/Stage로 MakeGameSpec()
-        → 기록의 시드 적용 → SetReplayData() → Main.MoveScene(LobbyScene, GameScene)
-LobbyMain.OnClickBattle()
-  → PopupReady.ConfigureBattle() → START → 슬롯 결과 공개
-    → LobbyMain.PrepareBattle(추첨된 Rule) → 같은 Rule의 호환 완주 기록 선택 (없으면 단독 대전)
-      → 라이프 1개 사용 → GameScene 이동
+LobbyMain.OnClickPlay()
+  → 최신 호환 대전 기록 선택 (없으면 탭 매치 튜토리얼 준비)
+  → 라이프 1개 사용 → Main.MoveScene(LobbyScene, GameScene)
 ```
 
 ### GameScene

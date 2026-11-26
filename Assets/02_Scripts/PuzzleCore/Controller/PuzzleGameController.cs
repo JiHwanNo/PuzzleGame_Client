@@ -282,7 +282,7 @@ public class PuzzleGameController : MonoBehaviour
         string result;
         if (_opponent == null)
         {
-            result = $"대전 기록 완료 · {score}점";
+            result = $"튜토리얼 종료 · {score}점";
         }
         else if (replayController == null || !replayController.HasValidResult ||
             !replayController.HasCompatibleBattleRules(_pivotSettings))
@@ -336,7 +336,7 @@ public class PuzzleGameController : MonoBehaviour
         _lastDestroyed = objective.TotalDestroyedBlocks;
         if (_mode == GameMode.Battle)
         {
-            string title = _opponent == null ? "90초 대전 · 첫 기록 도전" : "90초 대전 · 상대 점수에 도전";
+            string title = _opponent == null ? "튜토리얼 · 90초 동안 첫 대전 기록 만들기" : "90초 대전 · 상대 점수에 도전";
             _resultText.text = title + "\n" + _playHint;
             return;
         }

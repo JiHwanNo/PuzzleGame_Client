@@ -4,7 +4,7 @@ using Puzzle.Core;
 using TMPro;
 using UnityEngine;
 
-/// <summary>로비의 스테이지 준비 팝업과 대전·리플레이 진입을 담당합니다.</summary>
+/// <summary>로비의 첫 기록 튜토리얼과 리플레이 상대 대전 진입을 담당한다.</summary>
 public class LobbyMain : MonoBehaviour
 {
     [SerializeField] private TMP_Text _statusText;
@@ -13,59 +13,31 @@ public class LobbyMain : MonoBehaviour
     private void Start()
     {
         LobbyDefenseView.Create(_statusText);
+        _statusText.text = "플레이 시 라이프 1개 사용";
     }
 
-    /// <summary>로비에서 스테이지 준비 팝업을 엽니다.</summary>
-    public void OnClickStartStage()
+    /// <summary>호환 기록을 찾아 튜토리얼 또는 상대 대전을 준비하고 게임 씬으로 이동한다.</summary>
+    public void OnClickPlay()
     {
-        DomainManager.Instance.OpenPopup("PopupReady");
-    }
-
-    /// <summary>최근 기록의 조건으로 게임을 시작하고 상대 보드에 기록을 재생합니다.</summary>
-    private void OnClickReplay()
-    {
-        if (!TryGetReplayFiles(out string[] files))
+        if (Main.Instance == null || Main.Instance.IsMovingScene)
         {
-            _statusText.text = "플레이 기록 폴더를 읽을 수 없습니다. 잠시 후 다시 시도해 주세요.";
             return;
         }
-        if (files.Length == 0)
+        long now = System.DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        if (PlayerLives.GetRemaining(now, out int seconds) == 0)
         {
-            _statusText.text = "아직 플레이 기록이 없습니다.\nStage 또는 Battle을 한 판 마치면 다시 볼 수 있어요.";
+            _statusText.text = $"라이프 충전까지 {seconds / 60:00}:{seconds % 60:00}";
             return;
         }
-
-        ReplayData replayData = null;
-        for (int i = files.Length - 1; i >= 0; i--)
+        if (!PrepareBattle(null))
         {
-            ReplayData candidate = ReplayStorage.Load(files[i]);
-            if (candidate == null)
-            {
-                continue;
-            }
-            GameMode mode = candidate.formatVersion == ReplayData.CurrentFormatVersion ? candidate.mode : GameMode.Stage;
-            if (StageInjection.Instance.MakeGameSpec(candidate.ruleAddress, candidate.stageAddress, mode))
-            {
-                replayData = candidate;
-                break;
-            }
-        }
-        if (replayData == null)
-        {
-            _statusText.text = "재생할 수 있는 기록이 없습니다.\nStage 또는 Battle에서 새 기록을 만들어 보세요.";
+            _statusText.text = "게임을 준비하지 못했습니다. 다시 시도해 주세요.";
             return;
         }
-
-        GameSpec spec = StageInjection.Instance.GetGameSpec();
-        spec.randomSeed = replayData.randomSeed;
-        if (replayData.formatVersion == ReplayData.CurrentFormatVersion)
+        if (PlayerLives.TrySpend(now))
         {
-            spec.rule.timeLimit = replayData.timeLimit;
+            Main.Instance.MoveScene(SceneEnum.LobbyScene, SceneEnum.GameScene);
         }
-
-        // 이전 스테이지 기록은 원래 종료 규칙으로 재생하며 대전 기록으로 바꾸지 않습니다.
-        StageInjection.Instance.SetReplayData(replayData);
-        Main.Instance.MoveScene(SceneEnum.LobbyScene, SceneEnum.GameScene);
     }
 
     /// <summary>로컬 기록 경로를 파일명 순으로 정렬해 <paramref name="files"/>에 반환한다.</summary>
@@ -89,25 +61,23 @@ public class LobbyMain : MonoBehaviour
         }
     }
 
-    /// <summary>90초 대전용 준비 팝업을 엽니다.</summary>
-    private void OnClickBattle()
-    {
-        DomainManager.Instance.OpenPopup("PopupReady", popup => popup.GetComponent<PopupReady>().ConfigureBattle());
-    }
-
-    /// <summary>추첨된 규칙에 맞는 최신 완주 기록을 찾아 같은 조건의 대전을 준비합니다.</summary>
-    /// <param name="ruleAddress">준비 팝업에서 확정한 퍼즐 규칙 주소입니다.</param>
+    /// <summary><paramref name="ruleAddress"/> 규칙 또는 null이면 모든 규칙의 최신 호환 기록을 찾고, 없으면 첫 기록을 준비한다.</summary>
     internal static bool PrepareBattle(string ruleAddress)
     {
         ReplayData opponent = null;
         GameSpec spec = null;
         Dictionary<(string Rule, string Stage), GameSpec> candidateSpecs = new Dictionary<(string Rule, string Stage), GameSpec>();
-        if (TryGetReplayFiles(out string[] files))
+        bool readable = TryGetReplayFiles(out string[] files);
+        if (!readable && ruleAddress == null)
+        {
+            return false;
+        }
+        if (readable)
         {
             for (int i = files.Length - 1; i >= 0; i--)
             {
                 ReplayData candidate = ReplayStorage.Load(files[i]);
-                if (candidate == null || candidate.ruleAddress != ruleAddress || !candidate.IsCompleteBattleRecord() ||
+                if (candidate == null || (ruleAddress != null && candidate.ruleAddress != ruleAddress) || !candidate.IsCompleteBattleRecord() ||
                     candidate.comboRuleVersion != ReplayData.CurrentComboRuleVersion ||
                     candidate.numericRuleVersion != ReplayData.CurrentNumericRuleVersion)
                 {
@@ -145,6 +115,10 @@ public class LobbyMain : MonoBehaviour
 
         if (spec == null)
         {
+            if (ruleAddress == null)
+            {
+                ruleAddress = "TapMatchRule";
+            }
             if (!StageInjection.Instance.MakeGameSpec(ruleAddress, "Stage", GameMode.Battle))
             {
                 Debug.LogError("[LobbyMain] 대전용 데이터를 준비하지 못했습니다.");

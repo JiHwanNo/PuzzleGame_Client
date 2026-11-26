@@ -9,7 +9,7 @@
 | 작업할 화면 | 색과 글자 위계 | 기준 리소스 |
 |---|---|---|
 | 타이틀 | 영문 CI ‘NEVER LAND’는 밝은 민트색 `#00FF80`, 크기 52의 `font_En`을 쓴다. | [TitleScene](../Assets/01_Scenes/TitleScene.unity) |
-| 로비 | 모드 진입 버튼은 노란 공용 버튼을 사용한다. 상태 안내는 흰색 한글 TMP, 크기 30이다. | [LobbyScene](../Assets/01_Scenes/LobbyScene.unity) |
+| 로비 | 전장 아래 중앙의 플레이 버튼은 노란 공용 버튼을 사용한다. 상태 안내는 흰색 한글 TMP, 크기 30이다. | [LobbyScene](../Assets/01_Scenes/LobbyScene.unity) |
 | 준비 팝업 | 버터색 패널 위에 고동색 `#493128` 글자를 올린다. 제목 60, 모드 안내 30, 라이프 27 순으로 읽히며 START는 하늘색으로 구분한다. | [PopupReady](../Assets/Resources/Prefab/UI/Popup/PopupReady.prefab) · [한글 TMP 폰트](../Assets/Resources/Font/font_Ko.asset) |
 | 인게임 HUD·결과 | 점수와 타이머는 흰색 36, 리플레이 상태는 흰색 27이다. 대전 피벗은 타이머 아래에 같은 폰트로 크기 24의 라벨을 붙인다. | [GameScene](../Assets/01_Scenes/GameScene.unity) · [PivotGaugeView](../Assets/02_Scripts/Battle/Pivot/PivotGaugeView.cs) |
 | 로비 디펜스 | 목표 화면은 평면 격자다. 짙은 청회색 바닥 위에서 현재 경로는 청록색 `#4DA1A6`, 배치 미리보기는 금색 `#F8C564`으로 구별한다. 적은 산호색, 입구와 출구는 각각 연두색과 연보라색이다. | [로비 디펜스 기획](LOBBY-DEFENSE.md) |
