@@ -16,7 +16,7 @@
 | [INGAME.md](INGAME.md) | 게임 루프, 보드 상태, 블럭, 매칭, 뷰 동기화, 애니메이션, 리플레이 | 인게임 퍼즐 작업 시 |
 | [DATA.md](DATA.md) | JSON 구조, GameSpec, Rule/Stage/Replay 데이터, 추가 방법 | 데이터/설정 작업 시 |
 | [UI.md](UI.md) | 도메인 시스템, 팝업/탭 생명주기, UIButton, 추가 방법 | UI 작업 시 |
-| [ART-STYLE.md](ART-STYLE.md) | 실제 참조 이미지, 생성 프롬프트 예시, Unity 임포트 규격 | 보드 블럭이나 슬롯 릴을 만들 때 |
+| [ART-STYLE.md](ART-STYLE.md) | 화면별 색·글자, 버튼·게이지·팝업 원본, 퍼즐 이미지와 임포트 규격 | UI를 구성하거나 게임 이미지를 만들 때 |
 | [SCENE.md](SCENE.md) | 씬 전환, SharedScene, 매니저, AssetManager, PoolManager | 인프라 작업 시 |
 | [SERVER.md](SERVER.md) | 서버 통신, 공유 DLL, 네트워크 레이어, API 연동 | 서버 API 작업 시 |
 | [RULES-AND-STAGES.md](RULES-AND-STAGES.md) | 규칙·스테이지 JSON과 피벗 설정 | 게임 데이터 추가 시 |
