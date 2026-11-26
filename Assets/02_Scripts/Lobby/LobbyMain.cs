@@ -10,9 +10,15 @@ public class LobbyMain : MonoBehaviour
     [SerializeField] private TMP_Text _statusText;
 
     /// <summary>로비 탭이 열리면 방치형 전장을 표시하고 방어전을 시작하거나 이어간다.</summary>
-    private void Start()
+    private System.Collections.IEnumerator Start()
     {
-        LobbyDefenseView.Create(_statusText);
+        // 로비를 직접 실행하면 공유 씬이 임시 카메라를 교체한 뒤 전장을 연결한다.
+        while (CameraController.MainCamera == null)
+        {
+            yield return null;
+        }
+        LobbyDefenseView field = LobbyDefenseView.Create(_statusText, CameraController.MainCamera);
+        LobbyNavigation.Create(_statusText, field);
         _statusText.text = "플레이 시 라이프 1개 사용";
     }
 

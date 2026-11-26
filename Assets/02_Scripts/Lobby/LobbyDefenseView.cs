@@ -31,6 +31,10 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
     private float _elapsed;
     private RectTransform _canvasRect;
     private Vector2 _canvasSize;
+    private Canvas _world;
+    private Transform _mainTab;
+    internal LobbyDefenseBoard Board => _session;
+
     /// <summary>재사용할 거북이 리그와 마지막으로 재생한 칸의 피격 정보를 보관한다.</summary>
     private sealed class TurtleActor
     {
@@ -48,16 +52,25 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
         _session = null;
     }
 
-    /// <summary><paramref name="status"/>와 같은 탭과 글꼴을 사용해 방어 전장을 구성한다.</summary>
-    internal static void Create(TMP_Text status)
+    /// <summary><paramref name="camera"/> 앞에 고정된 전장을 만들고 <paramref name="status"/>의 글꼴과 화면 크기를 사용한다.</summary>
+    internal static LobbyDefenseView Create(TMP_Text status, Camera camera)
     {
         if (_session == null)
         {
             _session = new LobbyDefenseBoard();
             _session.StartFirstWave();
         }
-        RectTransform board = Element("DefenseBoard", status.transform.parent, 0, 225, 720, 360);
+        GameObject field = new GameObject("DefenseWorld", typeof(RectTransform), typeof(Canvas), typeof(GraphicRaycaster));
+        UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(field, status.gameObject.scene);
+        Canvas world = field.GetComponent<Canvas>();
+        world.renderMode = RenderMode.WorldSpace;
+        world.worldCamera = camera;
+        world.sortingLayerName = "Ingame";
+        field.transform.SetPositionAndRotation(camera.transform.position + camera.transform.forward * 10f, camera.transform.rotation);
+        RectTransform board = Element("DefenseBoard", field.transform, 0, 225, 720, 360);
         LobbyDefenseView view = board.gameObject.AddComponent<LobbyDefenseView>();
+        view._world = world;
+        view._mainTab = status.transform.parent;
         view._font = status.font;
         view._archerSheet = AssetManager.Instance.LoadAsset<Texture2D>("LobbyArcher8Way");
         view._turtlePrefab = AssetManager.Instance.LoadResource<GameObject>("Prefab/LobbyTurtle");
@@ -65,6 +78,21 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
         view.FitTab();
         view.BuildControls();
         view.Refresh();
+        return view;
+    }
+
+    /// <summary><paramref name="visible"/>에 맞게 전장의 그리기와 입력을 바꾸고 전투 시간은 계속 진행한다.</summary>
+    internal void ShowField(bool visible)
+    {
+        if (_world.enabled != visible)
+        {
+            _world.enabled = visible;
+            _world.GetComponent<GraphicRaycaster>().enabled = visible;
+            if (visible)
+            {
+                Refresh();
+            }
+        }
     }
 
     /// <summary>세로 공간이 짧은 창에서도 전장과 기존 모드 버튼이 함께 들어오도록 탭을 축소한다.</summary>
@@ -77,7 +105,9 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
         }
         _canvasSize = size;
         float scale = Mathf.Min(1f, Mathf.Min(size.x / 760f, size.y / 1200f));
-        transform.parent.localScale = new Vector3(scale, scale, 1f);
+        _mainTab.localScale = new Vector3(scale, scale, 1f);
+        float worldScale = 2f * _world.worldCamera.orthographicSize / size.y * scale;
+        _world.transform.localScale = Vector3.one * worldScale;
     }
 
     /// <summary>이름 <paramref name="name"/>의 UI를 <paramref name="parent"/> 아래 중심 좌표와 크기에 배치한다.</summary>
@@ -278,7 +308,7 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
     }
 
     /// <summary><paramref name="piece"/>를 선택하고 이동 중이던 유닛 선택을 해제한다.</summary>
-    private void SelectPiece(LobbyDefenseBoard.Piece piece)
+    internal void SelectPiece(LobbyDefenseBoard.Piece piece)
     {
         _piece = piece;
         _moving = -1;
@@ -320,7 +350,10 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
         _elapsed += Time.deltaTime;
         if (_elapsed < 1f)
         {
-            AnimateUnits();
+            if (_world.enabled)
+            {
+                AnimateUnits();
+            }
             return;
         }
         while (_elapsed >= 1f)
@@ -328,7 +361,10 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
             _elapsed -= 1f;
             _session.Tick();
         }
-        Refresh();
+        if (_world.enabled)
+        {
+            Refresh();
+        }
     }
 
     /// <summary>앞쪽 구역을 표시한다.</summary>

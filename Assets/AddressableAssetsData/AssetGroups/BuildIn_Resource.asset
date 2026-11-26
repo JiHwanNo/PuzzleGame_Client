@@ -15,6 +15,11 @@ MonoBehaviour:
   m_GroupName: BuildIn_Resource
   m_GUID: 3c204a621933ec14f9306ea4f6c9c0d2
   m_SerializeEntries:
+  - m_GUID: 507b79eb844c4dc39231fb3813cc8ec9
+    m_Address: LobbyNavigation
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 577871944a0d4ba097769e1a89e3f33a
     m_Address: LobbyArcher8Way
     m_ReadOnly: 0
