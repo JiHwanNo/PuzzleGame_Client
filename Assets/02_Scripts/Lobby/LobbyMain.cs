@@ -9,6 +9,12 @@ public class LobbyMain : MonoBehaviour
 {
     [SerializeField] private TMP_Text _statusText;
 
+    /// <summary>로비 탭에 방어 전장을 열고 같은 플레이 세션의 전투를 이어간다.</summary>
+    private void Start()
+    {
+        LobbyDefenseView.Create(_statusText);
+    }
+
     /// <summary>로비에서 스테이지 준비 팝업을 엽니다.</summary>
     public void OnClickStartStage()
     {
