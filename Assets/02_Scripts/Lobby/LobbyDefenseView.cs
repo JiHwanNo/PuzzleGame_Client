@@ -14,10 +14,22 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
     private TMP_FontAsset _font;
     private Texture2D _archerSheet;
     private GameObject _turtlePrefab;
+    private RawImage _turtlePortrait;
     private static readonly string[] _directions = { "S", "SE", "E", "NE", "N", "NW", "W", "SW" };
     private readonly List<TurtleActor> _turtles = new List<TurtleActor>();
     private readonly List<RawImage> _unitIcons = new List<RawImage>();
     private readonly List<int> _visibleCells = new List<int>();
+    private static readonly Color DeepBlue = new Color32(22, 43, 62, 255);
+    private static readonly Color CardBlue = new Color32(45, 76, 98, 255);
+    private static readonly Color SelectedBlue = new Color32(32, 111, 145, 255);
+    private static readonly Color Honey = new Color32(255, 213, 117, 255);
+    private readonly Image[] _cards = new Image[3];
+    private readonly TMP_Text[] _costs = new TMP_Text[3];
+    private RectTransform _backdrop;
+    private TMP_Text _gold;
+    private TMP_Text _waveTime;
+    private Button _previous;
+    private Button _next;
     private TMP_Text _summary;
     private TMP_Text _hint;
     private TMP_Text _page;
@@ -67,14 +79,27 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
         world.worldCamera = camera;
         world.sortingLayerName = "Ingame";
         field.transform.SetPositionAndRotation(camera.transform.position + camera.transform.forward * 10f, camera.transform.rotation);
-        RectTransform board = Element("DefenseBoard", field.transform, 0, 225, 720, 360);
+        RectTransform board = Element("DefenseBoard", field.transform, 0, 180, 720, 360);
         LobbyDefenseView view = board.gameObject.AddComponent<LobbyDefenseView>();
         view._world = world;
         view._mainTab = status.transform.parent;
         view._font = status.font;
         view._archerSheet = AssetManager.Instance.LoadAsset<Texture2D>("LobbyArcher8Way");
         view._turtlePrefab = AssetManager.Instance.LoadResource<GameObject>("Prefab/LobbyTurtle");
+        if (view._turtlePrefab != null)
+        {
+            Transform portrait = view._turtlePrefab.transform.Find("SE/Weight/Chest/SEArt");
+            if (portrait != null)
+            {
+                view._turtlePortrait = portrait.GetComponent<RawImage>();
+            }
+        }
         view._canvasRect = (RectTransform)status.canvas.rootCanvas.transform;
+        view._backdrop = Element("LobbyBackground", field.transform, 0, 0, 1, 1);
+        view._backdrop.SetAsFirstSibling();
+        Image backdrop = view._backdrop.gameObject.AddComponent<Image>();
+        backdrop.color = DeepBlue;
+        backdrop.raycastTarget = false;
         view.FitTab();
         view.BuildControls();
         view.Refresh();
@@ -104,7 +129,8 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
             return;
         }
         _canvasSize = size;
-        float scale = Mathf.Min(1f, Mathf.Min(size.x / 760f, size.y / 1200f));
+        float scale = Mathf.Min(1f, Mathf.Min(size.x / 780f, size.y / 1400f));
+        _backdrop.sizeDelta = size / scale;
         _mainTab.localScale = new Vector3(scale, scale, 1f);
         float worldScale = 2f * _world.worldCamera.orthographicSize / size.y * scale;
         _world.transform.localScale = Vector3.one * worldScale;
@@ -123,40 +149,96 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
     /// <summary>전투 상태와 구역 이동 및 배치 확정 버튼을 구성한다.</summary>
     private void BuildControls()
     {
-        _summary = Label(Element("DefenseStatus", transform, 0, 265, 720, 48), 32);
-        _hint = Label(Element("PlacementHint", transform, 0, 215, 720, 46), 25);
-        MakeButton("이전", -300, 112, PreviousPage);
-        Button pageButton = MakeButton("전체 보기", -114, 236, ToggleOverview);
+        _summary = Label(Element("Wave", transform, -160, 328, 400, 60), 44);
+        _summary.alignment = TextAlignmentOptions.MidlineLeft;
+        _gold = Label(Element("Gold", transform, 245, 328, 230, 60), 33);
+        _gold.alignment = TextAlignmentOptions.MidlineRight;
+        _gold.color = Honey;
+
+        _previous = MakeButton("이전", -313, 232, 94, 64, PreviousPage);
+        Button pageButton = MakeButton("전체 보기", -129, 232, 252, 64, ToggleOverview);
         _page = pageButton.GetComponentInChildren<TMP_Text>();
-        MakeButton("다음", 65, 104, NextPage);
-        _hire = MakeButton("배치 확정", 248, 216, Confirm);
-        Button archer = MakeButton("공격 유닛", -240, 216, () => SelectPiece(LobbyDefenseBoard.Piece.Archer), 328);
-        Button wall = MakeButton("길막 유닛", 0, 216, () => SelectPiece(LobbyDefenseBoard.Piece.Wall), 328);
-        AddPortrait(archer, LobbyDefenseBoard.Piece.Archer);
-        AddPortrait(wall, LobbyDefenseBoard.Piece.Wall);
-        MakeButton("마비 트랩", 240, 216, () => SelectPiece(LobbyDefenseBoard.Piece.Trap), 328);
+        _next = MakeButton("다음", 55, 232, 94, 64, NextPage);
+        _waveTime = Label(Element("WaveTimer", transform, 238, 232, 244, 60), 24);
+        _waveTime.alignment = TextAlignmentOptions.MidlineRight;
+
+        for (int i = 0; i < _cards.Length; i++)
+        {
+            LobbyDefenseBoard.Piece piece = (LobbyDefenseBoard.Piece)(i + 1);
+            BuildUnitCard(piece, i);
+        }
+        _hint = Label(Element("PlacementHint", transform, -113, -394, 494, 100), 24);
+        _hint.alignment = TextAlignmentOptions.MidlineLeft;
+        _hire = MakeButton("배치 확정", 253, -394, 214, 78, Confirm);
+        _hire.image.color = SelectedBlue;
     }
 
-    /// <summary><paramref name="button"/>의 글자 옆에 <paramref name="piece"/>의 초상을 배치한다.</summary>
-    private void AddPortrait(Button button, LobbyDefenseBoard.Piece piece)
+    /// <summary><paramref name="piece"/>의 초상·이름·비용을 <paramref name="index"/>번째 선택 카드에 배치한다.</summary>
+    private void BuildUnitCard(LobbyDefenseBoard.Piece piece, int index)
     {
-        if (!HasUnitArt(piece))
+        string name = PieceName(piece);
+        Button card = MakeButton(name, (index - 1) * 246, -278, 228, 124, () => SelectPiece(piece));
+        _cards[index] = card.image;
+        TMP_Text label = card.GetComponentInChildren<TMP_Text>();
+        label.rectTransform.anchoredPosition = new Vector2(44, 17);
+        label.rectTransform.sizeDelta = new Vector2(136, 42);
+        label.fontSize = 25;
+        _costs[index] = Label(Element("Cost", card.transform, 44, -20, 132, 32), 20);
+        _costs[index].color = Honey;
+
+        Vector2 position = new Vector2(-66, 0);
+        if (piece == LobbyDefenseBoard.Piece.Trap)
         {
-            return;
+            RectTransform trap = Element("Trap", card.transform, position.x, 0, 46, 46);
+            DrawTrap(trap);
         }
-        RectTransform label = button.GetComponentInChildren<TMP_Text>().rectTransform;
-        label.anchoredPosition = new Vector2(23f, 0f);
-        label.sizeDelta = new Vector2(150f, 60f);
-        Vector2 position = new Vector2(-72f, 0f);
-        if (piece == LobbyDefenseBoard.Piece.Wall)
+        else
         {
-            MakeTurtle(button.transform, 56f).anchoredPosition = position;
-            return;
+            RawImage icon = MakeIcon(card.transform, 94);
+            icon.rectTransform.anchoredPosition = position;
+            SetPortrait(icon, piece);
         }
-        RawImage icon = MakeIcon(button.transform, 56f);
-        icon.rectTransform.anchoredPosition = position;
-        icon.texture = _archerSheet;
-        icon.uvRect = PoseRegion(0, false);
+    }
+
+    /// <summary>메인과 상점의 <paramref name="icon"/>에 <paramref name="piece"/>의 남동쪽 원화를 표시한다.</summary>
+    internal void SetPortrait(RawImage icon, LobbyDefenseBoard.Piece piece)
+    {
+        if (piece == LobbyDefenseBoard.Piece.Wall && _turtlePortrait != null)
+        {
+            icon.texture = _turtlePortrait.texture;
+            icon.uvRect = _turtlePortrait.uvRect;
+        }
+        else if (piece == LobbyDefenseBoard.Piece.Archer)
+        {
+            icon.texture = _archerSheet;
+            icon.uvRect = PoseRegion(1, false);
+        }
+        icon.enabled = icon.texture != null;
+    }
+
+    /// <summary><paramref name="rect"/>에 마비 트랩의 보라색 보석과 노란 중심을 그린다.</summary>
+    internal static void DrawTrap(RectTransform rect)
+    {
+        rect.localRotation = Quaternion.Euler(0, 0, 45);
+        Image gem = rect.gameObject.AddComponent<Image>();
+        gem.color = new Color32(187, 137, 245, 255);
+        gem.raycastTarget = false;
+        RectTransform core = Element("Core", rect, 0, 0, 16, 16);
+        Image center = core.gameObject.AddComponent<Image>();
+        center.color = Honey;
+        center.raycastTarget = false;
+    }
+
+    /// <summary><paramref name="piece"/>의 전장·상점 공통 표시 이름을 반환한다.</summary>
+    internal static string PieceName(LobbyDefenseBoard.Piece piece)
+    {
+        switch (piece)
+        {
+            case LobbyDefenseBoard.Piece.Archer: return "토끼 사수";
+            case LobbyDefenseBoard.Piece.Wall: return "새싹거북";
+            case LobbyDefenseBoard.Piece.Trap: return "마비 트랩";
+            default: return string.Empty;
+        }
     }
 
     /// <summary><paramref name="piece"/>의 전장 표시용 원화 또는 프리팹을 사용할 수 있는지 확인한다.</summary>
@@ -321,21 +403,22 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
         TextMeshProUGUI label = rect.gameObject.AddComponent<TextMeshProUGUI>();
         label.font = _font;
         label.fontSize = size;
+        label.textWrappingMode = TextWrappingModes.NoWrap;
         label.alignment = TextAlignmentOptions.Center;
         label.raycastTarget = false;
         return label;
     }
 
-    /// <summary><paramref name="caption"/> 버튼을 지정 위치와 폭으로 만들고 <paramref name="action"/>을 연결한다.</summary>
-    private Button MakeButton(string caption, int x, int width, UnityEngine.Events.UnityAction action, int y = -220)
+    /// <summary><paramref name="caption"/> 버튼을 (<paramref name="x"/>, <paramref name="y"/>)에 <paramref name="width"/> × <paramref name="height"/> 크기로 만들고 <paramref name="action"/>을 연결한다.</summary>
+    private Button MakeButton(string caption, int x, int y, int width, int height, UnityEngine.Events.UnityAction action)
     {
-        RectTransform rect = Element(caption, transform, x, y, width, 60);
+        RectTransform rect = Element(caption, transform, x, y, width, height);
         Image background = rect.gameObject.AddComponent<Image>();
-        background.color = new Color32(44, 84, 102, 255);
+        background.color = CardBlue;
         Button button = rect.gameObject.AddComponent<Button>();
         button.targetGraphic = background;
         button.onClick.AddListener(action);
-        Label(Element("Label", rect, 0, 0, width, 60), 24).text = caption;
+        Label(Element("Label", rect, 0, 0, width, height), 24).text = caption;
         return button;
     }
 
@@ -448,35 +531,37 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
         string timer = "첫 유닛 배치 대기";
         if (_session.Rest > 0)
         {
-            timer = $"정비 {_session.Rest}초 / 유닛 이동 가능";
+            timer = $"정비 {_session.Rest}초";
         }
         else if (_session.Started)
         {
             timer = _session.SpawnsFinished ? "남은 적 방어" : $"다음 소환 {_session.NextSpawn}초";
         }
-        _summary.text = $"웨이브 {_session.Wave}     골드 {_session.Gold}     {timer}";
-        _page.text = _columns == PageWidth ? $"{_first + 1}-{_first + PageWidth}열 / 전체" : "전체 / 확대";
-        string pieceName = "공격 유닛";
-        if (_piece == LobbyDefenseBoard.Piece.Wall)
+        _summary.text = $"웨이브 {_session.Wave:00}";
+        _gold.text = $"{_session.Gold} 골드";
+        _waveTime.text = timer;
+        bool overview = _columns == LobbyDefenseBoard.Width;
+        _previous.interactable = overview || _first > 0;
+        _next.interactable = overview || _first + PageWidth < LobbyDefenseBoard.Width;
+        _page.text = overview ? "구역 보기" : $"{_first + 1}–{_first + PageWidth}열 · 전체";
+        for (int i = 0; i < _cards.Length; i++)
         {
-            pieceName = "새싹거북";
-        }
-        else if (_piece == LobbyDefenseBoard.Piece.Trap)
-        {
-            pieceName = "마비 트랩";
+            LobbyDefenseBoard.Piece choice = (LobbyDefenseBoard.Piece)(i + 1);
+            _cards[i].color = _piece == choice && _moving < 0 ? SelectedBlue : CardBlue;
+            _costs[i].text = $"{_session.CostOf(choice)} 골드";
         }
         int cost = _session.CostOf(_piece);
-        string order = _moving >= 0 ? "무료 이동" : $"{pieceName} / {cost}골드";
+        string order = _moving >= 0 ? "무료 이동" : PieceName(_piece);
         string route = _session.RouteLength < 0 ? "봉쇄 중" : $"{_session.RouteLength}칸";
-        _hint.text = _columns == PageWidth ? $"{order}   /   칸 선택   /   현재 경로 {route}" : "확대할 구역을 선택하세요";
+        _hint.text = overview ? "확대할 구역을 선택하세요" : $"{order} · 놓을 칸 선택\n현재 경로 {route}";
         if (_selected >= 0 && _previewLength == LobbyDefenseBoard.InvalidPlacement)
         {
             _hint.text = "이 칸에는 배치할 수 없습니다";
         }
         else if (_selected >= 0)
         {
-            string result = _session.PreviewSiege ? "통로 봉쇄 / 고립된 적이 방벽 공격" : $"경로 {route} > {_previewLength}칸";
-            _hint.text = $"{order}   /   {result}";
+            string result = _session.PreviewSiege ? "통로 봉쇄 / 방벽 공격" : $"경로 {route} → {_previewLength}칸";
+            _hint.text = $"{order} · 배치 미리보기\n{result}";
         }
         _hire.interactable = _previewLength != LobbyDefenseBoard.InvalidPlacement && (_moving >= 0 || _session.Gold >= cost);
         RefreshUnitIcons();

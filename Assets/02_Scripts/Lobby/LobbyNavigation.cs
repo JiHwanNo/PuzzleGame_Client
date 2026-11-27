@@ -8,7 +8,7 @@ internal sealed class LobbyNavigation : MonoBehaviour
     private const int MainPage = 2;
     private const string MotionKey = "Lobby.TabMotion";
     private static readonly string[] Names = { "상점", "인벤토리", "메인", "미확정", "옵션" };
-    private static readonly string[] Pieces = { "공격 유닛", "새싹거북", "마비 트랩" };
+    private const int PieceCount = 3;
     private static readonly Color Ink = new Color32(18, 35, 49, 255);
     private static readonly Color Surface = new Color32(35, 61, 73, 255);
     private static readonly Color Gold = new Color32(255, 211, 132, 255);
@@ -79,13 +79,13 @@ internal sealed class LobbyNavigation : MonoBehaviour
         {
             bool shop = index == 0;
             Label(page, shop ? "전장 고용" : "전장에 배치된 유닛", .08f, .49f, .92f, .56f, 27);
-            for (int i = 0; i < Pieces.Length; i++)
+            for (int i = 0; i < PieceCount; i++)
             {
                 int slot = i;
                 float left = .055f + .30f * i;
                 RectTransform card = Panel("Unit" + i, page, left, .19f, left + .285f, .47f, Surface);
                 UnitImage(card, i);
-                Label(card, Pieces[i], .02f, .25f, .98f, .43f, 27);
+                Label(card, LobbyDefenseView.PieceName((LobbyDefenseBoard.Piece)(i + 1)), .02f, .25f, .98f, .43f, 27);
                 TMP_Text value = Label(card, "", .02f, .05f, .98f, .23f, 23);
                 value.color = Gold;
                 if (shop)
@@ -124,26 +124,12 @@ internal sealed class LobbyNavigation : MonoBehaviour
         if (slot == 2)
         {
             RawImage trap = Square(parent, .68f, .25f);
-            trap.color = new Color32(197, 127, 255, 255);
-            trap.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 45f);
-            Panel("Core", trap.transform, .32f, .32f, .68f, .68f, Gold).GetComponent<Image>().raycastTarget = false;
-            return;
-        }
-        if (slot == 1)
-        {
-            RawImage frame = Square(parent, .68f, .43f);
-            frame.enabled = false;
-            GameObject prefab = AssetManager.Instance.LoadResource<GameObject>("Prefab/LobbyTurtle");
-            if (prefab != null)
-            {
-                RectTransform portrait = (RectTransform)Instantiate(prefab, frame.transform, false).transform;
-                portrait.localScale = Vector3.one * (100f / portrait.rect.width);
-            }
+            trap.enabled = false;
+            LobbyDefenseView.DrawTrap(Box("Gem", trap.transform, 0, 0, 1, 1));
             return;
         }
         RawImage image = Square(parent, .68f, .43f);
-        image.texture = AssetManager.Instance.LoadAsset<Texture2D>("LobbyArcher8Way");
-        image.uvRect = new Rect(0, .75f, .125f, .25f);
+        _field.SetPortrait(image, (LobbyDefenseBoard.Piece)(slot + 1));
     }
 
     /// <summary><paramref name="slot"/> 유닛을 선택하여 메인의 기존 배치 흐름으로 돌아간다.</summary>
@@ -205,7 +191,7 @@ internal sealed class LobbyNavigation : MonoBehaviour
     /// <summary>현재 전장 모델에서 고용 비용과 배치 수량을 읽는다.</summary>
     private void RefreshValues()
     {
-        for (int i = 0; i < Pieces.Length; i++)
+        for (int i = 0; i < PieceCount; i++)
         {
             LobbyDefenseBoard.Piece piece = (LobbyDefenseBoard.Piece)(i + 1);
             _prices[i].text = _field.Board.CostOf(piece) + " 골드";
