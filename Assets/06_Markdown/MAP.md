@@ -14,7 +14,7 @@
 | [../AGENTS.md](../AGENTS.md) | Codex 작업 원칙, 코딩 규칙, 주의사항(Known Pitfalls), 작업별 참고 링크 | 항상 (기본 규칙) |
 | [../CLAUDE.md](../CLAUDE.md) | Claude Code 호환용 기존 가이드 | Claude Code 사용 시 |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | MVC, 데이터 흐름, 리플레이, 게임 흐름, 폴더 구조 | 아키텍처 이해 시 |
-| [LOBBY-DEFENSE.md](LOBBY-DEFENSE.md) | 100열 × 10행 로비 디펜스 규칙·구현 순서·검증 시나리오 | 아웃게임 배치·전투·퍼즐 연동 개발 시 |
+| [LOBBY-DEFENSE.md](../../docs/LOBBY-DEFENSE.md) | 방어 카드 뽑기·등급, 100×10 셀 배치, 스테이지 방어 완료·다음 스테이지 진입 조건 | 로비 디펜스와 퍼즐 연동 개발 시 |
 | [CONVENTIONS.md](CONVENTIONS.md) | 코드 리뷰 체크리스트, 위반 예시, 수정 가이드 | 커밋 전 리뷰 시 필독 |
 | [INGAME.md](INGAME.md) | 게임 루프, 보드 상태, 블럭, 매칭, 뷰 동기화, 애니메이션, 리플레이 | 인게임 퍼즐 작업 시 |
 | [DATA.md](DATA.md) | JSON 구조, GameSpec, Rule/Stage/Replay 데이터, 추가 방법 | 데이터/설정 작업 시 |
