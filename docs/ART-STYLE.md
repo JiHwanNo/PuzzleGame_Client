@@ -36,6 +36,16 @@
 - [토끼 사수 방향 시트](../Assets/04_Resources/Images/LobbyArcher8Way.png)는 S · SE · E · NE · N · NW · W · SW 순서로 대기·걷기·사격·특수 포즈를 담는다. 전장에서는 입구를 바라보고, 사격할 때 표적 방향으로 활을 내민다.
 - [새싹거북 프리팹](../Assets/Resources/Prefab/LobbyTurtle.prefab)은 [파츠 아틀라스](../Assets/Resources/Texture/LobbyTurtle/LobbyTurtleAtlas.png)의 몸통 5방향·발·움츠린 등딱지를 조합한다. 피격 시 적 쪽으로 몸을 숨겨도 떡잎과 금빛 잎 표식은 보인다. [남동쪽 초상](art/lobby-units/SproutTurtle-portrait.png)
 
+### 인벤토리 보유 카드
+
+[공용 카드 프레임](../Assets/04_Resources/Images/LobbyInventoryCard.png)은 세로 3:4 비율이다. 금색 테두리 안쪽의 청록 숲 배경에는 남동쪽 캐릭터를 크게 올리고, 짙은 청록색 명판에는 이름과 보유 카드 한 장의 공격·방어·체력을 표시한다. 등급과 배치 상태도 플레이 중의 값으로 채운다.
+
+인벤토리는 실제 보유 카드를 획득 순서대로 세 장씩 한 줄에 표시한다. 위아래로 스크롤하면 보이는 카드의 캐릭터가 가벼운 대기 동작을 반복한다. 왼쪽 위에는 등급에 따라 은별 1~3개 또는 금별 3개를, 목록 카드 오른쪽 위에는 돋보기를 올린다. [카드 아이콘 원화](../Assets/04_Resources/Images/LobbyCardIcons.png)
+
+카드 전체를 누르면 그 자리에서 중앙으로 커지고 뒤의 목록이 어두워진다. 확대가 끝나면 특수 동작을 한 번 재생하고 대기로 돌아온다. 오른쪽 위의 [빨간 뒤로 가기 화살표](../Assets/04_Resources/Images/LobbyCardBack.png)를 누르면 원래 자리로 축소된다. 화면 전환 애니메이션을 끄면 팝업이 즉시 열리고 닫힌다. **다시 재생**으로 동작을 반복할 수 있다. 토끼 사수는 원래 방향 시트의 특수 포즈를, 새싹거북과 신규 동물은 프리팹 동작을, 마비 트랩은 보라색 보석의 반짝임을 사용한다.
+
+[카드 앞면 PNG 21장](art/lobby-units/InventoryCardFronts.zip)에는 이름과 원화가 들어 있다. [별 등급을 표시한 보유 카드 갤러리](art/lobby-units/InventoryCardGrades.png)는 검증용 카드의 등급과 능력치를 함께 표시한 예시다.
+
 ### 신규 캐릭터 프리팹과 방향 시트
 
 ![공격 5종, 방어 13종, 길막 확인용 등불유령](art/lobby-units/LobbyRoster.png)

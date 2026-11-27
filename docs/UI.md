@@ -6,11 +6,10 @@ UI, 팝업, 탭 관련 작업 시 이 문서를 참고.
 
 [전체 작업 지도](MAP.md) · [문서 목록](README.md)
 
-파일 링크는 이 문서 기준 상대 경로이며, 마지막 열의 이름을 파일 안에서 검색하면 구현 위치를 찾을 수 있습니다.
-
 | 찾는 콘텐츠 | 담당 C# 파일 | 주요 메서드·타입·멤버 |
 |---|---|---|
 | 로비 상점 카드 뽑기·개별 카드 인벤토리·메인 전장 배치 | [LobbyNavigation.cs](../Assets/02_Scripts/Lobby/LobbyNavigation.cs) · [LobbyUnit.cs](../Assets/02_Scripts/Lobby/LobbyUnit.cs) · [LobbyDefenseView.cs](../Assets/02_Scripts/Lobby/LobbyDefenseView.cs) | `InitializeCatalog`, `DrawCard`, `RefreshCatalog`, `LobbyCard.Grade`, `SelectCard` |
+| 보유 카드 3열 스크롤·별 등급·카드 전체 클릭과 확대 팝업 | [LobbyNavigation.Inventory.cs](../Assets/02_Scripts/Lobby/LobbyNavigation.Inventory.cs) · [LobbyCardPortrait.cs](../Assets/02_Scripts/Lobby/LobbyCardPortrait.cs) | `BuildInventoryList`, `BindOwnedArt`, `InspectCard`, `ApplyDetailZoom`, `PlaySpecial` |
 | 팝업/탭 스택·뒤로 가기·전체 닫기 | [DomainManager.cs](../Assets/02_Scripts/Manager/DomainManager.cs) | `OpenPopup`, `OpenTab`, `Back`, `CloseAll` |
 | 팝업/탭 공통 계약 | [IDomainNode.cs](../Assets/02_Scripts/Manager/IDomainNode.cs) | `IDomainNode` |
 | 팝업 생성·파괴·씬별 등록 | [PopupController.cs](../Assets/02_Scripts/Manager/PopupController.cs) | `CreatePopup`, `DestroyPopup` |

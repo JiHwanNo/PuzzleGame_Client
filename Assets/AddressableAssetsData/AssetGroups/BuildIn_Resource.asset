@@ -15,6 +15,21 @@ MonoBehaviour:
   m_GroupName: BuildIn_Resource
   m_GUID: 3c204a621933ec14f9306ea4f6c9c0d2
   m_SerializeEntries:
+  - m_GUID: 28406bc1728b4fd28c49020650f9bee1
+    m_Address: LobbyCardBack
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 5bfb98f03d714887892b1d3777c569de
+    m_Address: LobbyCardIcons
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 73d343234db84b86897707bb2803ccc7
+    m_Address: LobbyInventoryCard
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: b266912965b84653bd4e5d61c22108a5
     m_Address: LobbyUnitCatalog
     m_ReadOnly: 0

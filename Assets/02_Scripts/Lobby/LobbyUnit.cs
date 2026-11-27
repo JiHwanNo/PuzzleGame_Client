@@ -190,24 +190,9 @@ internal sealed class LobbyCard
 
     internal LobbyUnit Unit => LobbyUnit.Catalog[Kind];
     internal string Stats => $"공 {Attack} · 방 {Defense} · 체 {Health}";
-    internal string Grade
-    {
-        get
-        {
-            int sum = Attack + Defense + Health;
-            if (sum < 10)
-            {
-                return "1성";
-            }
-            if (sum < 20)
-            {
-                return "2성";
-            }
-            if (sum < 30)
-            {
-                return "3성";
-            }
-            return "금별 3성";
-        }
-    }
+    private static readonly string[] GradeNames = { "1성", "2성", "3성", "금별 3성" };
+    private int GradeIndex => Math.Max(0, Math.Min(3, (Attack + Defense + Health) / 10));
+    internal int StarCount => Math.Min(3, GradeIndex + 1);
+    internal bool HasGoldStars => GradeIndex == 3;
+    internal string Grade => GradeNames[GradeIndex];
 }
