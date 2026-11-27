@@ -2,10 +2,10 @@
 using System.Collections.Generic;
 using Puzzle.Core;
 
-/// <summary>로비 방어전의 배치, 보유 카드, 최단 경로와 스테이지 전투을 관리한다.</summary>
+/// <summary>로비 방어전의 배치, 보유 카드, 최단 경로와 스테이지 전투를 관리한다.</summary>
 internal sealed class LobbyDefenseBoard
 {
-    public const int Width = 100;
+    public const int Width = 20;
     public const int Height = 10;
     public const int Entrance = Width * 4;
     public const int Exit = Entrance + Width - 1;
@@ -67,7 +67,8 @@ internal sealed class LobbyDefenseBoard
     [Serializable]
     internal sealed class Progress
     {
-        public int Version = 1;
+        private const int LegacyWidth = 100;
+        public int Version = 2;
         public List<LobbyCard> Cards = new List<LobbyCard>();
         public List<Monster> Monsters = new List<Monster>();
         public int Gold;
@@ -78,10 +79,67 @@ internal sealed class LobbyDefenseBoard
         public int Seconds;
         public bool Started;
 
-        /// <summary>현재 버전의 카드, 배치 좌표와 진행 중인 적을 복구할 수 있는지 확인한다.</summary>
-        internal bool CanRestore()
+        /// <summary>저장 좌표를 검증하고 100열 저장본을 처음 열 때만 현재 전장으로 옮긴다.</summary>
+        internal bool TryRestoreLayout()
         {
-            if (Version != 1 || Cards == null || Cards.Count == 0 || Monsters == null || Stage < 1 || Gold < 0 ||
+            if (Version == 2)
+            {
+                return ValidLayout(Width);
+            }
+            if (Version != 1 || !ValidLayout(LegacyWidth))
+            {
+                return false;
+            }
+            bool[] blocked = new bool[Count];
+            foreach (LobbyCard card in Cards)
+            {
+                if (card.Cell < 0)
+                {
+                    continue;
+                }
+                int column = card.Cell % LegacyWidth;
+                int cell = card.Cell / LegacyWidth * Width + column;
+                if (column >= Width || cell == Exit)
+                {
+                    card.Cell = -1;
+                    card.RemainingHealth = 0;
+                    card.ReadyAt = 0;
+                    continue;
+                }
+                card.Cell = cell;
+                blocked[cell] = card.Unit.Role != Piece.Trap;
+            }
+            foreach (Monster monster in Monsters)
+            {
+                int column = Math.Min(monster.Cell % LegacyWidth, Width - 1);
+                int target = monster.Cell / LegacyWidth * Width + column;
+                int current = target;
+                if (blocked[target] || target == Exit)
+                {
+                    // 새 출구나 방벽과 겹친 적은 가장 가까운 통행 칸에서 진행을 이어간다.
+                    current = Entrance;
+                    for (int cell = 0; cell < Count; cell++)
+                    {
+                        if (cell != Exit && !blocked[cell] && Separation(cell, target) < Separation(current, target))
+                        {
+                            current = cell;
+                        }
+                    }
+                }
+                monster.Cell = current;
+                monster.PreviousCell = current;
+                monster.FacingCell = current;
+            }
+            Version = 2;
+            return true;
+        }
+
+        /// <summary>해당 저장본의 <paramref name="width"/>를 기준으로 카드와 적의 좌표 및 진행 수치를 검사한다.</summary>
+        private bool ValidLayout(int width)
+        {
+            int entrance = 4 * width;
+            int exit = entrance + width - 1;
+            if (Cards == null || Cards.Count == 0 || Monsters == null || Stage < 1 || Gold < 0 ||
                 StageTime < 0 || Seconds < 0 || Escaped < 0 || Spawned < Escaped)
             {
                 return false;
@@ -91,7 +149,7 @@ internal sealed class LobbyDefenseBoard
             {
                 if (card == null || !card.ResolveUnit() ||
                     card.Attack < 0 || card.Attack > 10 || card.Defense < 0 || card.Defense > 10 || card.Health < 0 || card.Health > 10 ||
-                    card.Cell < -1 || card.Cell >= Count || card.Cell == Entrance || card.Cell == Exit)
+                    card.Cell < -1 || card.Cell >= width * Height || card.Cell == entrance || card.Cell == exit)
                 {
                     return false;
                 }
@@ -103,7 +161,7 @@ internal sealed class LobbyDefenseBoard
             int regular = 0;
             foreach (Monster monster in Monsters)
             {
-                if (monster == null || monster.Cell < 0 || monster.Cell >= Count || monster.Cell == Exit)
+                if (monster == null || monster.Cell < 0 || monster.Cell >= width * Height || monster.Cell == exit)
                 {
                     return false;
                 }
@@ -131,9 +189,13 @@ internal sealed class LobbyDefenseBoard
         public int ColumnDelta;
         public int RowDelta;
         public bool FinishingBlow;
+        public Monster Target;
     }
 
     private readonly UnitContact[] _contacts = new UnitContact[Count];
+    // 처치된 적도 해당 논리 초의 피격 연출이 끝날 때까지 뷰에 전달한다.
+    private readonly List<Monster> _defeated = new List<Monster>();
+    internal IReadOnlyList<Monster> Defeated => _defeated;
     private int _regularCount;
     private readonly int[] _distance = new int[Count];
     private readonly int[] _preview = new int[Count];
@@ -153,6 +215,8 @@ internal sealed class LobbyDefenseBoard
         public int SpawnSecond;
         public int StrikeSecond = -1;
         public int Stun;
+        [NonSerialized] public int HitSecond;
+        [NonSerialized] public int HealthBeforeHit;
     }
 
     private StagePlan CurrentPlan => _stages[(Stage - 1) % _stages.Length];
@@ -176,14 +240,15 @@ internal sealed class LobbyDefenseBoard
     public UnitContact ContactAt(int cell) => _contacts[cell];
 
     /// <summary><paramref name="unit"/>에서 <paramref name="opponent"/> 방향의 접촉과 처치 여부 <paramref name="finishingBlow"/>를 기록한다.</summary>
-    private void RecordContact(int unit, int opponent, bool finishingBlow)
+    private void RecordContact(int unit, Monster opponent, bool finishingBlow)
     {
         _contacts[unit] = new UnitContact
         {
             Second = Seconds,
-            ColumnDelta = opponent % Width - unit % Width,
-            RowDelta = opponent / Width - unit / Width,
-            FinishingBlow = finishingBlow
+            ColumnDelta = opponent.Cell % Width - unit % Width,
+            RowDelta = opponent.Cell / Width - unit / Width,
+            FinishingBlow = finishingBlow,
+            Target = opponent
         };
     }
 
@@ -278,6 +343,9 @@ internal sealed class LobbyDefenseBoard
 
     /// <summary><paramref name="cell"/>의 유닛 점유 상태를 반환한다.</summary>
     public bool HasUnit(int cell) => _lineup[cell] != null;
+
+    /// <summary><paramref name="cell"/>에 놓인 보유 카드 원본을 반환한다.</summary>
+    internal LobbyCard CardAt(int cell) => _lineup[cell];
 
     /// <summary><paramref name="cell"/>에 배치된 역할을 반환한다.</summary>
     public Piece PieceAt(int cell)
@@ -439,6 +507,7 @@ internal sealed class LobbyDefenseBoard
         {
             return;
         }
+        _defeated.Clear();
         Save.Seconds++;
         AdvanceMonsters();
         if (Seconds % 5 == 0)
@@ -483,6 +552,7 @@ internal sealed class LobbyDefenseBoard
         for (int i = 0; i < Save.Monsters.Count; i++)
         {
             Monster monster = Save.Monsters[i];
+            monster.PreviousCell = monster.Cell;
             if (monster.Stun > 0)
             {
                 monster.Stun--;
@@ -490,7 +560,6 @@ internal sealed class LobbyDefenseBoard
             }
             int next = StepTowardExit(monster.Cell);
             Piece piece = PieceAt(next);
-            monster.PreviousCell = monster.Cell;
             monster.FacingCell = next;
             if (piece == Piece.Archer || piece == Piece.Wall)
             {
@@ -500,7 +569,7 @@ internal sealed class LobbyDefenseBoard
                 blocker.RemainingHealth -= Math.Max(1, impact + (int)monster.Kind - blocker.Defense);
                 if (piece == Piece.Wall)
                 {
-                    RecordContact(next, monster.Cell, false);
+                    RecordContact(next, monster, false);
                     if (!monster.Ghost && Damage(monster, blocker.Attack))
                     {
                         i--;
@@ -572,18 +641,24 @@ internal sealed class LobbyDefenseBoard
             return;
         }
         bool defeated = Damage(target, 4 + _lineup[unit].Attack);
-        RecordContact(unit, target.Cell, defeated);
+        RecordContact(unit, target, defeated);
     }
 
     /// <summary><paramref name="target"/>에 <paramref name="damage"/>를 주고 처치 시 한 번만 보상을 지급한다.</summary>
     private bool Damage(Monster target, int damage)
     {
+        if (damage > 0 && target.HitSecond != Seconds)
+        {
+            target.HealthBeforeHit = target.Health;
+            target.HitSecond = Seconds;
+        }
         target.Health -= damage;
         if (target.Health > 0)
         {
             return false;
         }
         Save.Monsters.Remove(target);
+        _defeated.Add(target);
         _regularCount--;
         Save.Gold += 5;
         return true;

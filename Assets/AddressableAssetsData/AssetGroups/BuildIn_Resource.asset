@@ -20,6 +20,31 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 42fad0631a9740b68b7b6fb5cffb50e6
+    m_Address: LobbyBattleMeadow
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: bc1bf90d21f54e7bbc6cee7acc54b7d2
+    m_Address: LobbyRaiders
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 0e4b6691644a40f98df011f9df6d9bfc
+    m_Address: LobbyPlaceIcon
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: c718883f5a77450f8ddeedc325fa3233
+    m_Address: LobbyTerrain
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d04543add094413685f7a44eec49cfaa
+    m_Address: LobbyForest
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 5bfb98f03d714887892b1d3777c569de
     m_Address: LobbyCardIcons
     m_ReadOnly: 0

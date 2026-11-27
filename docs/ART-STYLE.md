@@ -12,7 +12,23 @@
 | 로비 | 전장 아래 중앙의 플레이 버튼은 노란 공용 버튼을 사용한다. 상태 안내는 흰색 한글 TMP, 크기 30이다. | [LobbyScene](../Assets/01_Scenes/LobbyScene.unity) |
 | 준비 팝업 | 버터색 패널 위에 고동색 `#493128` 글자를 올린다. 제목 60, 모드 안내 30, 라이프 27 순으로 읽히며 START는 하늘색으로 구분한다. | [PopupReady](../Assets/Resources/Prefab/UI/Popup/PopupReady.prefab) · [한글 TMP 폰트](../Assets/Resources/Font/font_Ko.asset) |
 | 인게임 HUD·결과 | 점수와 타이머는 흰색 36, 리플레이 상태는 흰색 27이다. 대전 피벗은 타이머 아래에 같은 폰트로 크기 24의 라벨을 붙인다. | [GameScene](../Assets/01_Scenes/GameScene.unity) · [PivotGaugeView](../Assets/02_Scripts/Battle/Pivot/PivotGaugeView.cs) |
-| 로비 디펜스 | 목표 화면은 평면 격자다. 짙은 청회색 바닥 위에서 현재 경로는 청록색 `#4DA1A6`, 배치 미리보기는 금색 `#F8C564`으로 구별한다. 적은 산호색, 입구와 출구는 각각 연두색과 연보라색이다. | [로비 디펜스 기획](LOBBY-DEFENSE.md) |
+| 로비 디펜스 | 배치 모드의 20×10 격자는 빈 셀을 잔디, 배치된 셀을 흙으로 그린다. 일반 전투는 연속된 숲 공터 위에 유닛과 흙 발판을 표시한다. 현재 경로는 청록색 `#4DA1A6`, 배치 미리보기는 금색 `#F8C564`으로 구별한다. 적은 정찰 여우·병사 멧돼지·호위 오소리로 구분하며, 입구와 출구는 각각 연두색과 연보라색이다. | [로비 디펜스 기획](LOBBY-DEFENSE.md) |
+
+숲 전경과 지면, 배치 아이콘은 ImageGen으로 제작했다. 숲은 세로형 카툰 공터와 청록색 수관을, 지면은 위에서 본 잔디·황갈색 흙을, 아이콘은 잔디 타일 위에 꽂힌 방패 카드와 더하기 표식을 기준으로 삼았다. [숲 배경](../Assets/04_Resources/Images/LobbyForest.png) · [지면 아틀라스](../Assets/04_Resources/Images/LobbyTerrain.png) · [배치 아이콘](../Assets/04_Resources/Images/LobbyPlaceIcon.png)
+
+ImageGen으로 제작한 일반 전투 배경은 나무가 화면 가장자리를 두르는 [숲 공터](../Assets/04_Resources/Images/LobbyBattleMeadow.png)다. [습격대와 투사체 아틀라스](../Assets/04_Resources/Images/LobbyRaiders.png)는 위쪽에 정찰·병사·호위 세 캐릭터를, 아래쪽에 화살·마법탄·착탄 빛을 둔다. 유닛은 발밑의 행을 기준으로 겹치고 미리보기보다 크게 표시한다.
+
+<details>
+<summary>로비 숲·지면·배치 아이콘 제작 프롬프트</summary>
+
+- **숲 배경** — Portrait 9:16 game background illustration, lush blue-green forest clearing for a mobile casual cartoon animal tower defense. Hand-painted 2D storybook game art, rounded oak and fern silhouettes framing the sides, deep teal shaded foreground leaves, layered mint and azure distant trees, shafts of soft morning light in an airy clearing. Near the lower middle a small sunlit grassy clearing for a hero character to stand. Calm low-detail center where gameplay UI will overlay. Edge framing and foliage richness, no busy detail in center. Edge to edge, no text, no lettering, no characters, no board or grid, no icons, no border, no watermark.
+- **잔디·흙** — A horizontal 2:1 atlas of exactly TWO equal square top-down ground material textures for a hand-painted casual animal game. The left half is only softly textured grassy turf in fresh medium sage / meadow green with a few very small blade clusters and variation; the right half is only rich light chestnut / warm ochre exposed garden soil with small faint grains and a few tiny speckles. Flat overhead view, subtle painterly shapes, deliberately understated, equal lighting, no shadows from large objects. Each texture fills its exact half edge to edge. Crisp straight vertical split exactly halfway. No frames, no grid, no rims, no characters, no writing or logos, no horizon, no isometric sides.
+- **배치 아이콘** — One isolated mobile game action icon meaning place a defender card on the field. A chunky blue and gold playing card with a small ivory shield crest, tilted slightly back as it slots upright into a single small isometric grass tile with warm soil sides. A bright mint-green circular plus sign badge attached at lower right. Cozy 2D hand-painted cartoon RPG inventory icon, strong dark teal silhouette outline, warm edge highlights, bold and readable at 40 pixels. Fill the square with the object, centered, no text, no letters, no other objects or square background.
+
+- **일반 전투 공터** — Vertical portrait 9:16 hand-painted casual 2D mobile tower-defense battlefield background. High overhead 3/4 bird’s-eye view of a large lush meadow completely enclosed by a blue-green storybook forest. Playable clearing occupies full middle 75% width-to-edge with calm softly mottled mossy meadow across 24% to 77% of image height. Along left and right of clearing, leave narrow openings in shrubs at halfway down the screen for characters to enter and leave. Dense richly layered teal round treetops at very top and in bottom corners, sunlit dappled turquoise green grass, a few tiny daisies and pebbles at edges, soft painterly casual game aesthetic. Composition reads as a continuous forest floor. Keep the midsection very open to display many tiny moving characters. No sky, horizon, straight lines, grid, buildings, roads, dirt tracks, figures, UI or text.
+- **습격대 세 종류** — A production 2D mobile RPG sprite atlas, horizontal wide layout 3:1, exactly THREE separate isolated full-body enemy creatures in a single row, centered at one-sixth, one-half, five-sixths. On transparent background. Each separated by generous transparent margin; do not overlap. All face screen RIGHT in a side three-quarter walking pose, with face and gear readable. A family of cute chibi mischievous forest raiders with large heads, two short feet and big eyes, clean deep brown outlines: left a russet red fox-like scout with red scarf, pointy nose and sly expression, middle a stocky ochre boar footsoldier with leather cap and round bronze buckler, right a big blue grey badger guard with blue steel helmet and broad shield. Friendly stylized round plush toy-like rendering, soft highlights, limited bold color masses, same scale and shared groundline. Whole figure and ears visible for all 3, no tile, no labels, no text, no scenery, no shadows extending beyond the feet. The characters must be readily distinguishable even at 40 pixels.
+
+</details>
 
 ## 로비 디펜스 유닛
 
@@ -25,13 +41,13 @@
 | 형태와 비율 | 토끼는 얼굴이 몸통보다 크고 귀와 콩알 모양 발이 바깥으로 보인다. 거북은 옆으로 넓은 반원형 등딱지와 머리 위 떡잎 두 장으로 알아본다. |
 | 색과 빛 | 왼쪽 위에 넓은 타원 반사광 하나, 아래쪽에 진한 같은 계열 색 한 면을 둔다. 얼굴은 작은 갈색 눈, 살구색 볼과 짧은 입으로 표정을 만든다. |
 | 역할 표식 | 토끼는 파란 활과 노란 화살촉, 거북은 초록 등딱지와 금빛 잎 하나를 남긴다. 작은 크기에서는 이 표식과 머리 윤곽이 먼저 읽혀야 한다. |
-| 확인 크기 | 초상은 90픽셀 안팎, 전장에서는 32~36픽셀로 줄여 짙은 청회색 바닥에서 두 유닛을 나란히 본다. 걷거나 공격해도 귀·활·떡잎이 이웃 칸에 잘리지 않아야 한다. |
+| 확인 크기 | 초상은 90픽셀 안팎, 전장에서는 32~40픽셀로 줄여 따뜻한 흙 바닥에서 두 유닛을 나란히 본다. 걷거나 공격해도 귀·활·떡잎이 이웃 칸에 잘리지 않아야 한다. |
 
 **새 유닛을 그릴 때 쓰는 기준 원화**는 위 비교 그림과 아래의 실제 게임용 방향 시트·거북 초상이다. 아래 ‘초기 제작 참고용 방향 시트’는 이전 시안이다. 새로운 역할을 추가할 때는 이름, 대표색, 역할 표식만 바꾸고 얼굴 비율과 광원은 이 기준을 따른다.
 
 제작 문장 예시 — “파란 퍼즐 블록과 초록 퍼즐 블록 옆에 놓일 작은 동물 유닛. 머리가 큰 둥근 몸, 콩알 같은 발, 살구색 볼. 왼쪽 위에 타원형 흰 반사광 하나, 아래쪽에 한 단계 진한 색. 손에 든 장비는 한눈에 읽히는 덩어리 하나. 한 칸에 들어가는 전신, 투명 배경.” 털 한 올, 가죽 주름, 금속 흠집처럼 실제 재질을 묘사하는 세부는 생략한다.
 
-인벤토리 카드에 초상, 이름, 별 등급, 공격·방어·체력, 배치 상태를 표시한다. 전장 아래에는 **방어 카드 배치**, 고른 카드의 능력치, 셀 미리보기와 **배치 확정**을 둔다. 전장 위 스테이지명 옆에는 전투 결과에 맞는 진행 버튼을 표시한다. 화면 아래의 노란 **플레이** 버튼은 퍼즐 진입에 쓴다.
+인벤토리 카드에 초상, 이름, 별 등급, 공격·방어·체력, 배치 상태를 표시한다. 전장 아래 숲 공터에 선택한 캐릭터를 크게 두고 이름과 등급을 표시한다. 플레이 옆 카드 아이콘을 누르면 같은 줄이 카드 선택·확정·취소 버튼으로 바뀐다. 전장 위 스테이지명 옆에는 전투 결과에 맞는 진행 버튼을 표시한다. 화면 아래의 노란 **플레이** 버튼은 퍼즐 진입에 쓴다.
 
 - [토끼 사수 방향 시트](../Assets/04_Resources/Images/LobbyArcher8Way.png)는 S · SE · E · NE · N · NW · W · SW 순서로 대기·걷기·사격·특수 포즈를 담는다. 전장에서는 입구를 바라보고, 사격할 때 표적 방향으로 활을 내민다.
 - [새싹거북 프리팹](../Assets/Resources/Prefab/LobbyTurtle.prefab)은 [파츠 아틀라스](../Assets/Resources/Texture/LobbyTurtle/LobbyTurtleAtlas.png)의 몸통 5방향·발·움츠린 등딱지를 조합한다. 피격 시 적 쪽으로 몸을 숨겨도 떡잎과 금빛 잎 표식은 보인다. [남동쪽 초상](art/lobby-units/SproutTurtle-portrait.png)

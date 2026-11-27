@@ -6,9 +6,10 @@ using UnityEngine.UI;
 
 /// <summary>로비 전투와 경로를 표시하고 보유 카드 배치와 스테이지 진행 입력을 전달한다.</summary>
 [RequireComponent(typeof(CanvasRenderer))]
-internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
+internal sealed partial class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
 {
-    private const int PageWidth = 20;
+    private const int FieldWidth = 744;
+    private const int FieldHeight = FieldWidth * LobbyDefenseBoard.Height / LobbyDefenseBoard.Width;
     private const int WestDirection = 6;
     private static LobbyDefenseBoard _session;
     private TMP_FontAsset _font;
@@ -19,7 +20,6 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
     private static readonly string[] _directions = { "S", "SE", "E", "NE", "N", "NW", "W", "SW" };
     private readonly List<RawImage> _unitIcons = new List<RawImage>();
     private readonly List<int> _visibleCells = new List<int>();
-    private static readonly Color DeepBlue = new Color32(22, 43, 62, 255);
     private static readonly Color CardBlue = new Color32(45, 76, 98, 255);
     private static readonly Color SelectedBlue = new Color32(32, 111, 145, 255);
     private static readonly Color Honey = new Color32(255, 213, 117, 255);
@@ -27,21 +27,26 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
     internal static bool HasSavedProgress => PlayerPrefs.HasKey(SaveKey);
     private Button _stageButton;
     private TMP_Text _stageAction;
-    private Button _cancel;
+    private GameObject _play;
+    private GameObject _playHint;
+    private GameObject _placeIcon;
+    private GameObject _placementBar;
+    private bool _placing;
+    private LobbyCard _focused;
+    private LobbyCardPortrait _hero;
+    private LobbyCardPortrait _previewActor;
+    private RawImage _forest;
+    private Texture2D _terrain;
+    public override Texture mainTexture => _terrain != null ? _terrain : base.mainTexture;
     private TMP_Text _selectionText;
-    private RawImage _portrait;
-    private GameObject _trapPortrait;
     private LobbyCard _selectedCard;
     internal event System.Action InventoryRequested;
     private RectTransform _backdrop;
     private RectTransform _actorsRoot;
     private TMP_Text _gold;
     private TMP_Text _waveTime;
-    private Button _previous;
-    private Button _next;
     private TMP_Text _summary;
     private TMP_Text _hint;
-    private TMP_Text _page;
     private Button _confirmPlacement;
     private LobbyDefenseBoard.Piece SelectedRole
     {
@@ -54,8 +59,6 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
             return _selectedCard.Unit.Role;
         }
     }
-    private int _first;
-    private int _columns = PageWidth;
     private int _selected = -1;
     private int _moving = -1;
     private int _previewLength = -1;
@@ -118,7 +121,7 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
                 {
                     Debug.LogWarning($"[로비] 방어전 저장 데이터를 읽지 못했습니다. {exception.Message}");
                 }
-                if (saved == null || !saved.CanRestore())
+                if (saved == null || !saved.TryRestoreLayout())
                 {
                     PlayerPrefs.SetString(SaveKey + ".Recovery", json);
                     Debug.LogWarning("[로비] 복구할 수 없는 저장본을 별도로 보관하고 새 방어전을 시작합니다.");
@@ -135,20 +138,40 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
         world.worldCamera = camera;
         world.sortingLayerName = "Ingame";
         field.transform.SetPositionAndRotation(camera.transform.position + camera.transform.forward * 10f, camera.transform.rotation);
-        RectTransform board = Element("DefenseBoard", field.transform, 0, 180, 720, 360);
+        RectTransform board = Element("DefenseBoard", field.transform, 0, 160, FieldWidth, FieldHeight);
         LobbyDefenseView view = board.gameObject.AddComponent<LobbyDefenseView>();
         view._world = world;
         view._mainTab = status.transform.parent;
         view._font = status.font;
+        view._playHint = status.gameObject;
+        view._play = view._mainTab.Find("PlayButton").gameObject;
+        view._terrain = AssetManager.Instance.LoadAsset<Texture2D>("LobbyTerrain");
         view._archerSheet = AssetManager.Instance.LoadAsset<Texture2D>("LobbyArcher8Way");
         view._canvasRect = (RectTransform)status.canvas.rootCanvas.transform;
         view._backdrop = Element("LobbyBackground", field.transform, 0, 0, 1, 1);
         view._backdrop.SetAsFirstSibling();
-        Image backdrop = view._backdrop.gameObject.AddComponent<Image>();
-        backdrop.color = DeepBlue;
-        backdrop.raycastTarget = false;
+        view._forest = view._backdrop.gameObject.AddComponent<RawImage>();
+        view._placementForest = AssetManager.Instance.LoadAsset<Texture2D>("LobbyForest");
+        view._meadow = AssetManager.Instance.LoadAsset<Texture2D>("LobbyBattleMeadow");
+        view._raiders = AssetManager.Instance.LoadAsset<Texture2D>("LobbyRaiders");
+        view._forest.texture = view._meadow;
+        view._forest.raycastTarget = false;
+        Image rim = Panel("FieldFrame", field.transform, 0, 160, FieldWidth + 8, FieldHeight + 8, new Color32(57, 80, 49, 255));
+        view._rim = rim;
+        rim.transform.SetSiblingIndex(board.GetSiblingIndex());
         view.FitTab();
-        view._actorsRoot = Element("FieldActors", board, 0, 0, 720, 360);
+        view._actorsRoot = Element("FieldActors", board, 0, 0, FieldWidth, FieldHeight);
+        for (int row = 0; row < view._rows.Length; row++)
+        {
+            view._rows[row] = Element("ActorRow" + row, view._actorsRoot, 0, 0, 0, 0);
+        }
+        view._effects = Element("CombatEffects", view._actorsRoot, 0, 0, 0, 0);
+        float cellSize = FieldWidth / (float)LobbyDefenseBoard.Width;
+        RectTransform preview = Element("PlacementPreview", view._actorsRoot, 0, 0, cellSize, cellSize);
+        CanvasGroup ghost = preview.gameObject.AddComponent<CanvasGroup>();
+        ghost.blocksRaycasts = false;
+        ghost.alpha = 0.70f;
+        view._previewActor = preview.gameObject.AddComponent<LobbyCardPortrait>();
         view.BuildControls();
         view.Refresh();
         return view;
@@ -217,6 +240,13 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
         _canvasSize = size;
         float scale = Mathf.Min(1f, Mathf.Min(size.x / 780f, size.y / 1400f));
         _backdrop.sizeDelta = size / scale;
+        if (_forest.texture != null)
+        {
+            float ratio = size.x * _forest.texture.height / (size.y * _forest.texture.width);
+            float u = Mathf.Min(1f, ratio);
+            float v = Mathf.Min(1f, 1f / ratio);
+            _forest.uvRect = new Rect((1f - u) / 2f, (1f - v) / 2f, u, v);
+        }
         _mainTab.localScale = new Vector3(scale, scale, 1f);
         float worldScale = 2f * _world.worldCamera.orthographicSize / size.y * scale;
         _world.transform.localScale = Vector3.one * worldScale;
@@ -232,38 +262,71 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
         return rect;
     }
 
-    /// <summary>전투 상태와 구역 이동 및 배치 확정 버튼을 구성한다.</summary>
+    /// <summary><paramref name="parent"/> 아래 지정한 중심과 크기로 입력을 통과시키는 <paramref name="color"/> 바탕을 만든다.</summary>
+    private static Image Panel(string name, Transform parent, float x, float y, float width, float height, Color color)
+    {
+        Image image = Element(name, parent, x, y, width, height).gameObject.AddComponent<Image>();
+        image.color = color;
+        image.raycastTarget = false;
+        return image;
+    }
+
+    /// <summary>전장 위에 스테이지 정보를 두고 아래 숲 공터에 대표 캐릭터를 표시한다.</summary>
     private void BuildControls()
     {
-        _summary = Label(Element("Stage", transform, -239, 328, 242, 60), 37);
+        Color canopy = new Color32(19, 53, 53, 230);
+        RectTransform header = Panel("StageHeader", transform, 0, 250, FieldWidth + 8, 110, canopy).rectTransform;
+        _stageHeader = header;
+        _summary = Label(Element("Stage", header, -229, 13, 240, 52), 37);
         _summary.alignment = TextAlignmentOptions.MidlineLeft;
-        _stageButton = MakeButton("다음 스테이지", 0, 328, 218, 60, StartStage);
+        _stageButton = MakeButton(header, "다음 스테이지", 0, 0, 206, 66, StartStage);
         _stageAction = _stageButton.GetComponentInChildren<TMP_Text>();
-        _stageButton.image.color = SelectedBlue;
-        _gold = Label(Element("Gold", transform, 245, 328, 230, 60), 33);
+        _gold = Label(Element("Gold", header, 234, 9, 226, 52), 32);
         _gold.alignment = TextAlignmentOptions.MidlineRight;
         _gold.color = Honey;
+        _waveTime = Label(Element("WaveTimer", header, -230, -28, 238, 35), 21);
+        _waveTime.alignment = TextAlignmentOptions.MidlineLeft;
+        _hero = Element("FeaturedUnit", transform, 0, -322, 264, 264).gameObject.AddComponent<LobbyCardPortrait>();
+        RectTransform plate = Panel("FeaturedCaption", transform, 0, -459, 388, 54, canopy).rectTransform;
+        _selectionText = Label(Element("FeaturedName", plate, 0, 0, 382, 52), 26);
+        BuildPlacementBar();
+    }
 
-        _previous = MakeButton("이전", -313, 232, 94, 64, PreviousPage);
-        Button pageButton = MakeButton("전체 보기", -129, 232, 252, 64, ToggleOverview);
-        _page = pageButton.GetComponentInChildren<TMP_Text>();
-        _next = MakeButton("다음", 55, 232, 94, 64, NextPage);
-        _waveTime = Label(Element("WaveTimer", transform, 238, 232, 244, 60), 24);
-        _waveTime.alignment = TextAlignmentOptions.MidlineRight;
+    /// <summary>플레이 옆 배치 아이콘과 같은 자리에 전환해 표시할 카드 선택·확정·취소 UI를 구성한다.</summary>
+    private void BuildPlacementBar()
+    {
+        RectTransform play = (RectTransform)_play.transform;
+        Vector2 position = play.anchoredPosition;
+        RectTransform icon = Element("PlacementIcon", _mainTab, position.x + 228, position.y, 88, 88);
+        RawImage card = icon.gameObject.AddComponent<RawImage>();
+        card.texture = AssetManager.Instance.LoadAsset<Texture2D>("LobbyPlaceIcon");
+        Button toggle = icon.gameObject.AddComponent<Button>();
+        toggle.targetGraphic = card;
+        toggle.onClick.AddListener(BeginPlacement);
+        _placeIcon = icon.gameObject;
 
-        Button inventory = MakeButton("방어 카드 배치", -241, -276, 238, 94, OpenInventory);
-        inventory.image.color = SelectedBlue;
-        _selectionText = Label(Element("SelectedCard", transform, 100, -276, 310, 100), 23);
-        _portrait = MakeIcon(transform, 82);
-        _portrait.rectTransform.anchoredPosition = new Vector2(-86, -276);
-        RectTransform trap = Element("SelectedTrap", transform, -86, -276, 45, 45);
-        DrawTrap(trap);
-        _trapPortrait = trap.gameObject;
-        _cancel = MakeButton("취소", 309, -276, 92, 64, CancelPlacement);
-        _hint = Label(Element("PlacementHint", transform, -113, -394, 494, 100), 24);
-        _hint.alignment = TextAlignmentOptions.MidlineLeft;
-        _confirmPlacement = MakeButton("배치 확정", 253, -394, 214, 78, Confirm);
+        RectTransform bar = Element("PlacementMode", _mainTab, position.x, position.y, 730, 90);
+        _placementBar = bar.gameObject;
+        MakeButton(bar, "카드 선택", -225, 0, 182, 74, OpenInventory);
+        _confirmPlacement = MakeButton(bar, "배치 확정", 0, 0, 228, 84, Confirm);
         _confirmPlacement.image.color = SelectedBlue;
+        MakeButton(bar, "취소", 206, 0, 138, 74, CancelPlacement);
+        RectTransform strip = Panel("PlacementGuide", bar, 0, -84, 640, 56, new Color32(16, 48, 44, 228)).rectTransform;
+        _hint = Label(Element("PlacementHint", strip, 0, 0, 632, 56), 23);
+    }
+
+    /// <summary>첫 미배치 카드를 후보로 열고 플레이 버튼 자리를 배치 도구로 전환한다.</summary>
+    private void BeginPlacement()
+    {
+        foreach (LobbyCard card in _session.Cards)
+        {
+            if (card.Cell < 0)
+            {
+                SelectCard(card);
+                return;
+            }
+        }
+        SelectCard(null);
     }
 
     /// <summary>하단 인벤토리를 열어 보유 카드를 고르게 한다.</summary>
@@ -288,6 +351,7 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
     /// <summary>확정 전 카드와 셀 선택을 취소한다.</summary>
     private void CancelPlacement()
     {
+        _placing = false;
         _selectedCard = null;
         _selected = -1;
         _moving = -1;
@@ -357,13 +421,6 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
         center.raycastTarget = false;
     }
 
-    /// <summary><paramref name="cell"/>이 현재 확대 구역에 있는지 확인한다.</summary>
-    private bool InPage(int cell)
-    {
-        int column = cell % LobbyDefenseBoard.Width;
-        return column >= _first && column < _first + PageWidth;
-    }
-
     /// <summary><paramref name="unit"/>을 전장의 색 표식 대신 캐릭터로 그릴 수 있는지 확인한다.</summary>
     private bool HasUnitArt(LobbyUnit unit)
     {
@@ -385,7 +442,7 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
         return icon;
     }
 
-    /// <summary>확대 구역의 사수·방어 유닛·유령을 표시하고 남은 배우는 다음 표시를 위해 숨긴다.</summary>
+    /// <summary>전장의 사수·방어 유닛·유령을 표시하고 남은 배우는 다음 표시를 위해 숨긴다.</summary>
     private void RefreshUnitIcons()
     {
         _visibleCells.Clear();
@@ -394,23 +451,17 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
         {
             art.Used = 0;
         }
-        if (_columns == PageWidth)
+        float size = rectTransform.rect.width / LobbyDefenseBoard.Width;
+        for (int cell = 0; cell < LobbyDefenseBoard.Width * LobbyDefenseBoard.Height; cell++)
         {
-            float size = rectTransform.rect.width / PageWidth;
-            for (int row = 0; row < LobbyDefenseBoard.Height; row++)
+            LobbyUnit unit = _session.UnitAt(cell);
+            if (HasUnitArt(unit))
             {
-                for (int column = 0; column < PageWidth; column++)
-                {
-                    int cell = row * LobbyDefenseBoard.Width + _first + column;
-                    LobbyUnit unit = _session.UnitAt(cell);
-                    if (HasUnitArt(unit))
-                    {
-                        ShowUnit(unit, cell, size);
-                    }
-                }
+                ShowUnit(unit, cell, size);
             }
-            ShowGhosts(size);
         }
+        ShowGhosts(size);
+        RefreshCombatActors(size);
         for (int i = _visibleCells.Count; i < _unitIcons.Count; i++)
         {
             _unitIcons[i].enabled = false;
@@ -436,13 +487,15 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
             int used = _visibleCells.Count;
             if (used == _unitIcons.Count)
             {
-                _unitIcons.Add(MakeIcon(_actorsRoot, size));
+                _unitIcons.Add(MakeIcon(_actorsRoot, size * 1.18f));
             }
             RawImage icon = _unitIcons[used];
             _visibleCells.Add(cell);
             icon.enabled = true;
             icon.color = cell == _selected ? new Color(1f, 1f, 1f, 0.35f) : Color.white;
             icon.texture = _archerSheet;
+            icon.rectTransform.SetParent(_rows[cell / LobbyDefenseBoard.Width], false);
+            icon.rectTransform.sizeDelta = Vector2.one * size * (_placing ? 1.18f : 2.05f);
             return;
         }
         LobbyDefenseBoard.UnitContact contact = _session.ContactAt(cell);
@@ -463,7 +516,7 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
     {
         foreach (LobbyDefenseBoard.Monster monster in _session.Monsters)
         {
-            if (!monster.Ghost || !InPage(monster.Cell) || !HasUnitArt(LobbyUnit.Ghost))
+            if (!monster.Ghost || !HasUnitArt(LobbyUnit.Ghost))
             {
                 continue;
             }
@@ -481,14 +534,14 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
                 actionSecond = _session.Seconds;
             }
             FieldActor actor = ShowActor(GetArt(LobbyUnit.Ghost), size, monster.Cell, monster, pose, direction, actionSecond);
-            if (monster.Cell != monster.PreviousCell && InPage(monster.PreviousCell))
+            if (monster.Cell != monster.PreviousCell)
             {
-                actor.Start = CellCenter(monster.PreviousCell, size);
-                actor.End = CellCenter(monster.Cell, size);
+                actor.Start = ActorCenter(monster.PreviousCell, size);
+                actor.End = ActorCenter(monster.Cell, size);
                 _walkingGhosts.Add(actor);
             }
         }
-        if (_session.GhostExitSecond == _session.Seconds && InPage(LobbyDefenseBoard.Exit) && HasUnitArt(LobbyUnit.Ghost))
+        if (_session.GhostExitSecond == _session.Seconds && HasUnitArt(LobbyUnit.Ghost))
         {
             int direction = MovementDirection(_session.GhostExitFrom, LobbyDefenseBoard.Exit);
             ShowActor(GetArt(LobbyUnit.Ghost), size, LobbyDefenseBoard.Exit, null, "Special_", direction, _session.Seconds);
@@ -502,7 +555,6 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
         if (art.Used == art.Actors.Count)
         {
             RectTransform rect = (RectTransform)Instantiate(art.Prefab, _actorsRoot, false).transform;
-            rect.localScale = Vector3.one * (size / rect.rect.width);
             CanvasGroup group = rect.gameObject.AddComponent<CanvasGroup>();
             group.blocksRaycasts = false;
             Animator animator = rect.GetComponent<Animator>();
@@ -511,9 +563,11 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
         }
         FieldActor actor = art.Actors[art.Used++];
         actor.Rect.gameObject.SetActive(true);
-        actor.Rect.anchoredPosition = CellCenter(cell, size);
+        actor.Rect.SetParent(_rows[cell / LobbyDefenseBoard.Width], false);
+        actor.Rect.localScale = Vector3.one * (size * (_placing ? 1.12f : 1.92f) / actor.Rect.rect.width);
+        actor.Rect.anchoredPosition = ActorCenter(cell, size);
         actor.Group.alpha = cell == _selected && monster == null ? 0.35f : 1f;
-        int state = Animator.StringToHash(pose + _directions[direction]);
+        int state = Animator.StringToHash("Base Layer." + pose + _directions[direction]);
         bool changed = actor.Monster != monster || (monster == null && actor.Cell != cell);
         if (changed || actor.State != state || actor.ActionSecond != actionSecond)
         {
@@ -526,11 +580,11 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
         return actor;
     }
 
-    /// <summary>확대 전장에서 한 변이 <paramref name="size"/>인 <paramref name="cell"/>의 중심을 구한다.</summary>
+    /// <summary>전장에서 한 변이 <paramref name="size"/>인 <paramref name="cell"/>의 중심을 구한다.</summary>
     private Vector2 CellCenter(int cell, float size)
     {
-        float x = rectTransform.rect.xMin + (cell % LobbyDefenseBoard.Width - _first + 0.5f) * size;
-        float y = rectTransform.rect.yMax - (cell / LobbyDefenseBoard.Width + 0.5f) * size;
+        float x = rectTransform.rect.xMin + (cell % LobbyDefenseBoard.Width + 0.5f) * size;
+        float y = rectTransform.rect.yMax - (cell / LobbyDefenseBoard.Width + 0.5f) * rectTransform.rect.height / LobbyDefenseBoard.Height;
         return new Vector2(x, y);
     }
 
@@ -573,15 +627,16 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
             RectTransform rect = icon.rectTransform;
             float breath = 0.04f * Mathf.Sin((_session.Seconds % 2 + _elapsed) * Mathf.PI + cell);
             rect.localScale = new Vector3(1f - breath * 0.5f, 1f + breath, 1f);
-            float size = rect.sizeDelta.x;
-            Vector2 position = CellCenter(cell, size);
+            float size = rectTransform.rect.width / LobbyDefenseBoard.Width;
+            Vector2 position = ActorCenter(cell, size);
             if (action)
             {
                 float reach = Mathf.Sin(_elapsed / 0.42f * Mathf.PI);
-                position += aim * (size * 0.16f * reach);
+                position += aim * (size * 0.22f * reach);
             }
             rect.anchoredPosition = position;
         }
+        AnimateCombat();
     }
 
     /// <summary>인벤토리에서 선택한 <paramref name="card"/>를 메인 전장의 배치 후보로 지정한다.</summary>
@@ -590,7 +645,7 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
         _selectedCard = card;
         _moving = -1;
         _selected = -1;
-        _columns = PageWidth;
+        _placing = true;
         Refresh();
     }
 
@@ -607,9 +662,9 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
     }
 
     /// <summary><paramref name="caption"/> 버튼을 (<paramref name="x"/>, <paramref name="y"/>)에 <paramref name="width"/> × <paramref name="height"/> 크기로 만들고 <paramref name="action"/>을 연결한다.</summary>
-    private Button MakeButton(string caption, int x, int y, int width, int height, UnityEngine.Events.UnityAction action)
+    private Button MakeButton(Transform parent, string caption, int x, int y, int width, int height, UnityEngine.Events.UnityAction action)
     {
-        RectTransform rect = Element(caption, transform, x, y, width, height);
+        RectTransform rect = Element(caption, parent, x, y, width, height);
         Image background = rect.gameObject.AddComponent<Image>();
         background.color = CardBlue;
         Button button = rect.gameObject.AddComponent<Button>();
@@ -652,36 +707,7 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
         }
     }
 
-    /// <summary>앞쪽 구역을 표시한다.</summary>
-    private void PreviousPage() => OpenPage(_first - PageWidth);
-
-    /// <summary>뒤쪽 구역을 표시한다.</summary>
-    private void NextPage() => OpenPage(_first + PageWidth);
-
-    /// <summary>전체 경로와 마지막으로 열었던 구역 사이를 전환한다.</summary>
-    private void ToggleOverview()
-    {
-        if (_columns == LobbyDefenseBoard.Width)
-        {
-            OpenPage(_first);
-            return;
-        }
-        _columns = LobbyDefenseBoard.Width;
-        _selected = -1;
-        _moving = -1;
-        Refresh();
-    }
-
-    /// <summary><paramref name="first"/>에서 시작하는 구역을 확대한다.</summary>
-    private void OpenPage(int first)
-    {
-        _columns = PageWidth;
-        _first = Mathf.Clamp(first, 0, LobbyDefenseBoard.Width - PageWidth);
-        _selected = -1;
-        Refresh();
-    }
-
-    /// <summary><paramref name="eventData"/>의 화면 좌표를 보드 칸으로 변환해 구역 또는 후보 칸을 선택한다.</summary>
+    /// <summary><paramref name="eventData"/>의 화면 좌표를 보드 칸으로 변환해 대표 캐릭터 또는 배치 후보 칸을 선택한다.</summary>
     public void OnPointerClick(PointerEventData eventData)
     {
         if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(rectTransform, eventData.position, eventData.pressEventCamera, out Vector2 point))
@@ -689,26 +715,33 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
             return;
         }
         Rect area = rectTransform.rect;
-        int column = Mathf.FloorToInt((point.x - area.xMin) * _columns / area.width);
+        int column = Mathf.FloorToInt((point.x - area.xMin) * LobbyDefenseBoard.Width / area.width);
         int row = Mathf.FloorToInt((area.yMax - point.y) * LobbyDefenseBoard.Height / area.height);
-        if (column < 0 || column >= _columns || row < 0 || row >= LobbyDefenseBoard.Height)
+        if (column < 0 || column >= LobbyDefenseBoard.Width || row < 0 || row >= LobbyDefenseBoard.Height)
         {
             return;
         }
-        if (_columns == LobbyDefenseBoard.Width)
+        int cell = row * LobbyDefenseBoard.Width + column;
+        LobbyCard card = _session.CardAt(cell);
+        if (!_placing)
         {
-            OpenPage(column / PageWidth * PageWidth);
+            if (card != null)
+            {
+                _focused = card;
+                RefreshPlacementControls();
+                _hero.PlaySpecial();
+            }
             return;
         }
-        _selected = row * LobbyDefenseBoard.Width + _first + column;
-        if (_selectedCard == null && _session.Finished && _session.HasUnit(_selected))
+        if (_session.Finished && card != null)
         {
-            _moving = _selected;
+            _moving = cell;
+            _selectedCard = null;
             _selected = -1;
         }
-        if (_selectedCard == null && _moving < 0)
+        else if (_selectedCard != null || _moving >= 0)
         {
-            _selected = -1;
+            _selected = cell;
         }
         Refresh();
     }
@@ -716,13 +749,17 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
     /// <summary>선택한 후보 칸의 배치를 확정한다.</summary>
     private void Confirm()
     {
+        if (!_placing || _selected < 0)
+        {
+            return;
+        }
         bool placed = _moving >= 0 ? _session.MoveUnit(_moving, _selected) : _session.PlaceCard(_selected, _selectedCard);
         if (placed)
         {
             SaveProgress();
-            _selectedCard = null;
-            _selected = -1;
-            _moving = -1;
+            _focused = _session.CardAt(_selected);
+            CancelPlacement();
+            return;
         }
         Refresh();
     }
@@ -744,6 +781,7 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
         {
             _previewLength = _session.Preview(_selected, SelectedRole);
         }
+        FitBattlefield();
         RefreshStageControls();
         RefreshPlacementControls();
         RefreshUnitIcons();
@@ -769,56 +807,73 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
         _waveTime.text = timer;
     }
 
-    /// <summary>현재 구역과 선택한 보유 카드에 따라 미리보기와 확정 버튼을 갱신한다.</summary>
+    /// <summary>배치 모드에서만 조작 도구를 열고 대표 캐릭터와 선택한 셀의 경로를 갱신한다.</summary>
     private void RefreshPlacementControls()
     {
-        bool overview = _columns == LobbyDefenseBoard.Width;
-        _previous.interactable = overview || _first > 0;
-        _next.interactable = overview || _first + PageWidth < LobbyDefenseBoard.Width;
-        _page.text = overview ? "구역 보기" : $"{_first + 1}–{_first + PageWidth}열 · 전체";
-        bool choosing = _selectedCard != null;
-        _portrait.enabled = false;
-        _trapPortrait.SetActive(choosing && _selectedCard.Unit == LobbyUnit.Trap);
-        _selectionText.text = "인벤토리에서 카드 선택";
-        if (choosing)
-        {
-            _selectionText.text = $"{_selectedCard.Unit.Name} · {_selectedCard.Grade}\n{_selectedCard.Stats}";
-            SetPortrait(_portrait, _selectedCard.Unit);
-        }
-        _cancel.gameObject.SetActive(choosing || _moving >= 0);
-        string order = "배치";
+        bool preview = _placing && _selected >= 0 && _previewLength != LobbyDefenseBoard.InvalidPlacement;
+        _previewActor.gameObject.SetActive(preview);
+        _play.SetActive(!_placing);
+        _playHint.SetActive(!_placing);
+        _placeIcon.SetActive(!_placing);
+        _placementBar.SetActive(_placing);
+        LobbyCard card = _selectedCard;
         if (_moving >= 0)
         {
-            order = "무료 이동";
+            card = _session.CardAt(_moving);
         }
-        else if (choosing)
+        if (card == null)
         {
-            order = _selectedCard.Unit.Name;
+            card = _focused;
+            if (card == null || card.Cell < 0)
+            {
+                card = _session.Cards[0];
+                foreach (LobbyCard owned in _session.Cards)
+                {
+                    if (owned.Cell >= 0)
+                    {
+                        card = owned;
+                        break;
+                    }
+                }
+            }
         }
-        string route = _session.RouteLength < 0 ? "봉쇄 중" : $"{_session.RouteLength}칸";
-        _hint.text = $"현재 경로 {route}";
-        if (overview)
+        if (preview)
         {
-            _hint.text = "확대할 구역을 선택하세요";
+            RectTransform actor = (RectTransform)_previewActor.transform;
+            actor.anchoredPosition = CellCenter(_selected, rectTransform.rect.width / LobbyDefenseBoard.Width);
+            _previewActor.Bind(card.Unit, this);
         }
-        else if (choosing || _moving >= 0)
+        _hero.Bind(card.Unit, this);
+        _selectionText.fontSize = _placing ? 21 : 26;
+        _selectionText.text = _placing ? $"{card.Unit.Name}  ·  {card.Grade}\n{card.Stats}" : $"{card.Unit.Name}  ·  {card.Grade}";
+        if (!_placing)
         {
-            _hint.text = $"{order} · 놓을 칸 선택\n현재 경로 {route}";
+            return;
+        }
+        _confirmPlacement.interactable = _previewLength != LobbyDefenseBoard.InvalidPlacement;
+        if (_selected >= 0)
+        {
+            if (!_confirmPlacement.interactable)
+            {
+                _hint.text = "이 칸에는 배치할 수 없습니다";
+                return;
+            }
+            _hint.text = _session.PreviewSiege ? "통로 봉쇄 · 방벽 공격" : $"선택한 칸으로 배치하면 경로 {_previewLength}칸";
+            return;
+        }
+        _hint.text = "배치할 빈 칸을 선택하세요";
+        if (_moving >= 0)
+        {
+            _hint.text = "유닛을 옮길 빈 칸을 선택하세요";
         }
         else if (_session.Finished)
         {
-            _hint.text = "옮길 유닛을 선택하세요";
+            _hint.text = _selectedCard == null ? "옮길 유닛을 선택하세요" : "배치할 빈 칸 또는 옮길 유닛을 선택하세요";
         }
-        if (_selected >= 0 && _previewLength == LobbyDefenseBoard.InvalidPlacement)
+        else if (_selectedCard == null)
         {
-            _hint.text = "이 칸에는 배치할 수 없습니다";
+            _hint.text = "보유 카드가 모두 배치되어 있습니다";
         }
-        else if (_selected >= 0)
-        {
-            string result = _session.PreviewSiege ? "통로 봉쇄 / 방벽 공격" : $"경로 {route} → {_previewLength}칸";
-            _hint.text = $"{order} · 배치 미리보기\n{result}";
-        }
-        _confirmPlacement.interactable = _previewLength != LobbyDefenseBoard.InvalidPlacement;
     }
 
     /// <summary><paramref name="mesh"/>에 격자, 경로, 유닛과 체력이 표시된 몬스터를 그린다.</summary>
@@ -829,78 +884,45 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
         {
             return;
         }
-        int start = _columns == PageWidth ? _first : 0;
-        for (int row = 0; row < LobbyDefenseBoard.Height; row++)
+        if (!_placing)
         {
-            for (int column = start; column < start + _columns; column++)
+            DrawBattleGround(mesh);
+            return;
+        }
+        LobbyDefenseBoard.Piece selectedPiece = _moving >= 0 ? _session.PieceAt(_moving) : SelectedRole;
+        for (int cell = 0; cell < LobbyDefenseBoard.Width * LobbyDefenseBoard.Height; cell++)
+        {
+            Color tint = Color.white;
+            if (_selected >= 0 && selectedPiece == LobbyDefenseBoard.Piece.Archer && LobbyDefenseBoard.Separation(cell, _selected) <= LobbyDefenseBoard.Range)
             {
-                int cell = row * LobbyDefenseBoard.Width + column;
-                Color32 shade = new Color32(32, 53, 70, 255);
-                LobbyDefenseBoard.Piece selectedPiece = _moving >= 0 ? _session.PieceAt(_moving) : SelectedRole;
-                if (_selected >= 0 && selectedPiece == LobbyDefenseBoard.Piece.Archer && LobbyDefenseBoard.Separation(cell, _selected) <= LobbyDefenseBoard.Range)
-                {
-                    shade = new Color32(53, 89, 97, 255);
-                }
-                Tile(mesh, cell, 0.02f, shade);
+                tint = new Color32(178, 238, 233, 255);
             }
+            Tile(mesh, cell, 0.036f, tint, 1f, GroundUV(cell, _session.HasUnit(cell)));
         }
         DrawRoute(mesh, false, new Color32(77, 161, 166, 255));
         if (_previewLength >= 0)
         {
             DrawRoute(mesh, true, new Color32(248, 197, 100, 255));
         }
-        for (int cell = 0; cell < LobbyDefenseBoard.Width * LobbyDefenseBoard.Height; cell++)
-        {
-            if (_session.HasUnit(cell))
-            {
-                if (_columns == PageWidth && InPage(cell) && HasUnitArt(_session.UnitAt(cell)))
-                {
-                    continue;
-                }
-                Color32 tint = new Color32(104, 201, 255, 255);
-                if (_session.PieceAt(cell) == LobbyDefenseBoard.Piece.Wall)
-                {
-                    tint = new Color32(191, 161, 110, 255);
-                }
-                else if (_session.PieceAt(cell) == LobbyDefenseBoard.Piece.Trap)
-                {
-                    tint = _session.IsCharged(cell) ? new Color32(197, 127, 255, 255) : new Color32(100, 87, 122, 255);
-                }
-                Tile(mesh, cell, 0.14f, tint);
-            }
-        }
+        DrawTraps(mesh);
         Tile(mesh, LobbyDefenseBoard.Entrance, 0.12f, new Color32(130, 212, 154, 255));
         Tile(mesh, LobbyDefenseBoard.Exit, 0.12f, new Color32(209, 164, 241, 255));
         if (_selected >= 0)
         {
-            Tile(mesh, _selected, 0.18f, _previewLength != LobbyDefenseBoard.InvalidPlacement ? Color.yellow : Color.red);
+            bool valid = _previewLength != LobbyDefenseBoard.InvalidPlacement;
+            Color border = valid ? Honey : new Color32(255, 111, 103, 255);
+            Tile(mesh, _selected, 0.035f, border);
+            Tile(mesh, _selected, 0.105f, Color.white, 1f, GroundUV(_selected, _session.HasUnit(_selected)));
         }
-        foreach (LobbyDefenseBoard.Monster monster in _session.Monsters)
-        {
-            if (monster.Ghost)
-            {
-                if (_columns != PageWidth || !InPage(monster.Cell) || !HasUnitArt(LobbyUnit.Ghost))
-                {
-                    Tile(mesh, monster.Cell, 0.32f, new Color32(164, 241, 244, 255));
-                }
-                continue;
-            }
-            Color32 body = new Color32(241, 123, 102, 255);
-            if (monster.Kind == LobbyDefenseBoard.EnemyKind.Soldier)
-            {
-                body = new Color32(251, 181, 86, 255);
-            }
-            else if (monster.Kind == LobbyDefenseBoard.EnemyKind.Guard)
-            {
-                body = new Color32(118, 150, 206, 255);
-            }
-            if (monster.Stun > 0)
-            {
-                body = new Color32(207, 147, 254, 255);
-            }
-            Tile(mesh, monster.Cell, 0.13f, body);
-            Tile(mesh, monster.Cell, 0.25f, Color.white, (float)monster.Health / monster.MaxHealth);
-        }
+    }
+
+    /// <summary><paramref name="cell"/> 위치와 <paramref name="occupied"/>에 맞춰 잔디 또는 흙 아틀라스의 네 무늬 중 하나를 고른다.</summary>
+    private static Rect GroundUV(int cell, bool occupied)
+    {
+        int variant = (cell / LobbyDefenseBoard.Width * 7 + cell * 13 + cell / 3) % 4;
+        float u = (occupied ? 0.5f : 0f) + (variant % 2) * 0.25f;
+        float v = (variant / 2) * 0.5f;
+        return new Rect(u + 0.025f, v + 0.05f, 0.20f, 0.40f);
     }
 
     /// <summary><paramref name="preview"/> 경로를 <paramref name="shade"/> 색으로 <paramref name="mesh"/>에 표시한다.</summary>
@@ -909,35 +931,32 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
         int cell = LobbyDefenseBoard.Entrance;
         while (cell >= 0)
         {
-            Tile(mesh, cell, 0.32f, shade);
+            Tile(mesh, cell, 0.385f, shade);
             cell = _session.Next(cell, preview);
         }
     }
 
     /// <summary><paramref name="mesh"/>의 보이는 <paramref name="cell"/> 안에 여백, 색, 너비 비율을 적용해 그린다.</summary>
-    private void Tile(VertexHelper mesh, int cell, float inset, Color32 shade, float fraction = 1f)
+    private void Tile(VertexHelper mesh, int cell, float inset, Color32 shade, float fraction = 1f, Rect uv = default)
     {
         int column = cell % LobbyDefenseBoard.Width;
-        if (_columns == PageWidth)
-        {
-            column -= _first;
-        }
-        if (column < 0 || column >= _columns)
-        {
-            return;
-        }
         Rect area = rectTransform.rect;
-        float width = area.width / _columns;
+        float width = area.width / LobbyDefenseBoard.Width;
         float height = area.height / LobbyDefenseBoard.Height;
         float left = area.xMin + (column + inset) * width;
         float top = area.yMax - (cell / LobbyDefenseBoard.Width + inset) * height;
         float right = left + width * (1f - 2f * inset) * fraction;
         float bottom = top - height * (1f - 2f * inset);
+        // 아틀라스 왼쪽 아래 흰 견본은 경로·체력 등 단색 표식에 사용한다.
+        if (uv.width == 0f)
+        {
+            uv = new Rect(0.01f, 0.02f, 0f, 0f);
+        }
         int index = mesh.currentVertCount;
-        mesh.AddVert(new Vector3(left, bottom), shade, Vector2.zero);
-        mesh.AddVert(new Vector3(left, top), shade, Vector2.zero);
-        mesh.AddVert(new Vector3(right, top), shade, Vector2.zero);
-        mesh.AddVert(new Vector3(right, bottom), shade, Vector2.zero);
+        mesh.AddVert(new Vector3(left, bottom), shade, new Vector2(uv.xMin, uv.yMin));
+        mesh.AddVert(new Vector3(left, top), shade, new Vector2(uv.xMin, uv.yMax));
+        mesh.AddVert(new Vector3(right, top), shade, new Vector2(uv.xMax, uv.yMax));
+        mesh.AddVert(new Vector3(right, bottom), shade, new Vector2(uv.xMax, uv.yMin));
         mesh.AddTriangle(index, index + 1, index + 2);
         mesh.AddTriangle(index, index + 2, index + 3);
     }
