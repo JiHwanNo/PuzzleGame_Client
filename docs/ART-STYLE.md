@@ -14,6 +14,8 @@
 | 인게임 HUD·결과 | 점수와 타이머는 흰색 36, 리플레이 상태는 흰색 27이다. 대전 피벗은 타이머 아래에 같은 폰트로 크기 24의 라벨을 붙인다. | [GameScene](../Assets/01_Scenes/GameScene.unity) · [PivotGaugeView](../Assets/02_Scripts/Battle/Pivot/PivotGaugeView.cs) |
 | 로비 디펜스 | 배치 모드의 20×10 격자는 빈 셀을 잔디, 배치된 셀을 흙으로 그린다. 일반 전투는 연속된 숲 공터 위에 유닛과 흙 발판을 표시한다. 현재 경로는 청록색 `#4DA1A6`, 배치 미리보기는 금색 `#F8C564`으로 구별한다. 적은 정찰 여우·병사 멧돼지·호위 오소리로 구분하며, 입구와 출구는 각각 연두색과 연보라색이다. | [로비 디펜스 기획](LOBBY-DEFENSE.md) |
 
+로비 하단 탭과 플레이·배치 버튼의 개편 기준으로 [라군 젤리 A안](art/LobbyUI-LagoonJelly.png)을 선택했다. 아이콘은 퍼즐 블럭처럼 모서리를 둥글게 잡고 왼쪽 위에 밝은 반사광을 둔다. 짙은 청록 탭 바 위에서 선택한 탭은 밝은 민트색으로 강조하고, 플레이 버튼에는 레몬색을 쓴다.
+
 숲 전경과 지면, 배치 아이콘은 ImageGen으로 제작했다. 숲은 세로형 카툰 공터와 청록색 수관을, 지면은 위에서 본 잔디·황갈색 흙을, 아이콘은 잔디 타일 위에 꽂힌 방패 카드와 더하기 표식을 기준으로 삼았다. [숲 배경](../Assets/04_Resources/Images/LobbyForest.png) · [지면 아틀라스](../Assets/04_Resources/Images/LobbyTerrain.png) · [배치 아이콘](../Assets/04_Resources/Images/LobbyPlaceIcon.png)
 
 ImageGen으로 제작한 일반 전투 배경은 나무가 화면 가장자리를 두르는 [숲 공터](../Assets/04_Resources/Images/LobbyBattleMeadow.png)다. [습격대와 투사체 아틀라스](../Assets/04_Resources/Images/LobbyRaiders.png)는 위쪽에 정찰·병사·호위 세 캐릭터를, 아래쪽에 화살·마법탄·착탄 빛을 둔다. 유닛은 발밑의 행을 기준으로 겹치고 미리보기보다 크게 표시한다.
