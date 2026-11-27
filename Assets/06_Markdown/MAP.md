@@ -83,6 +83,7 @@
 | JSON 필드·enum·입력 타입 추가 | [PuzzleDefine.cs](../Assets/02_Scripts/PuzzleCore/Module/PuzzleDefine.cs) | [DATA.md](DATA.md#콘텐츠와-c-매핑) |
 | 팝업·탭·뒤로 가기 | [DomainManager.cs](../Assets/02_Scripts/Manager/DomainManager.cs) | [UI.md](UI.md#콘텐츠와-c-매핑) |
 | 로비 하단 메뉴·페이지 슬라이드 | [LobbyNavigation.cs](../02_Scripts/Lobby/LobbyNavigation.cs) | [UI.md](04_UI/UI.md#콘텐츠와-c-매핑) |
+| 로비 공격·방어 유닛 목록·프리팹·등불유령 | [LobbyUnit.cs](../02_Scripts/Lobby/LobbyUnit.cs) | [UI.md](04_UI/UI.md#콘텐츠와-c-매핑) |
 | UI 버튼 콜백 | [UIButton.cs](../Assets/02_Scripts/UI/UIButton.cs) | [UI.md](UI.md#콘텐츠와-c-매핑) |
 | 새 씬·씬 전환·상주 초기화 | [Main.cs](../Assets/02_Scripts/Manager/Main.cs) | [SCENE.md](SCENE.md#콘텐츠와-c-매핑) |
 | 에셋 로드·씬 전환 후 리소스 소실 | [AssetManager.cs](../Assets/02_Scripts/Manager/AssetManager.cs) | [SCENE.md](SCENE.md#콘텐츠와-c-매핑) |

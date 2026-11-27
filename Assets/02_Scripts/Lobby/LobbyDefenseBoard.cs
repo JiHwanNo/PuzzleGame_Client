@@ -16,7 +16,7 @@ internal sealed class LobbyDefenseBoard
     private const int RechargeSeconds = 6;
     /// <summary>빈 땅, 공격 유닛, 길막 유닛, 통과 가능한 트랩을 구분한다.</summary>
     internal enum Piece { Empty, Archer, Wall, Trap }
-    private readonly Piece[] _pieces = new Piece[Count];
+    private readonly LobbyUnit[] _lineup = new LobbyUnit[Count];
     private readonly int[] _strength = new int[Count];
     private readonly int[] _readyAt = new int[Count];
     /// <summary>사격 또는 방어 유닛 피격이 일어난 논리 초와 상대 칸까지의 방향을 보관한다.</summary>
@@ -46,6 +46,10 @@ internal sealed class LobbyDefenseBoard
         public int Cell = Entrance;
         public int Health = 12;
         public bool Ghost;
+        public int PreviousCell = Entrance;
+        public int FacingCell = Entrance + 1;
+        public int SpawnSecond;
+        public int StrikeSecond = -1;
         public int Stun;
     }
 
@@ -59,6 +63,9 @@ internal sealed class LobbyDefenseBoard
     public int RouteLength => _distance[Entrance];
     public bool PreviewSiege { get; private set; }
     public int Seconds => _seconds;
+    internal int RosterVersion { get; private set; }
+    internal int GhostExitSecond { get; private set; } = -1;
+    internal int GhostExitFrom { get; private set; }
 
     /// <summary><paramref name="cell"/>의 유닛이 마지막으로 사격하거나 피격된 방향을 반환한다.</summary>
     public UnitContact ContactAt(int cell) => _contacts[cell];
@@ -98,10 +105,35 @@ internal sealed class LobbyDefenseBoard
     }
 
     /// <summary><paramref name="cell"/>의 유닛 점유 상태를 반환한다.</summary>
-    public bool HasUnit(int cell) => _pieces[cell] != Piece.Empty;
+    public bool HasUnit(int cell) => _lineup[cell] != null;
 
     /// <summary><paramref name="cell"/>의 배치 종류를 반환한다.</summary>
-    public Piece PieceAt(int cell) => _pieces[cell];
+    public Piece PieceAt(int cell)
+    {
+        LobbyUnit unit = _lineup[cell];
+        if (unit == null)
+        {
+            return Piece.Empty;
+        }
+        return unit.Role;
+    }
+
+    /// <summary><paramref name="cell"/>에 배치된 캐릭터를 반환한다.</summary>
+    internal LobbyUnit UnitAt(int cell) => _lineup[cell];
+
+    /// <summary>현재 전장에서 <paramref name="unit"/>와 같은 캐릭터의 배치 수를 센다.</summary>
+    internal int CountOf(LobbyUnit unit)
+    {
+        int count = 0;
+        foreach (int cell in _units)
+        {
+            if (_lineup[cell] == unit)
+            {
+                count++;
+            }
+        }
+        return count;
+    }
 
     /// <summary><paramref name="cell"/>의 트랩이 다시 작동할 수 있는지 반환한다.</summary>
     public bool IsCharged(int cell) => _seconds >= _readyAt[cell];
@@ -137,15 +169,24 @@ internal sealed class LobbyDefenseBoard
     }
 
     /// <summary><paramref name="cell"/>에 <paramref name="piece"/>를 배치할 수 있으면 비용을 지불하고 경로를 갱신한다.</summary>
-    public bool Hire(int cell, Piece piece = Piece.Archer)
+    public bool Hire(int cell, Piece piece = Piece.Archer) => Hire(cell, LobbyUnit.DefaultFor(piece));
+
+    /// <summary><paramref name="cell"/>에 <paramref name="unit"/>을 고용하고 해당 역할의 전투 규칙을 적용한다.</summary>
+    internal bool Hire(int cell, LobbyUnit unit)
     {
+        if (unit == null || unit.Role == Piece.Empty)
+        {
+            return false;
+        }
+        Piece piece = unit.Role;
         int cost = CostOf(piece);
-        if (piece == Piece.Empty || Gold < cost || Preview(cell, piece) == InvalidPlacement)
+        if (Gold < cost || Preview(cell, piece) == InvalidPlacement)
         {
             return false;
         }
         Gold -= cost;
-        _pieces[cell] = piece;
+        _lineup[cell] = unit;
+        RosterVersion++;
         _contacts[cell] = default;
         _strength[cell] = piece == Piece.Wall ? 36 : 12;
         _readyAt[cell] = _seconds;
@@ -166,10 +207,10 @@ internal sealed class LobbyDefenseBoard
         {
             return InvalidPlacement;
         }
-        Piece piece = _pieces[source];
-        _pieces[source] = Piece.Empty;
-        int length = Preview(cell, piece);
-        _pieces[source] = piece;
+        LobbyUnit unit = _lineup[source];
+        _lineup[source] = null;
+        int length = Preview(cell, unit.Role);
+        _lineup[source] = unit;
         return length;
     }
 
@@ -180,8 +221,8 @@ internal sealed class LobbyDefenseBoard
         {
             return false;
         }
-        _pieces[cell] = _pieces[source];
-        _pieces[source] = Piece.Empty;
+        _lineup[cell] = _lineup[source];
+        _lineup[source] = null;
         _contacts[cell] = _contacts[source];
         _contacts[source] = default;
         _strength[cell] = _strength[source];
@@ -216,7 +257,7 @@ internal sealed class LobbyDefenseBoard
             for (int direction = 0; direction < 4; direction++)
             {
                 int next = Neighbor(cell, direction);
-                if (next >= 0 && next != blocked && _pieces[next] != Piece.Archer && _pieces[next] != Piece.Wall && distances[next] < 0)
+                if (next >= 0 && next != blocked && (_lineup[next] == null || _lineup[next].Role == Piece.Trap) && distances[next] < 0)
                 {
                     distances[next] = distances[cell] + 1;
                     _queue[tail++] = next;
@@ -251,7 +292,7 @@ internal sealed class LobbyDefenseBoard
         AdvanceMonsters();
         if (_seconds % 5 == 0)
         {
-            _monsters.Add(new Monster { Ghost = true });
+            _monsters.Add(new Monster { Ghost = true, SpawnSecond = _seconds });
         }
         if (_rest > 0)
         {
@@ -272,7 +313,7 @@ internal sealed class LobbyDefenseBoard
         }
         foreach (int unit in _units)
         {
-            if (_pieces[unit] == Piece.Archer)
+            if (_lineup[unit].Role == Piece.Archer)
             {
                 Attack(unit);
             }
@@ -309,9 +350,12 @@ internal sealed class LobbyDefenseBoard
                 continue;
             }
             int next = StepTowardExit(monster.Cell);
-            Piece piece = _pieces[next];
+            Piece piece = PieceAt(next);
+            monster.PreviousCell = monster.Cell;
+            monster.FacingCell = next;
             if (piece == Piece.Archer || piece == Piece.Wall)
             {
+                monster.StrikeSecond = _seconds;
                 _strength[next] -= piece == Piece.Wall ? 2 : 4;
                 if (piece == Piece.Wall)
                 {
@@ -323,7 +367,8 @@ internal sealed class LobbyDefenseBoard
                     {
                         _archers--;
                     }
-                    _pieces[next] = Piece.Empty;
+                    _lineup[next] = null;
+                    RosterVersion++;
                     _units.Remove(next);
                     FindDistances(_distance, -1);
                 }
@@ -337,7 +382,12 @@ internal sealed class LobbyDefenseBoard
             }
             if (next == Exit)
             {
-                if (!monster.Ghost)
+                if (monster.Ghost)
+                {
+                    GhostExitSecond = _seconds;
+                    GhostExitFrom = monster.PreviousCell;
+                }
+                else
                 {
                     _regularCount--;
                 }

@@ -36,6 +36,14 @@
 - [토끼 사수 방향 시트](../Assets/04_Resources/Images/LobbyArcher8Way.png)는 S · SE · E · NE · N · NW · W · SW 순서로 대기·걷기·사격·특수 포즈를 담는다. 전장에서는 입구를 바라보고, 사격할 때 표적 방향으로 활을 내민다.
 - [새싹거북 프리팹](../Assets/Resources/Prefab/LobbyTurtle.prefab)은 [파츠 아틀라스](../Assets/Resources/Texture/LobbyTurtle/LobbyTurtleAtlas.png)의 몸통 5방향·발·움츠린 등딱지를 조합한다. 피격 시 적 쪽으로 몸을 숨겨도 떡잎과 금빛 잎 표식은 보인다. [남동쪽 초상](art/lobby-units/SproutTurtle-portrait.png)
 
+### 신규 캐릭터 프리팹과 방향 시트
+
+![공격 5종, 방어 13종, 길막 확인용 등불유령](art/lobby-units/LobbyRoster.png)
+
+[신규 프리팹](../Assets/Resources/Prefab/LobbyRoster)은 같은 이름의 [RGBA 방향 시트](../Assets/Resources/Texture/LobbyRoster)와 [공유 Animator](../Assets/Resources/Animation/LobbyRoster/Roster.controller)를 사용한다. 한 장은 2048 × 1024, 한 칸은 256 × 256이다. 열은 S · SE · E · NE · N · NW · W · SW, 행은 위에서 대기 · 걷기 · 공격 · 특수 동작이다. 서쪽 세 방향은 동쪽 원화의 좌우 반전이다.
+
+Unity에서 프리팹을 Canvas 아래에 두고 Animator에서 `Walk_SE`나 `Special_W`를 재생한다. 대기와 걷기는 제자리에서 반복하고, 공격과 특수 동작은 같은 방향 대기로 돌아온다. 관절형 새싹거북과 달리 신규 19종은 시트의 자세, 발쪽 피벗, 이동·회전·크기 키를 조합한다. 방어 유닛은 피격 때 몸을 움츠리거나 방패를 내세운다. [전체 이름과 로비 전투 역할](LOBBY-DEFENSE.md#배치-캐릭터와-등불유령)
+
 ### 초기 제작 참고용 방향 시트
 
 [방패병 시트](art/lobby-units/Wall-8way.png) · [사수 시트](art/lobby-units/Archer-8way.png). 투명 PNG 한 장은 2048 × 1024이며 한 칸은 256 × 256이다. 열은 왼쪽부터 S · SE · E · NE · N · NW · W · SW, 행은 위부터 Idle · Walk · Attack · Special 순이다. S는 화면 아래를 바라보는 정면이다. 등 뒤 투구와 화살통은 정면 원화를 바탕으로 보완했고, 서쪽 세 방향은 동쪽 포즈를 반전해 장비 손도 함께 바뀐다.
