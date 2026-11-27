@@ -7,7 +7,7 @@
 
 | 찾는 콘텐츠 | 담당 C# 파일 | 주요 메서드·타입·멤버 |
 |---|---|---|
-| 로비 하단 탭·상점 6칸 페이지·캐릭터별 인벤토리·메인 선택 카드 | [LobbyNavigation.cs](../../02_Scripts/Lobby/LobbyNavigation.cs) · [LobbyUnit.cs](../../02_Scripts/Lobby/LobbyUnit.cs) · [LobbyDefenseView.cs](../../02_Scripts/Lobby/LobbyDefenseView.cs) | `RefreshCatalog`, `TurnPage`, `Catalog`, `SelectUnit` |
+| 로비 하단 탭·상점 6칸 페이지·캐릭터별 인벤토리·메인 선택 카드 | [LobbyNavigation.cs](../../02_Scripts/Lobby/LobbyNavigation.cs) · [LobbyUnit.cs](../../02_Scripts/Lobby/LobbyUnit.cs) · [LobbyDefenseView.cs](../../02_Scripts/Lobby/LobbyDefenseView.cs) | `RefreshCatalog`, `TurnPage`, `InitializeCatalog`, `SelectUnit` |
 | 팝업/탭 스택·뒤로 가기·전체 닫기 | [DomainManager.cs](../Assets/02_Scripts/Manager/DomainManager.cs) | `OpenPopup`, `OpenTab`, `Back`, `CloseAll` |
 | 팝업/탭 공통 계약 | [IDomainNode.cs](../Assets/02_Scripts/Manager/IDomainNode.cs) | `IDomainNode` |
 | 팝업 생성·파괴·씬별 등록 | [PopupController.cs](../Assets/02_Scripts/Manager/PopupController.cs) | `CreatePopup`, `DestroyPopup` |

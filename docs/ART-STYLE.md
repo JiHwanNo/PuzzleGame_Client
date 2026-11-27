@@ -42,7 +42,7 @@
 
 [신규 프리팹](../Assets/Resources/Prefab/LobbyRoster)은 같은 이름의 [RGBA 방향 시트](../Assets/Resources/Texture/LobbyRoster)와 [공유 Animator](../Assets/Resources/Animation/LobbyRoster/Roster.controller)를 사용한다. 한 장은 2048 × 1024, 한 칸은 256 × 256이다. 열은 S · SE · E · NE · N · NW · W · SW, 행은 위에서 대기 · 걷기 · 공격 · 특수 동작이다. 서쪽 세 방향은 동쪽 원화의 좌우 반전이다.
 
-Unity에서 프리팹을 Canvas 아래에 두고 Animator에서 `Walk_SE`나 `Special_W`를 재생한다. 대기와 걷기는 제자리에서 반복하고, 공격과 특수 동작은 같은 방향 대기로 돌아온다. 관절형 새싹거북과 달리 신규 19종은 시트의 자세, 발쪽 피벗, 이동·회전·크기 키를 조합한다. 방어 유닛은 피격 때 몸을 움츠리거나 방패를 내세운다. [전체 이름과 로비 전투 역할](LOBBY-DEFENSE.md#배치-캐릭터와-등불유령)
+Unity에서 프리팹을 Canvas 아래에 두고 Animator에서 `Walk_SE`나 `Special_W`를 재생한다. 대기와 걷기는 제자리에서 반복하고, 공격과 특수 동작은 같은 방향 대기로 돌아온다. 관절형 새싹거북과 달리 신규 19종은 시트의 자세, 발쪽 피벗, 이동·회전·크기 키를 조합한다. 신규 공격 유닛은 일반 사격에 표적 방향의 `Attack`, 적을 처치한 탄에 같은 방향의 `Special`을 재생한다. 방어 유닛은 피격 때 `Special`로 몸을 움츠리거나 방패를 내세운다. [전체 이름과 로비 전투 역할](LOBBY-DEFENSE.md#배치-캐릭터와-등불유령)
 
 ### 초기 제작 참고용 방향 시트
 

@@ -10,6 +10,7 @@ JSON 규칙, 스테이지, GameSpec, 블럭 데이터 관련 작업 시 참고.
 
 | 찾는 콘텐츠 | 담당 C# 파일 | 주요 메서드·타입·멤버 |
 |---|---|---|
+| [로비 신규 유닛 명단](../Assets/04_Resources/LobbyUnitCatalog.json)과 프리팹 연결 | [LobbyUnit.cs](../Assets/02_Scripts/Lobby/LobbyUnit.cs) · [LobbyMain.cs](../Assets/02_Scripts/Lobby/LobbyMain.cs) | `InitializeCatalog`, `Catalog`, `Ghost` |
 | Rule/Stage 로드·사양 병합·시드 생성 | [StageInjection.cs](../Assets/02_Scripts/StageMapTool/StageInjection.cs) | `MakeGameSpec`, `MakeGameSpecFromData`, `GetGameSpec`, `SetReplayData` |
 | 게임 사양·스테이지·셀 데이터 정의 | [GameSpec.cs](../Assets/02_Scripts/PuzzleCore/Module/GameSpec.cs) | `GameSpec`, `GameSpec.mode`, `GameSpec.pivotSettings`, `UseLegacyAutomaticCombos`, `UseRecordedBattleDuration`, `UseLegacyNumericRules`, `BattleFrameCount`, `StageData`, `HasValidCoordinates`, `CellData`, `GetBlock` |
 | 규칙·블럭·목표 데이터, enum, 좌표, 입력 기록 | [PuzzleDefine.cs](../Assets/02_Scripts/PuzzleCore/Module/PuzzleDefine.cs) | `GameRuleContainer`, `RuleData`, `BlockData`, `ObjectiveData`, `GridPos`, `InputRecord`, `InputEndRecord` |
@@ -20,6 +21,8 @@ JSON 규칙, 스테이지, GameSpec, 블럭 데이터 관련 작업 시 참고.
 ---
 
 ## 데이터 흐름
+
+로비 진입 시 `AssetManager`가 주소 `LobbyUnitCatalog`의 JSON을 읽는다. 각 항목의 `id`는 `Prefab/LobbyRoster/` 아래 프리팹 이름과 일치하며, `name`은 표시 이름이다. `role`이 `Archer`나 `Wall`이면 고용 목록에 표시하고, `Ghost`는 경로 점검에 사용한다.
 
 `ReplayData.pivotSettings`에는 플레이 시작 시 검증한 피벗 설정 복사본을 저장한다. 재생은 기록된 설정을 사용하고, 해당 필드가 없는 기존 기록은 기본값으로 피벗 게이지를 계산한다. 입력 저장 형식의 `formatVersion`은 유지하고, 콤보 판정 차이는 `comboRuleVersion`, 시간·점수 계산 차이는 `numericRuleVersion`으로 구분한다. 설정 항목은 [피벗 모드](INGAME-VIEW-AND-BATTLE.md#대전-전용-피벗-모드)를 참고한다.
 

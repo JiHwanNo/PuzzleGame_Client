@@ -1,0 +1,23 @@
+{
+  "units": [
+    {"id": "FoxSpark", "name": "불꽃여우", "role": "Archer"},
+    {"id": "CatFrost", "name": "서리고양이", "role": "Archer"},
+    {"id": "SquirrelAcorn", "name": "도토리다람쥐", "role": "Archer"},
+    {"id": "PenguinBubble", "name": "방울펭귄", "role": "Archer"},
+    {"id": "BeeBolt", "name": "번개꿀벌", "role": "Archer"},
+    {"id": "HedgeChestnut", "name": "밤송이고슴도치", "role": "Wall"},
+    {"id": "BearHoney", "name": "꿀단지곰", "role": "Wall"},
+    {"id": "PandaBamboo", "name": "대나무판다", "role": "Wall"},
+    {"id": "FrogLily", "name": "수련개구리", "role": "Wall"},
+    {"id": "CrabCoral", "name": "산호게", "role": "Wall"},
+    {"id": "SnailBerry", "name": "딸기달팽이", "role": "Wall"},
+    {"id": "SheepCloud", "name": "구름양", "role": "Wall"},
+    {"id": "BeaverLog", "name": "통나무비버", "role": "Wall"},
+    {"id": "ArmadilloAmber", "name": "호박아르마딜로", "role": "Wall"},
+    {"id": "OwlMoon", "name": "초승달부엉이", "role": "Wall"},
+    {"id": "WalrusIce", "name": "얼음바다코끼리", "role": "Wall"},
+    {"id": "ChickEgg", "name": "알껍질병아리", "role": "Wall"},
+    {"id": "RhinoMelon", "name": "수박코뿔소", "role": "Wall"},
+    {"id": "GhostLantern", "name": "등불유령", "role": "Ghost"}
+  ]
+}

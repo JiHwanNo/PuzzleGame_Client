@@ -19,12 +19,13 @@ internal sealed class LobbyDefenseBoard
     private readonly LobbyUnit[] _lineup = new LobbyUnit[Count];
     private readonly int[] _strength = new int[Count];
     private readonly int[] _readyAt = new int[Count];
-    /// <summary>사격 또는 방어 유닛 피격이 일어난 논리 초와 상대 칸까지의 방향을 보관한다.</summary>
+    /// <summary>사격 또는 방어 유닛 피격이 일어난 논리 초, 상대 방향과 처치 여부를 보관한다.</summary>
     internal struct UnitContact
     {
         public int Second;
         public int ColumnDelta;
         public int RowDelta;
+        public bool FinishingBlow;
     }
 
     private readonly UnitContact[] _contacts = new UnitContact[Count];
@@ -67,17 +68,18 @@ internal sealed class LobbyDefenseBoard
     internal int GhostExitSecond { get; private set; } = -1;
     internal int GhostExitFrom { get; private set; }
 
-    /// <summary><paramref name="cell"/>의 유닛이 마지막으로 사격하거나 피격된 방향을 반환한다.</summary>
+    /// <summary><paramref name="cell"/>의 유닛이 마지막으로 사격하거나 피격된 방향과 처치 여부를 반환한다.</summary>
     public UnitContact ContactAt(int cell) => _contacts[cell];
 
-    /// <summary><paramref name="unit"/>에서 <paramref name="opponent"/> 방향으로 발생한 전투 접촉을 기록한다.</summary>
-    private void RecordContact(int unit, int opponent)
+    /// <summary><paramref name="unit"/>에서 <paramref name="opponent"/> 방향의 접촉과 처치 여부 <paramref name="finishingBlow"/>를 기록한다.</summary>
+    private void RecordContact(int unit, int opponent, bool finishingBlow)
     {
         _contacts[unit] = new UnitContact
         {
             Second = _seconds,
             ColumnDelta = opponent % Width - unit % Width,
-            RowDelta = opponent / Width - unit / Width
+            RowDelta = opponent / Width - unit / Width,
+            FinishingBlow = finishingBlow
         };
     }
 
@@ -359,7 +361,7 @@ internal sealed class LobbyDefenseBoard
                 _strength[next] -= piece == Piece.Wall ? 2 : 4;
                 if (piece == Piece.Wall)
                 {
-                    RecordContact(next, monster.Cell);
+                    RecordContact(next, monster.Cell, false);
                 }
                 if (_strength[next] <= 0)
                 {
@@ -424,8 +426,9 @@ internal sealed class LobbyDefenseBoard
             return;
         }
         target.Health -= 4;
-        RecordContact(unit, target.Cell);
-        if (target.Health <= 0)
+        bool defeated = target.Health <= 0;
+        RecordContact(unit, target.Cell, defeated);
+        if (defeated)
         {
             _monsters.Remove(target);
             _regularCount--;

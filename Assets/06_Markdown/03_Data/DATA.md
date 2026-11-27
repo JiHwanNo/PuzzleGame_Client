@@ -6,6 +6,8 @@ JSON 규칙, 스테이지, GameSpec, 블럭 데이터 관련 작업 시 참고.
 
 ## 데이터 흐름
 
+[로비 유닛 명단](../../04_Resources/LobbyUnitCatalog.json)은 로비 진입 시 [LobbyUnit.InitializeCatalog](../../02_Scripts/Lobby/LobbyUnit.cs)에서 읽는다. 각 항목의 역할과 프리팹 연결 규칙은 [데이터 매핑](../../../docs/DATA.md#콘텐츠와-c-매핑)을 따른다.
+
 ```
 Rule JSON + Stage JSON
   → AssetManager.LoadAsset<TextAsset>(address)

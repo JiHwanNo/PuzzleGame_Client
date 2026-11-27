@@ -372,7 +372,8 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
         int actionSecond = -1;
         if (contact.Second > 0 && contact.Second == _session.Seconds)
         {
-            pose = unit.Role == LobbyDefenseBoard.Piece.Archer ? "Attack_" : "Special_";
+            bool normalShot = unit.Role == LobbyDefenseBoard.Piece.Archer && !contact.FinishingBlow;
+            pose = normalShot ? "Attack_" : "Special_";
             actionSecond = contact.Second;
         }
         ShowActor(GetArt(unit), size, cell, null, pose, direction, actionSecond);

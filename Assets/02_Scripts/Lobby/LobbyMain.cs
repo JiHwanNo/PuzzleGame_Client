@@ -17,6 +17,7 @@ public class LobbyMain : MonoBehaviour
         {
             yield return null;
         }
+        LobbyUnit.InitializeCatalog();
         LobbyDefenseView field = LobbyDefenseView.Create(_statusText, CameraController.MainCamera);
         LobbyNavigation.Create(_statusText, field);
         _statusText.text = "플레이 시 라이프 1개 사용";
