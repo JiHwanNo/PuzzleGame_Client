@@ -8,6 +8,7 @@ using UnityEngine;
 public class LobbyMain : MonoBehaviour
 {
     [SerializeField] private TMP_Text _statusText;
+    [SerializeField] private LobbyDefenseBoard.StagePlan[] _defenseStages = LobbyDefenseBoard.DefaultStages();
 
     /// <summary>로비 탭이 열리면 방치형 전장을 표시하고 방어전을 시작하거나 이어간다.</summary>
     private System.Collections.IEnumerator Start()
@@ -17,8 +18,12 @@ public class LobbyMain : MonoBehaviour
         {
             yield return null;
         }
-        LobbyUnit.InitializeCatalog();
-        LobbyDefenseView field = LobbyDefenseView.Create(_statusText, CameraController.MainCamera);
+        if (!LobbyUnit.InitializeCatalog() && LobbyDefenseView.HasSavedProgress)
+        {
+            _statusText.text = "방어 유닛 정보를 불러오지 못했습니다. 로비에 다시 들어와 주세요.";
+            yield break;
+        }
+        LobbyDefenseView field = LobbyDefenseView.Create(_statusText, CameraController.MainCamera, _defenseStages);
         LobbyNavigation.Create(_statusText, field);
         _statusText.text = "플레이 시 라이프 1개 사용";
     }

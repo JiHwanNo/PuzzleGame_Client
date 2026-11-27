@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-/// <summary>로비 디펜스의 경로와 전투를 그리고 칸 선택 및 고용 입력을 전달한다.</summary>
+/// <summary>로비 전투와 경로를 표시하고 보유 카드 배치와 스테이지 진행 입력을 전달한다.</summary>
 [RequireComponent(typeof(CanvasRenderer))]
 internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
 {
@@ -23,11 +23,16 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
     private static readonly Color CardBlue = new Color32(45, 76, 98, 255);
     private static readonly Color SelectedBlue = new Color32(32, 111, 145, 255);
     private static readonly Color Honey = new Color32(255, 213, 117, 255);
-    private readonly Image[] _cards = new Image[3];
-    private readonly LobbyUnit[] _choices = { LobbyUnit.Rabbit, LobbyUnit.Turtle, LobbyUnit.Trap };
-    private readonly RawImage[] _portraits = new RawImage[3];
-    private readonly TMP_Text[] _names = new TMP_Text[3];
-    private readonly TMP_Text[] _costs = new TMP_Text[3];
+    private const string SaveKey = "Lobby.Defense.Cards.v1";
+    internal static bool HasSavedProgress => PlayerPrefs.HasKey(SaveKey);
+    private Button _stageButton;
+    private TMP_Text _stageAction;
+    private Button _cancel;
+    private TMP_Text _selectionText;
+    private RawImage _portrait;
+    private GameObject _trapPortrait;
+    private LobbyCard _selectedCard;
+    internal event System.Action InventoryRequested;
     private RectTransform _backdrop;
     private RectTransform _actorsRoot;
     private TMP_Text _gold;
@@ -37,9 +42,18 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
     private TMP_Text _summary;
     private TMP_Text _hint;
     private TMP_Text _page;
-    private Button _hire;
-    private LobbyUnit _selectedUnit = LobbyUnit.Rabbit;
-    private LobbyDefenseBoard.Piece SelectedRole => _selectedUnit.Role;
+    private Button _confirmPlacement;
+    private LobbyDefenseBoard.Piece SelectedRole
+    {
+        get
+        {
+            if (_selectedCard == null)
+            {
+                return LobbyDefenseBoard.Piece.Empty;
+            }
+            return _selectedCard.Unit.Role;
+        }
+    }
     private int _first;
     private int _columns = PageWidth;
     private int _selected = -1;
@@ -82,13 +96,37 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
         _session = null;
     }
 
-    /// <summary><paramref name="camera"/> 앞에 고정된 전장을 만들고 <paramref name="status"/>의 글꼴과 화면 크기를 사용한다.</summary>
-    internal static LobbyDefenseView Create(TMP_Text status, Camera camera)
+    /// <summary><paramref name="stages"/> 전장을 <paramref name="camera"/> 앞에 만들고 <paramref name="status"/>의 글꼴과 화면 크기를 사용한다.</summary>
+    internal static LobbyDefenseView Create(TMP_Text status, Camera camera, LobbyDefenseBoard.StagePlan[] stages)
     {
         if (_session == null)
         {
-            _session = new LobbyDefenseBoard();
-            _session.StartFirstWave();
+            if (!LobbyDefenseBoard.ValidStages(stages))
+            {
+                Debug.LogWarning("[로비] 스테이지 편성이 비어 있거나 소환 간격이 잘못되어 기본 편성을 사용합니다.");
+                stages = LobbyDefenseBoard.DefaultStages();
+            }
+            LobbyDefenseBoard.Progress saved = null;
+            if (PlayerPrefs.HasKey(SaveKey))
+            {
+                string json = PlayerPrefs.GetString(SaveKey);
+                try
+                {
+                    saved = JsonUtility.FromJson<LobbyDefenseBoard.Progress>(json);
+                }
+                catch (System.ArgumentException exception)
+                {
+                    Debug.LogWarning($"[로비] 방어전 저장 데이터를 읽지 못했습니다. {exception.Message}");
+                }
+                if (saved == null || !saved.CanRestore())
+                {
+                    PlayerPrefs.SetString(SaveKey + ".Recovery", json);
+                    Debug.LogWarning("[로비] 복구할 수 없는 저장본을 별도로 보관하고 새 방어전을 시작합니다.");
+                    saved = null;
+                }
+            }
+            _session = new LobbyDefenseBoard(stages, System.Guid.NewGuid().GetHashCode(), saved);
+            SaveProgress();
         }
         GameObject field = new GameObject("DefenseWorld", typeof(RectTransform), typeof(Canvas), typeof(GraphicRaycaster));
         UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(field, status.gameObject.scene);
@@ -114,6 +152,43 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
         view.BuildControls();
         view.Refresh();
         return view;
+    }
+
+    /// <summary>보유 카드, 배치, 현재 스테이지의 적과 진행 결과를 한 묶음으로 저장한다.</summary>
+    private static void SaveProgress()
+    {
+        PlayerPrefs.SetString(SaveKey, JsonUtility.ToJson(_session.Save));
+        PlayerPrefs.Save();
+    }
+
+    /// <summary><paramref name="paused"/>로 앱이 백그라운드에 들어갈 때 진행 중인 전투를 저장한다.</summary>
+    private void OnApplicationPause(bool paused)
+    {
+        if (paused && _session != null)
+        {
+            SaveProgress();
+        }
+    }
+
+    /// <summary>로비 씬을 떠나거나 앱이 종료될 때까지 진행한 상태를 저장한다.</summary>
+    protected override void OnDestroy()
+    {
+        if (_session != null)
+        {
+            SaveProgress();
+        }
+        base.OnDestroy();
+    }
+
+    /// <summary>상점에서 카드 한 장을 뽑아 골드와 획득 결과를 함께 저장한다.</summary>
+    internal LobbyCard DrawCard()
+    {
+        LobbyCard drawn = _session.Draw();
+        if (drawn != null)
+        {
+            SaveProgress();
+        }
+        return drawn;
     }
 
     /// <summary><paramref name="visible"/>에 맞게 전장의 그리기와 입력을 바꾸고 전투 시간은 계속 진행한다.</summary>
@@ -160,8 +235,11 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
     /// <summary>전투 상태와 구역 이동 및 배치 확정 버튼을 구성한다.</summary>
     private void BuildControls()
     {
-        _summary = Label(Element("Wave", transform, -160, 328, 400, 60), 44);
+        _summary = Label(Element("Stage", transform, -239, 328, 242, 60), 37);
         _summary.alignment = TextAlignmentOptions.MidlineLeft;
+        _stageButton = MakeButton("다음 스테이지", 0, 328, 218, 60, StartStage);
+        _stageAction = _stageButton.GetComponentInChildren<TMP_Text>();
+        _stageButton.image.color = SelectedBlue;
         _gold = Label(Element("Gold", transform, 245, 328, 230, 60), 33);
         _gold.alignment = TextAlignmentOptions.MidlineRight;
         _gold.color = Honey;
@@ -173,46 +251,47 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
         _waveTime = Label(Element("WaveTimer", transform, 238, 232, 244, 60), 24);
         _waveTime.alignment = TextAlignmentOptions.MidlineRight;
 
-        for (int i = 0; i < _cards.Length; i++)
-        {
-            LobbyDefenseBoard.Piece piece = (LobbyDefenseBoard.Piece)(i + 1);
-            BuildUnitCard(piece, i);
-        }
+        Button inventory = MakeButton("방어 카드 배치", -241, -276, 238, 94, OpenInventory);
+        inventory.image.color = SelectedBlue;
+        _selectionText = Label(Element("SelectedCard", transform, 100, -276, 310, 100), 23);
+        _portrait = MakeIcon(transform, 82);
+        _portrait.rectTransform.anchoredPosition = new Vector2(-86, -276);
+        RectTransform trap = Element("SelectedTrap", transform, -86, -276, 45, 45);
+        DrawTrap(trap);
+        _trapPortrait = trap.gameObject;
+        _cancel = MakeButton("취소", 309, -276, 92, 64, CancelPlacement);
         _hint = Label(Element("PlacementHint", transform, -113, -394, 494, 100), 24);
         _hint.alignment = TextAlignmentOptions.MidlineLeft;
-        _hire = MakeButton("배치 확정", 253, -394, 214, 78, Confirm);
-        _hire.image.color = SelectedBlue;
+        _confirmPlacement = MakeButton("배치 확정", 253, -394, 214, 78, Confirm);
+        _confirmPlacement.image.color = SelectedBlue;
     }
 
-    /// <summary><paramref name="piece"/>의 초상·이름·비용을 <paramref name="index"/>번째 선택 카드에 배치한다.</summary>
-    private void BuildUnitCard(LobbyDefenseBoard.Piece piece, int index)
+    /// <summary>하단 인벤토리를 열어 보유 카드를 고르게 한다.</summary>
+    private void OpenInventory()
     {
-        string name = _choices[index].Name;
-        Button card = MakeButton(name, (index - 1) * 246, -278, 228, 124, () => SelectUnit(_choices[index]));
-        _cards[index] = card.image;
-        TMP_Text label = card.GetComponentInChildren<TMP_Text>();
-        label.rectTransform.anchoredPosition = new Vector2(44, 17);
-        label.rectTransform.sizeDelta = new Vector2(136, 42);
-        label.enableAutoSizing = true;
-        label.fontSizeMin = 15;
-        label.fontSizeMax = 25;
-        _names[index] = label;
-        _costs[index] = Label(Element("Cost", card.transform, 44, -20, 132, 32), 20);
-        _costs[index].color = Honey;
+        if (InventoryRequested != null)
+        {
+            InventoryRequested();
+        }
+    }
 
-        Vector2 position = new Vector2(-66, 0);
-        if (piece == LobbyDefenseBoard.Piece.Trap)
+    /// <summary>방어 결과에 따라 다음 스테이지 또는 같은 스테이지의 새 전투를 시작한다.</summary>
+    private void StartStage()
+    {
+        if (_session.StartNextAttempt())
         {
-            RectTransform trap = Element("Trap", card.transform, position.x, 0, 46, 46);
-            DrawTrap(trap);
+            SaveProgress();
+            CancelPlacement();
         }
-        else
-        {
-            RawImage icon = MakeIcon(card.transform, 94);
-            icon.rectTransform.anchoredPosition = position;
-            _portraits[index] = icon;
-            SetPortrait(icon, _choices[index]);
-        }
+    }
+
+    /// <summary>확정 전 카드와 셀 선택을 취소한다.</summary>
+    private void CancelPlacement()
+    {
+        _selectedCard = null;
+        _selected = -1;
+        _moving = -1;
+        Refresh();
     }
 
     /// <summary>메인과 상점의 <paramref name="icon"/>에 <paramref name="unit"/>의 남동쪽 원화를 표시한다.</summary>
@@ -505,22 +584,14 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
         }
     }
 
-    /// <summary><paramref name="unit"/>을 해당 역할의 전장 카드와 다음 배치 후보로 설정한다.</summary>
-    internal void SelectUnit(LobbyUnit unit)
+    /// <summary>인벤토리에서 선택한 <paramref name="card"/>를 메인 전장의 배치 후보로 지정한다.</summary>
+    internal void SelectCard(LobbyCard card)
     {
-        int index = (int)unit.Role - 1;
-        _choices[index] = unit;
-        _names[index].text = unit.Name;
-        if (_portraits[index] != null)
-        {
-            SetPortrait(_portraits[index], unit);
-        }
-        _selectedUnit = unit;
+        _selectedCard = card;
         _moving = -1;
-        if (_world.enabled)
-        {
-            Refresh();
-        }
+        _selected = -1;
+        _columns = PageWidth;
+        Refresh();
     }
 
     /// <summary><paramref name="rect"/>에 <paramref name="size"/> 크기의 상태 문구를 만든다.</summary>
@@ -565,10 +636,15 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
             }
             return;
         }
+        bool finished = _session.Finished;
         while (_elapsed >= 1f)
         {
             _elapsed -= 1f;
             _session.Tick();
+        }
+        if (!finished && _session.Finished)
+        {
+            SaveProgress();
         }
         if (_world.enabled)
         {
@@ -625,9 +701,13 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
             return;
         }
         _selected = row * LobbyDefenseBoard.Width + _first + column;
-        if (_session.Rest > 0 && _session.HasUnit(_selected))
+        if (_selectedCard == null && _session.Finished && _session.HasUnit(_selected))
         {
             _moving = _selected;
+            _selected = -1;
+        }
+        if (_selectedCard == null && _moving < 0)
+        {
             _selected = -1;
         }
         Refresh();
@@ -636,50 +716,99 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
     /// <summary>선택한 후보 칸의 배치를 확정한다.</summary>
     private void Confirm()
     {
-        bool placed = _moving >= 0 ? _session.MoveUnit(_moving, _selected) : _session.Hire(_selected, _selectedUnit);
+        bool placed = _moving >= 0 ? _session.MoveUnit(_moving, _selected) : _session.PlaceCard(_selected, _selectedCard);
         if (placed)
         {
+            SaveProgress();
+            _selectedCard = null;
             _selected = -1;
             _moving = -1;
         }
         Refresh();
     }
 
-    /// <summary>현재 후보 경로와 비용, 소환 상태를 화면에 반영한다.</summary>
+    /// <summary>현재 후보 경로와 보유 카드, 스테이지 상태를 화면에 반영한다.</summary>
     private void Refresh()
     {
-        if (_moving >= 0 && (_session.Rest == 0 || !_session.HasUnit(_moving)))
+        if (_moving >= 0 && (!_session.Finished || !_session.HasUnit(_moving)))
         {
             _moving = -1;
             _selected = -1;
         }
-        _previewLength = _moving >= 0 ? _session.PreviewMove(_moving, _selected) : _session.Preview(_selected, SelectedRole);
-        string timer = "첫 유닛 배치 대기";
-        if (_session.Rest > 0)
+        _previewLength = LobbyDefenseBoard.InvalidPlacement;
+        if (_moving >= 0)
         {
-            timer = $"정비 {_session.Rest}초";
+            _previewLength = _session.PreviewMove(_moving, _selected);
+        }
+        else if (_selectedCard != null)
+        {
+            _previewLength = _session.Preview(_selected, SelectedRole);
+        }
+        RefreshStageControls();
+        RefreshPlacementControls();
+        RefreshUnitIcons();
+        SetVerticesDirty();
+    }
+
+    /// <summary>스테이지명 옆 진행 버튼과 보유 골드, 다음 소환 시점을 표시한다.</summary>
+    private void RefreshStageControls()
+    {
+        string timer = "첫 카드 배치 대기";
+        if (_session.Finished)
+        {
+            timer = _session.Cleared ? "방어 완료" : $"돌파 {_session.Save.Escaped}기";
         }
         else if (_session.Started)
         {
             timer = _session.SpawnsFinished ? "남은 적 방어" : $"다음 소환 {_session.NextSpawn}초";
         }
-        _summary.text = $"웨이브 {_session.Wave:00}";
+        _stageButton.gameObject.SetActive(_session.Finished);
+        _stageAction.text = _session.Cleared ? "다음 스테이지" : "다시 도전";
+        _summary.text = $"스테이지 {_session.Stage}";
         _gold.text = $"{_session.Gold} 골드";
         _waveTime.text = timer;
+    }
+
+    /// <summary>현재 구역과 선택한 보유 카드에 따라 미리보기와 확정 버튼을 갱신한다.</summary>
+    private void RefreshPlacementControls()
+    {
         bool overview = _columns == LobbyDefenseBoard.Width;
         _previous.interactable = overview || _first > 0;
         _next.interactable = overview || _first + PageWidth < LobbyDefenseBoard.Width;
         _page.text = overview ? "구역 보기" : $"{_first + 1}–{_first + PageWidth}열 · 전체";
-        for (int i = 0; i < _cards.Length; i++)
+        bool choosing = _selectedCard != null;
+        _portrait.enabled = false;
+        _trapPortrait.SetActive(choosing && _selectedCard.Unit == LobbyUnit.Trap);
+        _selectionText.text = "인벤토리에서 카드 선택";
+        if (choosing)
         {
-            LobbyDefenseBoard.Piece choice = (LobbyDefenseBoard.Piece)(i + 1);
-            _cards[i].color = SelectedRole == choice && _moving < 0 ? SelectedBlue : CardBlue;
-            _costs[i].text = $"{_session.CostOf(choice)} 골드";
+            _selectionText.text = $"{_selectedCard.Unit.Name} · {_selectedCard.Grade}\n{_selectedCard.Stats}";
+            SetPortrait(_portrait, _selectedCard.Unit);
         }
-        int cost = _session.CostOf(SelectedRole);
-        string order = _moving >= 0 ? "무료 이동" : _selectedUnit.Name;
+        _cancel.gameObject.SetActive(choosing || _moving >= 0);
+        string order = "배치";
+        if (_moving >= 0)
+        {
+            order = "무료 이동";
+        }
+        else if (choosing)
+        {
+            order = _selectedCard.Unit.Name;
+        }
         string route = _session.RouteLength < 0 ? "봉쇄 중" : $"{_session.RouteLength}칸";
-        _hint.text = overview ? "확대할 구역을 선택하세요" : $"{order} · 놓을 칸 선택\n현재 경로 {route}";
+        _hint.text = $"현재 경로 {route}";
+        if (overview)
+        {
+            _hint.text = "확대할 구역을 선택하세요";
+        }
+        else if (choosing || _moving >= 0)
+        {
+            _hint.text = $"{order} · 놓을 칸 선택\n현재 경로 {route}";
+        }
+        else if (_session.Finished)
+        {
+            _hint.text = "옮길 유닛을 선택하세요";
+        }
         if (_selected >= 0 && _previewLength == LobbyDefenseBoard.InvalidPlacement)
         {
             _hint.text = "이 칸에는 배치할 수 없습니다";
@@ -689,9 +818,7 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
             string result = _session.PreviewSiege ? "통로 봉쇄 / 방벽 공격" : $"경로 {route} → {_previewLength}칸";
             _hint.text = $"{order} · 배치 미리보기\n{result}";
         }
-        _hire.interactable = _previewLength != LobbyDefenseBoard.InvalidPlacement && (_moving >= 0 || _session.Gold >= cost);
-        RefreshUnitIcons();
-        SetVerticesDirty();
+        _confirmPlacement.interactable = _previewLength != LobbyDefenseBoard.InvalidPlacement;
     }
 
     /// <summary><paramref name="mesh"/>에 격자, 경로, 유닛과 체력이 표시된 몬스터를 그린다.</summary>
@@ -758,9 +885,21 @@ internal sealed class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
                 }
                 continue;
             }
-            Color32 body = monster.Stun > 0 ? new Color32(207, 147, 254, 255) : new Color32(241, 123, 102, 255);
+            Color32 body = new Color32(241, 123, 102, 255);
+            if (monster.Kind == LobbyDefenseBoard.EnemyKind.Soldier)
+            {
+                body = new Color32(251, 181, 86, 255);
+            }
+            else if (monster.Kind == LobbyDefenseBoard.EnemyKind.Guard)
+            {
+                body = new Color32(118, 150, 206, 255);
+            }
+            if (monster.Stun > 0)
+            {
+                body = new Color32(207, 147, 254, 255);
+            }
             Tile(mesh, monster.Cell, 0.13f, body);
-            Tile(mesh, monster.Cell, 0.25f, Color.white, monster.Health / 12f);
+            Tile(mesh, monster.Cell, 0.25f, Color.white, (float)monster.Health / monster.MaxHealth);
         }
     }
 

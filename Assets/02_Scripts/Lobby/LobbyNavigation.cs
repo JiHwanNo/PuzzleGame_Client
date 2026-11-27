@@ -15,8 +15,11 @@ internal sealed class LobbyNavigation : MonoBehaviour
     private readonly RectTransform[] _pages = new RectTransform[5];
     private readonly Image[] _marks = new Image[5];
     private readonly CatalogPage[] _catalogs = new CatalogPage[2];
+    private int _shownGold;
     private int _shownRosterVersion = -1;
     private TMP_Text _motionLabel;
+    private Button _draw;
+    private TMP_Text _shopTitle;
     private TMP_FontAsset _font;
     private Texture2D _icons;
     private LobbyDefenseView _field;
@@ -28,7 +31,7 @@ internal sealed class LobbyNavigation : MonoBehaviour
     private float _elapsed;
     private bool _motion;
 
-    /// <summary>한 슬롯에서 현재 캐릭터의 이름, 정지 초상, 가격 또는 배치 수를 표시한다.</summary>
+    /// <summary>한 슬롯에서 현재 캐릭터의 이름, 정지 초상, 능력치와 배치 상태를 표시한다.</summary>
     private sealed class UnitCard
     {
         public RectTransform Rect;
@@ -36,6 +39,7 @@ internal sealed class LobbyNavigation : MonoBehaviour
         public GameObject Trap;
         public TMP_Text Name;
         public TMP_Text Value;
+        public Button Place;
     }
 
     /// <summary>상점과 인벤토리가 각각 기억하는 목록 위치와 재사용할 카드들을 보관한다.</summary>
@@ -60,6 +64,7 @@ internal sealed class LobbyNavigation : MonoBehaviour
         nav._icons = AssetManager.Instance.LoadAsset<Texture2D>("LobbyNavigation");
         nav._motion = PlayerPrefs.GetInt(MotionKey, 1) == 1;
         nav.Build();
+        field.InventoryRequested += nav.OpenInventory;
     }
 
     /// <summary>페이지와 탭 바를 한 번 생성하고 첫 선택을 메인으로 표시한다.</summary>
@@ -121,8 +126,19 @@ internal sealed class LobbyNavigation : MonoBehaviour
     {
         CatalogPage page = new CatalogPage();
         _catalogs[tab] = page;
-        string title = tab == 0 ? "전장 고용" : "전장에 배치된 유닛";
-        Label(parent, title, .04f, .715f, .96f, .775f, 29);
+        if (tab == 0)
+        {
+            _shopTitle = Label(parent, "", .04f, .715f, .51f, .775f, 26);
+            RectTransform draw = Panel("Draw", parent, .53f, .71f, .95f, .779f, Surface);
+            _draw = draw.gameObject.AddComponent<Button>();
+            _draw.targetGraphic = draw.GetComponent<Image>();
+            _draw.onClick.AddListener(DrawCard);
+            Label(draw, $"카드 뽑기 · {LobbyDefenseBoard.DrawCost} 골드", 0, 0, 1, 1, 24);
+        }
+        else
+        {
+            Label(parent, "보유한 방어 카드", .04f, .715f, .96f, .775f, 29);
+        }
         for (int i = 0; i < CardsPerPage; i++)
         {
             int slot = i;
@@ -136,15 +152,17 @@ internal sealed class LobbyNavigation : MonoBehaviour
             trapFrame.enabled = false;
             card.Trap = trapFrame.gameObject;
             LobbyDefenseView.DrawTrap(Box("Gem", trapFrame.transform, 0, 0, 1, 1));
-            card.Name = Label(rect, "", .025f, .20f, .975f, .38f, 27);
-            card.Value = Label(rect, "", .025f, .025f, .975f, .18f, 22);
+            card.Name = Label(rect, "", .025f, .26f, .975f, .42f, 26);
+            card.Value = Label(rect, "", .025f, .015f, .975f, .25f, 22);
             card.Name.fontSizeMin = 8;
             card.Value.fontSizeMin = 8;
             card.Value.color = Gold;
             page.Cards[i] = card;
-            if (tab == 0)
+            if (tab == 1)
             {
-                rect.gameObject.AddComponent<Button>().onClick.AddListener(() => Place(slot));
+                card.Place = rect.gameObject.AddComponent<Button>();
+                card.Place.targetGraphic = rect.GetComponent<Image>();
+                card.Place.onClick.AddListener(() => Place(slot));
             }
         }
         page.Previous = CatalogButton(parent, "이전", .08f, () => TurnPage(tab, -1));
@@ -167,16 +185,39 @@ internal sealed class LobbyNavigation : MonoBehaviour
     private void TurnPage(int tab, int offset)
     {
         CatalogPage page = _catalogs[tab];
-        int lastPage = (LobbyUnit.Catalog.Count - 1) / CardsPerPage;
+        int lastPage = (CardCount(tab) - 1) / CardsPerPage;
         page.Index = Mathf.Clamp(page.Index + offset, 0, lastPage);
         RefreshCatalog(tab);
     }
 
-    /// <summary>상점의 현재 페이지에서 <paramref name="slot"/> 캐릭터를 선택하고 메인 전장에 배치할 준비를 한다.</summary>
+    /// <summary><paramref name="tab"/>의 도감 또는 실제 보유 카드 수를 반환한다.</summary>
+    private int CardCount(int tab) => tab == 0 ? LobbyUnit.Catalog.Count : _field.Board.Cards.Count;
+
+    /// <summary>전장 아래 카드 배치 버튼으로 보유 카드 목록을 연다.</summary>
+    private void OpenInventory() => Select(1);
+
+    /// <summary>뽑기에 성공하면 인벤토리에서 획득한 카드가 있는 페이지를 연다.</summary>
+    private void DrawCard()
+    {
+        LobbyCard drawn = _field.DrawCard();
+        if (drawn == null)
+        {
+            return;
+        }
+        _catalogs[1].Index = (_field.Board.Cards.Count - 1) / CardsPerPage;
+        OpenInventory();
+    }
+
+    /// <summary>인벤토리 <paramref name="slot"/>의 미배치 카드를 선택한 상태로 메인 전장으로 돌아간다.</summary>
     private void Place(int slot)
     {
-        int index = _catalogs[0].Index * CardsPerPage + slot;
-        _field.SelectUnit(LobbyUnit.Catalog[index]);
+        int index = _catalogs[1].Index * CardsPerPage + slot;
+        LobbyCard card = _field.Board.Cards[index];
+        if (card.Cell >= 0)
+        {
+            return;
+        }
+        _field.SelectCard(card);
         Select(MainPage);
     }
 
@@ -232,11 +273,16 @@ internal sealed class LobbyNavigation : MonoBehaviour
         Slide(0f);
     }
 
-    /// <summary><paramref name="tab"/>에 해당하는 여섯 칸의 초상과 전장의 실제 가격 또는 배치 수를 갱신한다.</summary>
+    /// <summary><paramref name="tab"/>에 해당하는 여섯 칸의 초상과 전장의 실제 능력치와 배치 상태를 갱신한다.</summary>
     private void RefreshCatalog(int tab)
     {
         CatalogPage page = _catalogs[tab];
-        int lastPage = (LobbyUnit.Catalog.Count - 1) / CardsPerPage;
+        int lastPage = (CardCount(tab) - 1) / CardsPerPage;
+        if (tab == 0)
+        {
+            _shopTitle.text = $"보유 {_field.Board.Gold} 골드";
+            _draw.interactable = _field.Board.Gold >= LobbyDefenseBoard.DrawCost;
+        }
         page.Previous.interactable = page.Index > 0;
         page.Next.interactable = page.Index < lastPage;
         page.PageNumber.text = $"{page.Index + 1} / {lastPage + 1}";
@@ -244,31 +290,41 @@ internal sealed class LobbyNavigation : MonoBehaviour
         {
             int index = page.Index * CardsPerPage + slot;
             UnitCard card = page.Cards[slot];
-            bool occupied = index < LobbyUnit.Catalog.Count;
+            bool occupied = index < CardCount(tab);
             card.Rect.gameObject.SetActive(occupied);
             if (!occupied)
             {
                 continue;
             }
-            LobbyUnit unit = LobbyUnit.Catalog[index];
-            card.Name.text = unit.Name;
-            card.Trap.SetActive(unit == LobbyUnit.Trap);
-            _field.SetPortrait(card.Portrait, unit);
-            string role = unit.Role == LobbyDefenseBoard.Piece.Archer ? "공격" : "방어";
-            if (unit == LobbyUnit.Trap)
-            {
-                role = "트랩";
-            }
+            LobbyUnit unit;
             if (tab == 0)
             {
-                card.Value.text = $"{role} · {_field.Board.CostOf(unit.Role)} 골드";
+                unit = LobbyUnit.Catalog[index];
+                card.Name.text = unit.Name;
+                card.Value.text = "길막";
+                if (unit.Role == LobbyDefenseBoard.Piece.Archer)
+                {
+                    card.Value.text = "사수";
+                }
+                else if (unit.Role == LobbyDefenseBoard.Piece.Trap)
+                {
+                    card.Value.text = "트랩";
+                }
             }
             else
             {
-                card.Value.text = $"{role} · {_field.Board.CountOf(unit)}개";
+                LobbyCard owned = _field.Board.Cards[index];
+                unit = owned.Unit;
+                card.Name.text = $"{unit.Name} · {owned.Grade}";
+                card.Place.interactable = owned.Cell < 0;
+                string action = owned.Cell < 0 ? "배치하기" : "배치 중";
+                card.Value.text = $"{owned.Stats}\n{action}";
             }
+            card.Trap.SetActive(unit == LobbyUnit.Trap);
+            _field.SetPortrait(card.Portrait, unit);
         }
         _shownRosterVersion = _field.Board.RosterVersion;
+        _shownGold = _field.Board.Gold;
     }
 
     /// <summary>전환을 마친 뒤 가려진 전장 렌더링을 쉬고 마지막 탭 요청을 처리한다.</summary>
@@ -276,7 +332,8 @@ internal sealed class LobbyNavigation : MonoBehaviour
     {
         if (_current == _target)
         {
-            if (_current < MainPage && _shownRosterVersion != _field.Board.RosterVersion)
+            bool goldChanged = _current == 0 && _shownGold != _field.Board.Gold;
+            if (_current < MainPage && (goldChanged || _shownRosterVersion != _field.Board.RosterVersion))
             {
                 RefreshCatalog(_current);
             }

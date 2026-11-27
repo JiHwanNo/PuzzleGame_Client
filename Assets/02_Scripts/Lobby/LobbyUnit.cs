@@ -9,6 +9,17 @@ internal sealed class LobbyUnit
     internal readonly string Name;
     internal readonly LobbyDefenseBoard.Piece Role;
     internal readonly string PrefabPath;
+    internal string Key
+    {
+        get
+        {
+            if (PrefabPath != null)
+            {
+                return PrefabPath;
+            }
+            return Role == LobbyDefenseBoard.Piece.Archer ? "Rabbit" : "Trap";
+        }
+    }
 
     internal static readonly LobbyUnit Rabbit = new LobbyUnit("토끼 사수", LobbyDefenseBoard.Piece.Archer, null);
     internal static readonly LobbyUnit Turtle = new LobbyUnit("새싹거북", LobbyDefenseBoard.Piece.Wall, "Prefab/LobbyTurtle");
@@ -138,15 +149,65 @@ internal sealed class LobbyUnit
         return null;
     }
 
-    /// <summary><paramref name="role"/>만 지정한 고용 요청에 해당하는 기본 캐릭터를 반환한다.</summary>
-    internal static LobbyUnit DefaultFor(LobbyDefenseBoard.Piece role)
+}
+
+/// <summary>인벤토리의 카드 한 장에 뽑기 결과와 전장 배치 상태를 보관한다.</summary>
+[Serializable]
+internal sealed class LobbyCard
+{
+    // 과거 저장본의 종류 번호도 읽고, 이후에는 카탈로그 순서와 무관한 키를 보관한다.
+    public int Kind;
+    public string UnitKey;
+    public int Attack;
+    public int Defense;
+    public int Health;
+    public int Cell = -1;
+    public int RemainingHealth;
+    public int ReadyAt;
+
+    /// <summary>저장된 식별자로 카탈로그 번호를 복원하고 예전 번호형 저장본에 식별자를 채운다.</summary>
+    internal bool ResolveUnit()
     {
-        switch (role)
+        if (string.IsNullOrEmpty(UnitKey))
         {
-            case LobbyDefenseBoard.Piece.Archer: return Rabbit;
-            case LobbyDefenseBoard.Piece.Wall: return Turtle;
-            case LobbyDefenseBoard.Piece.Trap: return Trap;
-            default: return null;
+            if (Kind < 0 || Kind >= LobbyUnit.Catalog.Count)
+            {
+                return false;
+            }
+            UnitKey = Unit.Key;
+            return true;
+        }
+        for (int index = 0; index < LobbyUnit.Catalog.Count; index++)
+        {
+            if (LobbyUnit.Catalog[index].Key == UnitKey)
+            {
+                Kind = index;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    internal LobbyUnit Unit => LobbyUnit.Catalog[Kind];
+    internal string Stats => $"공 {Attack} · 방 {Defense} · 체 {Health}";
+    internal string Grade
+    {
+        get
+        {
+            int sum = Attack + Defense + Health;
+            if (sum < 10)
+            {
+                return "1성";
+            }
+            if (sum < 20)
+            {
+                return "2성";
+            }
+            if (sum < 30)
+            {
+                return "3성";
+            }
+            return "금별 3성";
         }
     }
 }
