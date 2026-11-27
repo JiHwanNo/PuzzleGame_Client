@@ -117,6 +117,25 @@ public class Main : MonoBehaviour
         SceneManager.sceneLoaded -= OnSceneLoaded;
     }
 
+#if !UNITY_EDITOR
+    /// <summary>플레이어 종료 시 2D Animation이 첫 씬에서 만든 기본 스프라이트 본 버퍼를 해제한다.</summary>
+    private void OnApplicationQuit()
+    {
+        // 13.0.6은 스프라이트 스킨이 없어도 버퍼를 만들지만 GPU 변형 시스템이 있어야 정리한다.
+        System.Type deformation = System.Type.GetType("UnityEngine.U2D.Animation.GpuDeformationSystem, Unity.2D.Animation.Runtime");
+        if (deformation == null)
+        {
+            return;
+        }
+        System.Reflection.MethodInfo release = deformation.GetMethod("ClearFallbackBuffer",
+            System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+        if (release != null)
+        {
+            release.Invoke(null, null);
+        }
+    }
+#endif
+
     /// <summary>
     /// 씬이 로드될 때마다 해당 씬 내 중복 컴포넌트를 제거합니다.
     /// SharedScene과 DontDestroyOnLoad에 포함된 것은 유지합니다.

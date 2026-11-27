@@ -20,9 +20,6 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/01_Scenes/GameScene.unity
     guid: 50a94d03b41e6194eb4d8b1d8de84270
-  - enabled: 1
-    path: Assets/01_Scenes/PopupScene.unity
-    guid: 661bebe693572d74bb64bd014ae577a2
   m_configObjects:
     com.unity.addressableassets: {fileID: 11400000, guid: 737d1b3aa42f9e04ea6cbb3462d20db1, type: 2}
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}

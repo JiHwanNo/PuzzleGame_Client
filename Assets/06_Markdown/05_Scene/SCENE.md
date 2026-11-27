@@ -8,7 +8,7 @@
 
 | 찾는 콘텐츠 | 담당 C# 파일 | 주요 메서드·타입·멤버 |
 |---|---|---|
-| SharedScene 자동 로드·중복 정리·씬 전환 | [Main.cs](../Assets/02_Scripts/Manager/Main.cs) | `SceneEnum`, `AutoCreate`, `MoveScene`, `CoMoveScene`, `IsMovingScene` |
+| SharedScene 로드·씬 전환·플레이어 종료 정리 | [Main.cs](../../02_Scripts/Manager/Main.cs) | `SceneEnum`, `AutoCreate`, `MoveScene`, `CoMoveScene`, `IsMovingScene`, `OnApplicationQuit` |
 | 타이틀 CI 연출·로비 진입 | [TitleMain.cs](../Assets/02_Scripts/Title/TitleMain.cs) | `Start` |
 | 로비 튜토리얼·대전 진입 | [LobbyMain.cs](../Assets/02_Scripts/Lobby/LobbyMain.cs) | `OnClickPlay`, `PrepareBattle` |
 | 에셋 로딩 요청 공유·캐시·해제 | [AssetManager.cs](../Assets/02_Scripts/Manager/AssetManager.cs) | `AssetArguments`, `LoadAsset`, `LoadAssetAsync`, `MarkPersistent`, `ReleaseAll` |
@@ -32,24 +32,20 @@
 | GameScene | 인게임 퍼즐 플레이 | PuzzleGameController.cs, ReplayController.cs |
 | ToolScene | 스테이지 맵 편집 도구 (에디터 전용) | StageMapToolController.cs |
 
-> **ToolScene**: 스테이지 맵 툴 전용 씬. `SceneEnum`에 등록되지 않으며 `Main.MoveScene` 흐름과 무관하다(에디터에서 직접 열어 사용). 상세: `DATA.md` "스테이지 맵 툴".
-
 ## SharedScene (영구 상주)
 
 ### 자동 로드
 - `Main`의 `[RuntimeInitializeOnLoadMethod(AfterSceneLoad)]`로 앱 시작 시 자동 Additive 로드.
 - Active Scene으로 설정 → 다른 씬의 언로드 보장.
-- `SceneEnum` enum: None, TitleScene, LoadingScene, LobbyScene, GameScene (Main 클래스 외부 선언).
 
 ### 에디터에서 시작할 씬
 - 전체 흐름을 확인하려면 `TitleScene`에서 Play를 누른다. `Main.AutoCreate()`는 현재 씬에 `Main`이 없으면 `SharedScene`을 추가 로드한다. 타이틀에서 로비로 이동하는 호출은 `TitleMain.Start()`의 CI 연출 끝에 있다.
 
 ### 포함 오브젝트
-- Main (씬 전환 싱글톤)
-- CameraController (카메라 싱글톤, 중복 카메라 자동 제거)
-- EventSystem (중복 자동 제거: `Main.OnSceneLoaded`)
-- 모든 매니저 (DontDestroyOnLoad)
-- SharedPopupController (공용 팝업)
+- Main이 씬 전환을 관리하고 CameraController가 중복 카메라를 제거한다.
+- `SharedScene`의 `EventSystem`만 활성화한다. 타이틀·게임·툴 씬의 로컬 입력 오브젝트는 비활성 상태로 두며, 에디터에서 각 씬을 직접 실행해도 공용 씬이 입력을 담당한다.
+- 플레이어 종료 시 `Main.OnApplicationQuit()`이 2D Animation 13.0.6의 `ClearFallbackBuffer()`를 호출한다. 패키지가 스프라이트 스킨 없이도 할당하는 기본 본 버퍼를 해제하며, 빌드 스트리핑에서 이 메서드를 보존한다.
+- 상주 매니저와 공용 팝업의 SharedPopupController를 둔다.
 
 ## 씬 전환 (Main.MoveScene)
 
@@ -64,8 +60,7 @@ Main.MoveScene(preScene, nextScene)
               → LoadingScene 언로드
 ```
 
-- `_isMovingScene` 플래그로 중복 호출 방지.
-- `CoMoveScene` 코루틴 기반.
+- `_isMovingScene`으로 전환 중 `CoMoveScene` 중복 시작을 막는다.
 
 ## 매니저 시스템
 
