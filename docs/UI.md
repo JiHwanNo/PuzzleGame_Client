@@ -7,7 +7,7 @@
 | 찾는 콘텐츠 | 담당 C# 파일 | 주요 메서드·타입·멤버 |
 |---|---|---|
 | 로비 상단 재화·프로필, 상점 카드 뽑기·개별 카드 인벤토리·20×10 전장 배치 모드 | [LobbyNavigation.cs](../Assets/02_Scripts/Lobby/LobbyNavigation.cs) · [LobbyUnit.cs](../Assets/02_Scripts/Lobby/LobbyUnit.cs) · [LobbyDefenseView.cs](../Assets/02_Scripts/Lobby/LobbyDefenseView.cs) | `BuildResourceBar`, `RefreshProfile`, `InitializeCatalog`, `DrawCard`, `RefreshCatalog`, `LobbyCard.Grade`, `SelectCard` |
-| 인벤토리 3열·배치 가로 목록의 별·합산 능력치, 상세의 등급 구간과 기본·뽑기 보너스·합계 | [LobbyNavigation.Inventory.cs](../Assets/02_Scripts/Lobby/LobbyNavigation.Inventory.cs) · [LobbyCardPortrait.cs](../Assets/02_Scripts/Lobby/LobbyCardPortrait.cs) | `BuildInventoryList`, `RefreshPlacementCards`, `BindOwnedArt`, `InspectCard`, `BuildDetailStats`, `BindDetailState`, `ApplyDetailZoom`, `PlaySpecial` |
+| 인벤토리 3열·하단 탭과 교대하는 배치 스크롤의 별·합산 능력치, 상세의 등급 구간과 기본·뽑기 보너스·합계 | [LobbyNavigation.Inventory.cs](../Assets/02_Scripts/Lobby/LobbyNavigation.Inventory.cs) · [LobbyCardPortrait.cs](../Assets/02_Scripts/Lobby/LobbyCardPortrait.cs) | `BuildInventoryList`, `LayoutPlacementArea`, `RefreshBottomBar`, `RefreshPlacementCards`, `BindOwnedArt`, `InspectCard`, `BuildDetailStats`, `BindDetailState`, `ApplyDetailZoom`, `PlaySpecial` |
 | 팝업/탭 스택·뒤로 가기·전체 닫기 | [DomainManager.cs](../Assets/02_Scripts/Manager/DomainManager.cs) | `OpenPopup`, `OpenTab`, `Back`, `CloseAll` |
 | 팝업/탭 공통 계약 | [IDomainNode.cs](../Assets/02_Scripts/Manager/IDomainNode.cs) | `IDomainNode` |
 | 팝업 생성·파괴·씬별 등록 | [PopupController.cs](../Assets/02_Scripts/Manager/PopupController.cs) | `CreatePopup`, `DestroyPopup` |
@@ -18,7 +18,7 @@
 | Inspector 버튼 콜백과 젤리 패널 표면 | [UIButton.cs](../Assets/02_Scripts/UI/UIButton.cs) | `OnClickEvent`, `LagoonUI.Surface` |
 | 스테이지·90초 대전 준비·슬롯 연출·게임 진입 | [PopupReady.cs](../Assets/02_Scripts/UI/Popup/PopupReady.cs) | `ConfigureBattle`, `OnClickStart`, `SpinAndStart`, `OnClickClose` |
 | 로비 튜토리얼·대전 진입 | [LobbyMain.cs](../Assets/02_Scripts/Lobby/LobbyMain.cs) | `OnClickPlay`, `PrepareBattle` |
-| 20×10 전장·배치 모드·저장 이전·스테이지 방어 | [LobbyDefenseBoard.cs](../Assets/02_Scripts/Lobby/LobbyDefenseBoard.cs) · [LobbyDefenseView.cs](../Assets/02_Scripts/Lobby/LobbyDefenseView.cs) · [전장 캐릭터 연출](../Assets/02_Scripts/Lobby/LobbyDefenseView.Combat.cs) | `AnimateCombat`, `TryRestoreLayout`, `BeginPlacement`, `PlaceCard`, `MoveUnit`, `StartNextAttempt`, `ShowGhosts` |
+| 20×10 전장 가로 스크롤·셀 배치·저장 이전·스테이지 방어 | [LobbyDefenseBoard.cs](../Assets/02_Scripts/Lobby/LobbyDefenseBoard.cs) · [LobbyDefenseView.cs](../Assets/02_Scripts/Lobby/LobbyDefenseView.cs) · [전장 캐릭터 연출](../Assets/02_Scripts/Lobby/LobbyDefenseView.Combat.cs) | `FitBattlefield`, `PointerCell`, `AnimateCombat`, `TryRestoreLayout`, `BeginPlacement`, `PlaceCard`, `MoveUnit`, `StartNextAttempt`, `ShowGhosts` |
 | 준비 팝업 라이프·오프라인 충전 | [PlayerLives.cs](../Assets/02_Scripts/Lobby/PlayerLives.cs) | `GetRemaining`, `TrySpend` |
 | Shared 공용 팝업 등록 | [SharedPopupController.cs](../Assets/02_Scripts/Manager/SharedPopupController.cs) | `ControllerName` |
 | 로비 팝업 등록·로비 직접 실행 시 매니저 대기 | [LobbyPopupController.cs](../Assets/02_Scripts/Lobby/LobbyPopupController.cs) | `ControllerName`, `RegisterWhenReady` |

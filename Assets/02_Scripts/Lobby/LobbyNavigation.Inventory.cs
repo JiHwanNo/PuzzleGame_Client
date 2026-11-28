@@ -34,7 +34,11 @@ internal sealed partial class LobbyNavigation
     private bool _detailClosing;
     private bool _placeOnClose;
     private CanvasGroup _tabInput;
-    private const float PlacementStep = 144f;
+    private RectTransform _placementBar;
+    private RectTransform _placementSafeArea;
+    private TMP_Text _placementHint;
+    private Vector2 _placementViewportSize;
+    private float _placementStep;
     private readonly List<LobbyCard> _availableCards = new List<LobbyCard>();
     private readonly List<PlacementSlot> _placementSlots = new List<PlacementSlot>();
     private ScrollRect _placementScroll;
@@ -52,10 +56,23 @@ internal sealed partial class LobbyNavigation
         public LobbyCard Card;
     }
 
-    /// <summary>전장 하단에 드래그와 휠로 이동하는 미배치 카드 목록을 만든다.</summary>
+    /// <summary>하단 탭과 교대할 전체 너비의 배치 패널에 안내, 완료 버튼과 가로 카드 목록을 만든다.</summary>
     private void BuildPlacementInventory()
     {
-        RectTransform tray = JellyPanel("PlacementInventory", _field.PlacementBar, 0, 0, 1, 1, Lagoon);
+        _placementBar = JellyPanel("PlacementMode", _root, 0, 0, 1, 0, Lagoon);
+        _placementBar.pivot = new Vector2(.5f, 0);
+        _placementSafeArea = Box("SafeArea", _placementBar, 0, 0, 1, 1);
+        RectTransform strip = Box("PlacementGuide", _placementSafeArea, 0, .80f, 1, 1);
+        _placementHint = Label(strip, "", .025f, .08f, .78f, .92f, 25);
+        _placementHint.color = Pearl;
+        RectTransform doneArea = JellyPanel("완료", strip, .80f, .08f, .98f, .92f, Lemon);
+        Button done = doneArea.gameObject.AddComponent<Button>();
+        done.targetGraphic = doneArea.GetComponent<Image>();
+        TMP_Text doneLabel = Label(doneArea, "완료", .06f, .08f, .94f, .92f, 27);
+        doneLabel.color = Ink;
+        doneLabel.fontStyle = FontStyles.Bold;
+        done.onClick.AddListener(_field.CancelPlacement);
+        RectTransform tray = Box("PlacementInventory", _placementSafeArea, 0, 0, 1, .80f);
         RectTransform viewport = Panel("Viewport", tray, .012f, .015f, .988f, .985f, Color.clear);
         viewport.gameObject.AddComponent<RectMask2D>();
         _placementScroll = tray.gameObject.AddComponent<ScrollRect>();
@@ -71,15 +88,47 @@ internal sealed partial class LobbyNavigation
         _emptyPlacement.color = Pearl;
     }
 
-    /// <summary>보유 상태가 바뀔 때만 미배치 카드를 다시 모으고 새로 선택한 카드가 보이도록 스크롤한다.</summary>
+    /// <summary><paramref name="safe"/> 안에 목록을 배치하고 <paramref name="canvas"/>의 중앙 기준으로 <paramref name="pageTop"/>까지 남은 영역을 전장에 전달한다.</summary>
+    private void LayoutPlacementArea(Rect safe, Vector2 canvas, float pageTop)
+    {
+        float barHeight = safe.yMin + Mathf.Min(safe.width * .44f, safe.height * .25f);
+        _placementBar.sizeDelta = new Vector2(0f, barHeight);
+        _placementSafeArea.offsetMin = safe.min;
+        _placementSafeArea.offsetMax = new Vector2(safe.xMax - canvas.x, 0f);
+        float gap = Mathf.Min(safe.width, safe.height) * .018f;
+        Rect bounds = Rect.MinMaxRect(safe.xMin + gap, barHeight + gap, safe.xMax - gap, pageTop - gap);
+        bounds.center -= canvas * .5f;
+        _field.SetPlacementBounds(bounds);
+    }
+
+    /// <summary>배치 중인 메인 화면에서 하단 탭을 카드 목록으로 교체하고 선택 안내를 갱신한다.</summary>
+    private void RefreshBottomBar()
+    {
+        bool placing = _field.IsPlacing && _current == MainPage && _target == MainPage;
+        _tabInput.gameObject.SetActive(!placing);
+        _placementBar.gameObject.SetActive(placing);
+        if (placing)
+        {
+            _placementHint.text = _field.GetPlacementHint();
+            RefreshPlacementCards();
+        }
+    }
+
+    /// <summary>미배치 카드와 화면 크기에 맞춰 카드 폭을 정하고 선택한 카드가 보이도록 스크롤한다.</summary>
     private void RefreshPlacementCards()
     {
         LobbyCard selected = _field.SelectedCard;
         bool rosterChanged = _placementVersion != _field.Board.RosterVersion;
-        if (!rosterChanged && selected == _highlightedCard)
+        Vector2 viewport = _placementScroll.viewport.rect.size;
+        if (viewport.x <= 0f || viewport.y <= 0f || (!rosterChanged && selected == _highlightedCard && viewport == _placementViewportSize))
         {
             return;
         }
+        bool resized = viewport != _placementViewportSize;
+        float firstCard = _placementStep > 0f ? -_placementScroll.content.anchoredPosition.x / _placementStep : 0f;
+        _placementViewportSize = viewport;
+        float cardWidth = viewport.y * .94f * CardAspect;
+        _placementStep = cardWidth + Mathf.Min(12f, cardWidth * .08f);
         if (rosterChanged)
         {
             _placementVersion = _field.Board.RosterVersion;
@@ -92,17 +141,17 @@ internal sealed partial class LobbyNavigation
                 }
             }
         }
-        float width = _placementScroll.viewport.rect.width;
+        float width = viewport.x;
         RectTransform content = _placementScroll.content;
-        float extent = Mathf.Max(width, _availableCards.Count * PlacementStep);
+        float extent = Mathf.Max(width, _availableCards.Count * _placementStep);
         content.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, extent);
-        float offset = Mathf.Clamp(-content.anchoredPosition.x, 0f, extent - width);
-        if (selected != null && selected != _highlightedCard)
+        float offset = Mathf.Clamp(firstCard * _placementStep, 0f, extent - width);
+        if (selected != null && (selected != _highlightedCard || resized))
         {
             int index = _availableCards.IndexOf(selected);
             if (index >= 0)
             {
-                offset = Mathf.Clamp(offset, (index + 1) * PlacementStep - width, index * PlacementStep);
+                offset = Mathf.Clamp(offset, (index + 1) * _placementStep - width, index * _placementStep);
             }
         }
         _placementScroll.StopMovement();
@@ -116,9 +165,13 @@ internal sealed partial class LobbyNavigation
     private void BindPlacementSlots()
     {
         _placementGlow = null;
-        int visible = Mathf.CeilToInt(_placementScroll.viewport.rect.width / PlacementStep) + 1;
+        if (_placementStep <= 0f)
+        {
+            return;
+        }
+        int visible = Mathf.CeilToInt(_placementScroll.viewport.rect.width / _placementStep) + 1;
         int count = Mathf.Min(visible, _availableCards.Count);
-        int first = Mathf.Clamp(Mathf.FloorToInt(-_placementScroll.content.anchoredPosition.x / PlacementStep), 0, _availableCards.Count - count);
+        int first = Mathf.Clamp(Mathf.FloorToInt(-_placementScroll.content.anchoredPosition.x / _placementStep), 0, _availableCards.Count - count);
         while (_placementSlots.Count < count)
         {
             _placementSlots.Add(BuildPlacementSlot());
@@ -134,7 +187,9 @@ internal sealed partial class LobbyNavigation
             PlacementSlot slot = _placementSlots[index % count];
             slot.Rect.gameObject.SetActive(true);
             LobbyCard card = _availableCards[index];
-            slot.Rect.anchoredPosition = new Vector2((index + .5f) * PlacementStep, 0);
+            float height = _placementViewportSize.y * .94f;
+            slot.Rect.sizeDelta = new Vector2(height * CardAspect, height);
+            slot.Rect.anchoredPosition = new Vector2((index + .5f) * _placementStep, 0);
             if (slot.Card != card)
             {
                 slot.Card = card;
@@ -153,7 +208,6 @@ internal sealed partial class LobbyNavigation
     {
         PlacementSlot slot = new PlacementSlot();
         slot.Rect = Panel("PlacementCard", _placementScroll.content, 0, .5f, 0, .5f, Color.clear);
-        slot.Rect.sizeDelta = new Vector2(130f, 174f);
         Button button = slot.Rect.gameObject.AddComponent<Button>();
         button.onClick.AddListener(() => _field.SelectCard(slot.Card));
         slot.Border = JellyPanel("GoldBorder", slot.Rect, 0, 0, 1, 1, new Color32(255, 210, 55, 255)).GetComponent<Image>();

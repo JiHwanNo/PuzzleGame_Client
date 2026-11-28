@@ -11,7 +11,7 @@
 | 기능 | 상태 | 코드에서 확인할 수 있는 범위 |
 |---|---|---|
 | 로비 탭·재화·프로필 | 부분 구현 | 상점·인벤토리·메인·옵션, 라이프·골드·잼 표시와 닉네임 프로필이 연결돼 있다. 미확정 탭은 예비 화면이며 리그 티어는 기획 단계다. [LobbyNavigation](../Assets/02_Scripts/Lobby/LobbyNavigation.cs) |
-| 방어 전투와 배치 | 구현 | 카드를 셀에 배치하면 20×10 보드에서 적이 이동하고 유닛이 공격한다. 스테이지 처치 보상·다음 스테이지 판정·저장 복구 경로가 있다. [방어 보드](../Assets/02_Scripts/Lobby/LobbyDefenseBoard.cs) · [전장 표시와 저장](../Assets/02_Scripts/Lobby/LobbyDefenseView.cs) |
+| 방어 전투와 배치 | 구현 | 방패 또는 인벤토리 상세에서 배치를 열면 하단 탭이 전체 너비 카드 스크롤로 바뀌고 전장은 정사각형 셀 10행이 보이도록 확대된다. 전장을 좌우로 밀어 20열을 탐색하고 탭으로 배치할 수 있다. 완료하면 탭이 돌아온다. 배치한 유닛은 이동하는 적을 공격한다. 스테이지 처치 보상·다음 스테이지 판정·저장 복구 경로가 있다. [방어 보드](../Assets/02_Scripts/Lobby/LobbyDefenseBoard.cs) · [전장 표시와 저장](../Assets/02_Scripts/Lobby/LobbyDefenseView.cs) |
 | 라이프와 퍼즐 진입 | 구현 | 라이프 회복 시각을 저장하고 진입 준비에 성공했을 때 한 개를 차감한다. [PlayerLives](../Assets/02_Scripts/Lobby/PlayerLives.cs) · [LobbyMain](../Assets/02_Scripts/Lobby/LobbyMain.cs) |
 | 자리 비움 수익 및 사이드 스테이지 해금 보상 | 기획 | 로비 밖에서는 방어 전투 시간이 멈춘다. 복귀 시 수익 추정과 별 보상·해금은 설계 항목이다. [자리 비움](LOBBY-DEFENSE.md#5-자리-비움과-복귀) · [해금과 재화 초기안](LOBBY-DEFENSE.md#사이드-퍼즐-해금과-재화에-관한-초기안) |
 

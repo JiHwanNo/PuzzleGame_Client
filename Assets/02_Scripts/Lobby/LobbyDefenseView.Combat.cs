@@ -15,6 +15,8 @@ internal sealed partial class LobbyDefenseView
     private RectTransform _effects;
     private RectTransform _stageHeader;
     private Image _rim;
+    private RectMask2D _fieldMask;
+    private ScrollRect _fieldScroll;
     private Texture2D _placementForest;
     private Texture2D _meadow;
     private Texture2D _raiders;
@@ -41,17 +43,69 @@ internal sealed partial class LobbyDefenseView
         public bool Arrow;
     }
 
-    /// <summary>배치 중에는 정사각 셀을, 관전 중에는 깊이가 있는 공터를 같은 20열 좌표에 맞춘다.</summary>
+    /// <summary>캔버스 중심 기준의 <paramref name="bounds"/>에 스테이지 제목과 배치 전장을 맞춘다.</summary>
+    internal void SetPlacementBounds(Rect bounds)
+    {
+        _placementBounds = bounds;
+        if (_placing)
+        {
+            FitTab();
+            Refresh();
+        }
+    }
+
+    /// <summary>배치 시 열 개 행을 남은 높이에 맞추고, 화면 너비를 넘는 열은 가로로 스크롤한다.</summary>
     private void FitBattlefield()
     {
+        const float headerSpace = 118f;
         float height = _placing ? FieldHeight : 510f;
-        float centerY = _placing ? 160f : 90f;
+        float visibleWidth = FieldWidth;
+        float scale = 1f;
+        Vector2 center = new Vector2(0f, 90f);
+        Vector2 headerCenter = new Vector2(0f, 410f);
+        float headerScale = 1f;
+        if (_placing && _placementBounds.width > 0f && _placementBounds.height > 0f)
+        {
+            float tabScale = _mainTab.localScale.x;
+            float titleScale = Mathf.Min(_placementBounds.width / FieldWidth, _placementBounds.height / (FieldHeight + headerSpace));
+            float titleHeight = headerSpace * titleScale;
+            // 제목은 화면에 고정하고 전장의 두 축에 같은 배율을 적용해 셀을 정사각형으로 유지한다.
+            float gridScale = (_placementBounds.height - titleHeight) / FieldHeight;
+            visibleWidth = Mathf.Min(FieldWidth, _placementBounds.width / gridScale);
+            scale = gridScale / tabScale;
+            center = (_placementBounds.center - Vector2.up * (titleHeight * .5f)) / tabScale;
+            headerScale = titleScale / tabScale;
+            headerCenter = new Vector2(_placementBounds.center.x, _placementBounds.yMax - titleHeight * .5f) / tabScale;
+        }
+        RectTransform viewport = _fieldScroll.viewport;
+        viewport.sizeDelta = new Vector2(visibleWidth, height);
+        viewport.localScale = Vector3.one * scale;
+        viewport.anchoredPosition = center;
         rectTransform.sizeDelta = new Vector2(FieldWidth, height);
-        rectTransform.anchoredPosition = new Vector2(0f, centerY);
+        // 카드 선택과 전투 갱신 중에는 현재 열을 유지하고, 화면이 넓어질 때만 끝 위치를 당긴다.
+        float halfWidth = FieldWidth * .5f;
+        float boardX = Mathf.Clamp(rectTransform.anchoredPosition.x, visibleWidth - halfWidth, halfWidth);
+        rectTransform.anchoredPosition = new Vector2(boardX, 0f);
         _actorsRoot.sizeDelta = rectTransform.sizeDelta;
+        _fieldMask.enabled = _placing;
+        _fieldScroll.enabled = _placing;
+        _rim.rectTransform.sizeDelta = viewport.sizeDelta + Vector2.one * 10f;
+        _rim.rectTransform.localScale = viewport.localScale;
+        _rim.rectTransform.anchoredPosition = center;
         _rim.enabled = _placing;
         _forest.texture = _placing ? _placementForest : _meadow;
-        _stageHeader.anchoredPosition = new Vector2(0f, 410f - centerY);
+        _stageHeader.localScale = Vector3.one * headerScale;
+        _stageHeader.anchoredPosition = headerCenter;
+    }
+
+    /// <summary>전장이 <paramref name="position"/>으로 스크롤되면 이동 전의 셀 미리보기를 지운다.</summary>
+    private void OnFieldScrolled(Vector2 position)
+    {
+        if (_placing && _selected >= 0)
+        {
+            _selected = -1;
+            Refresh();
+        }
     }
 
     /// <summary><paramref name="cell"/> 바닥에서 <paramref name="size"/>를 기준으로 캐릭터 몸통 중심을 구한다.</summary>

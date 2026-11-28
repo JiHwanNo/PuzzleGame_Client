@@ -32,8 +32,9 @@ internal sealed partial class LobbyDefenseView : MaskableGraphic, IPointerClickH
     private GameObject _play;
     private GameObject _playHint;
     private GameObject _placeIcon;
-    internal RectTransform PlacementBar { get; private set; }
     private bool _placing;
+    internal bool IsPlacing => _placing;
+    private Rect _placementBounds;
     private LobbyCardPortrait _previewActor;
     private RawImage _forest;
     private Texture2D _terrain;
@@ -45,7 +46,6 @@ internal sealed partial class LobbyDefenseView : MaskableGraphic, IPointerClickH
     private RectTransform _actorsRoot;
     private TMP_Text _waveTime;
     private TMP_Text _summary;
-    private TMP_Text _hint;
     private LobbyDefenseBoard.Piece SelectedRole
     {
         get
@@ -136,8 +136,20 @@ internal sealed partial class LobbyDefenseView : MaskableGraphic, IPointerClickH
         world.worldCamera = camera;
         world.sortingLayerName = "Ingame";
         field.transform.SetPositionAndRotation(camera.transform.position + camera.transform.forward * 10f, camera.transform.rotation);
-        RectTransform board = Element("DefenseBoard", field.transform, 0, 160, FieldWidth, FieldHeight);
+        RectTransform viewport = Element("FieldViewport", field.transform, 0, 90, FieldWidth, FieldHeight);
+        RectTransform board = Element("DefenseBoard", viewport, FieldWidth * .5f, 0, FieldWidth, FieldHeight);
+        board.anchorMin = board.anchorMax = new Vector2(0f, .5f);
         LobbyDefenseView view = board.gameObject.AddComponent<LobbyDefenseView>();
+        view._fieldMask = viewport.gameObject.AddComponent<RectMask2D>();
+        view._fieldScroll = viewport.gameObject.AddComponent<ScrollRect>();
+        view._fieldScroll.viewport = viewport;
+        view._fieldScroll.content = board;
+        view._fieldScroll.horizontal = true;
+        view._fieldScroll.vertical = false;
+        view._fieldScroll.inertia = false;
+        view._fieldScroll.movementType = ScrollRect.MovementType.Clamped;
+        view._fieldScroll.scrollSensitivity = CellWidth;
+        view._fieldScroll.onValueChanged.AddListener(view.OnFieldScrolled);
         view._world = world;
         view._mainTab = status.transform.parent;
         view._font = status.font;
@@ -159,7 +171,7 @@ internal sealed partial class LobbyDefenseView : MaskableGraphic, IPointerClickH
         view._forest.raycastTarget = false;
         Image rim = Panel("FieldFrame", field.transform, 0, 160, FieldWidth + 10, FieldHeight + 10, DeepTeal);
         view._rim = rim;
-        rim.transform.SetSiblingIndex(board.GetSiblingIndex());
+        rim.transform.SetSiblingIndex(viewport.GetSiblingIndex());
         view.FitTab();
         view._actorsRoot = Element("FieldActors", board, 0, 0, FieldWidth, FieldHeight);
         for (int row = 0; row < view._rows.Length; row++)
@@ -275,7 +287,7 @@ internal sealed partial class LobbyDefenseView : MaskableGraphic, IPointerClickH
     /// <summary>전장 위에 스테이지 진행 상태를 표시하고 배치 도구를 연결한다.</summary>
     private void BuildControls()
     {
-        RectTransform header = Element("StageHeader", transform, 0, 250, FieldWidth + 8, 110);
+        RectTransform header = Element("StageHeader", _world.transform, 0, 410, FieldWidth + 8, 110);
         _stageHeader = header;
         RectTransform stage = Panel("StagePlate", header, -238, 0, 265, 100, DeepTeal).rectTransform;
         _summary = Label(Element("Stage", stage, 0, 15, 220, 47), 34);
@@ -286,11 +298,11 @@ internal sealed partial class LobbyDefenseView : MaskableGraphic, IPointerClickH
         _waveTime = Label(Element("WaveTimer", stage, 0, -23, 220, 32), 21);
         _waveTime.alignment = TextAlignmentOptions.MidlineLeft;
         _waveTime.color = Mint;
-        BuildPlacementBar();
+        BuildPlacementButton();
     }
 
-    /// <summary>플레이 버튼 아래쪽 공간에 미배치 카드 목록과 안내, 편집 완료 버튼을 배치한다.</summary>
-    private void BuildPlacementBar()
+    /// <summary>플레이 옆에 하단 탭을 배치 목록으로 전환하는 방패 버튼을 만든다.</summary>
+    private void BuildPlacementButton()
     {
         RectTransform play = (RectTransform)_play.transform;
         Vector2 position = play.anchoredPosition;
@@ -301,11 +313,6 @@ internal sealed partial class LobbyDefenseView : MaskableGraphic, IPointerClickH
         toggle.targetGraphic = card;
         toggle.onClick.AddListener(BeginPlacement);
         _placeIcon = icon.gameObject;
-
-        PlacementBar = Element("PlacementMode", _mainTab, position.x, position.y, 730, 192);
-        RectTransform strip = Panel("PlacementGuide", PlacementBar, 0, 134, 730, 62, DeepTeal).rectTransform;
-        _hint = Label(Element("PlacementHint", strip, -66, 0, 560, 52), 23);
-        MakeButton(strip, "완료", 296, 112, 52, Honey, Cocoa, CancelPlacement);
     }
 
     /// <summary>미배치 카드를 직접 고를 수 있도록 하단 목록을 연다.</summary>
@@ -322,7 +329,7 @@ internal sealed partial class LobbyDefenseView : MaskableGraphic, IPointerClickH
     }
 
     /// <summary>확정 전 카드와 셀 선택을 취소한다.</summary>
-    private void CancelPlacement()
+    internal void CancelPlacement()
     {
         _placing = false;
         _selectedCard = null;
@@ -553,7 +560,7 @@ internal sealed partial class LobbyDefenseView : MaskableGraphic, IPointerClickH
         return actor;
     }
 
-    /// <summary>전장에서 한 변이 <paramref name="size"/>인 <paramref name="cell"/>의 중심을 구한다.</summary>
+    /// <summary>셀 너비 <paramref name="size"/>와 전장의 행 높이로 <paramref name="cell"/>의 중심을 구한다.</summary>
     private Vector2 CellCenter(int cell, float size)
     {
         float x = rectTransform.rect.xMin + (cell % LobbyDefenseBoard.Width + 0.5f) * size;
@@ -692,7 +699,8 @@ internal sealed partial class LobbyDefenseView : MaskableGraphic, IPointerClickH
     /// <summary><paramref name="eventData"/>가 가리키는 전장 셀을 찾고 격자 밖이면 -1을 반환한다.</summary>
     private int PointerCell(PointerEventData eventData)
     {
-        if (!_placing || !RectTransformUtility.ScreenPointToLocalPointInRectangle(rectTransform, eventData.position, _world.worldCamera, out Vector2 point))
+        if (!_placing || eventData.dragging || !RectTransformUtility.RectangleContainsScreenPoint(_fieldScroll.viewport, eventData.position, _world.worldCamera) ||
+            !RectTransformUtility.ScreenPointToLocalPointInRectangle(rectTransform, eventData.position, _world.worldCamera, out Vector2 point))
         {
             return -1;
         }
@@ -810,15 +818,6 @@ internal sealed partial class LobbyDefenseView : MaskableGraphic, IPointerClickH
         _play.SetActive(!_placing);
         _playHint.SetActive(!_placing);
         _placeIcon.SetActive(!_placing);
-        PlacementBar.gameObject.SetActive(_placing);
-        if (!_placing)
-        {
-            return;
-        }
-        if (PlacementChanged != null)
-        {
-            PlacementChanged();
-        }
         if (preview)
         {
             LobbyCard card = _selectedCard;
@@ -830,25 +829,36 @@ internal sealed partial class LobbyDefenseView : MaskableGraphic, IPointerClickH
             actor.anchoredPosition = CellCenter(_selected, rectTransform.rect.width / LobbyDefenseBoard.Width);
             _previewActor.Bind(card.Unit, this);
         }
+        if (PlacementChanged != null)
+        {
+            PlacementChanged();
+        }
+    }
+
+    /// <summary>선택한 카드와 후보 칸에 맞는 하단 배치 안내를 반환한다.</summary>
+    internal string GetPlacementHint()
+    {
         if (_selected >= 0)
         {
             if (_previewLength == LobbyDefenseBoard.InvalidPlacement)
             {
-                _hint.text = "이 칸에는 배치할 수 없습니다";
-                return;
+                return "이 칸에는 배치할 수 없습니다";
             }
-            _hint.text = _session.PreviewSiege ? "통로 봉쇄 · 방벽 공격" : $"선택한 칸으로 배치하면 경로 {_previewLength}칸";
-            return;
+            return _session.PreviewSiege ? "통로 봉쇄 · 방벽 공격" : $"선택한 칸으로 배치하면 경로 {_previewLength}칸";
         }
-        _hint.text = "배치할 빈 칸을 선택하세요";
         if (_moving >= 0)
         {
-            _hint.text = "유닛을 옮길 빈 칸을 선택하세요";
+            return "유닛을 옮길 빈 칸을 선택하세요";
         }
-        else if (_selectedCard == null)
+        if (_selectedCard == null)
         {
-            _hint.text = _session.Finished ? "카드 또는 옮길 유닛을 선택하세요" : "배치할 카드를 선택하세요";
+            return _session.Finished ? "카드 또는 옮길 유닛을 선택하세요" : "배치할 카드를 선택하세요";
         }
+        if (_fieldScroll.viewport.rect.width < FieldWidth - .01f)
+        {
+            return "좌우로 밀어 이동 · 빈 칸을 눌러 배치";
+        }
+        return "배치할 빈 칸을 선택하세요";
     }
 
     /// <summary><paramref name="mesh"/>에 격자, 경로, 유닛과 체력이 표시된 몬스터를 그린다.</summary>
@@ -872,7 +882,7 @@ internal sealed partial class LobbyDefenseView : MaskableGraphic, IPointerClickH
             {
                 tint = new Color32(178, 238, 233, 255);
             }
-            Tile(mesh, cell, 0.036f, tint, 1f, GroundUV(cell, _session.HasUnit(cell)));
+            Tile(mesh, cell, 0.036f, tint, GroundUV(cell, _session.HasUnit(cell)));
         }
         DrawRoute(mesh, false, new Color32(29, 169, 185, 255));
         if (_previewLength >= 0)
@@ -887,7 +897,7 @@ internal sealed partial class LobbyDefenseView : MaskableGraphic, IPointerClickH
             bool valid = _previewLength != LobbyDefenseBoard.InvalidPlacement;
             Color border = valid ? Honey : new Color32(255, 111, 103, 255);
             Tile(mesh, _selected, 0.035f, border);
-            Tile(mesh, _selected, 0.105f, Color.white, 1f, GroundUV(_selected, _session.HasUnit(_selected)));
+            Tile(mesh, _selected, 0.105f, Color.white, GroundUV(_selected, _session.HasUnit(_selected)));
         }
     }
 
@@ -906,22 +916,29 @@ internal sealed partial class LobbyDefenseView : MaskableGraphic, IPointerClickH
         int cell = LobbyDefenseBoard.Entrance;
         while (cell >= 0)
         {
-            Tile(mesh, cell, 0.385f, shade);
+            Tile(mesh, cell, 0.385f, shade, square: true);
             cell = _session.Next(cell, preview);
         }
     }
 
-    /// <summary><paramref name="mesh"/>의 보이는 <paramref name="cell"/> 안에 여백, 색, 너비 비율을 적용해 그린다.</summary>
-    private void Tile(VertexHelper mesh, int cell, float inset, Color32 shade, float fraction = 1f, Rect uv = default)
+    /// <summary><paramref name="mesh"/>의 <paramref name="cell"/>에 같은 두께의 여백 <paramref name="inset"/>과 <paramref name="shade"/> 색, <paramref name="uv"/>를 적용한다.
+    /// <paramref name="square"/>로 경로 점의 가로세로 비율을 유지한다.</summary>
+    private void Tile(VertexHelper mesh, int cell, float inset, Color32 shade, Rect uv = default, bool square = false)
     {
         int column = cell % LobbyDefenseBoard.Width;
         Rect area = rectTransform.rect;
         float width = area.width / LobbyDefenseBoard.Width;
         float height = area.height / LobbyDefenseBoard.Height;
-        float left = area.xMin + (column + inset) * width;
-        float top = area.yMax - (cell / LobbyDefenseBoard.Width + inset) * height;
-        float right = left + width * (1f - 2f * inset) * fraction;
-        float bottom = top - height * (1f - 2f * inset);
+        float side = Mathf.Min(width, height);
+        float padding = side * inset;
+        float halfWidth = (square ? side : width) * .5f - padding;
+        float halfHeight = (square ? side : height) * .5f - padding;
+        float centerX = area.xMin + (column + .5f) * width;
+        float centerY = area.yMax - (cell / LobbyDefenseBoard.Width + .5f) * height;
+        float left = centerX - halfWidth;
+        float right = centerX + halfWidth;
+        float top = centerY + halfHeight;
+        float bottom = centerY - halfHeight;
         // 아틀라스 왼쪽 아래 흰 견본은 경로·체력 등 단색 표식에 사용한다.
         if (uv.width == 0f)
         {

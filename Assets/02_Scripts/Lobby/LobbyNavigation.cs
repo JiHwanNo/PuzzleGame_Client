@@ -15,6 +15,7 @@ internal sealed partial class LobbyNavigation : MonoBehaviour
     private static readonly Color Lagoon = new Color32(6, 105, 117, 255);
     private static readonly Color Mint = new Color32(159, 245, 222, 255);
     private static readonly Color Pearl = new Color32(253, 255, 240, 255);
+    private static readonly Color Lemon = new Color32(255, 226, 91, 255);
     private static readonly Color Surface = new Color32(35, 61, 73, 255);
     private static readonly Color Gold = new Color32(255, 211, 132, 255);
     private readonly RectTransform[] _pages = new RectTransform[5];
@@ -86,8 +87,8 @@ internal sealed partial class LobbyNavigation : MonoBehaviour
         nav._cardIcons = AssetManager.Instance.LoadAsset<Texture2D>("LobbyCardIcons");
         nav._motion = PlayerPrefs.GetInt(MotionKey, 1) == 1;
         nav.Build();
-        nav.BuildPlacementInventory();
-        field.PlacementChanged += nav.RefreshPlacementCards;
+        field.PlacementChanged += nav.RefreshBottomBar;
+        nav.RefreshBottomBar();
     }
 
     /// <summary>페이지와 탭 바를 한 번 생성하고 첫 선택을 메인으로 표시한다.</summary>
@@ -116,6 +117,7 @@ internal sealed partial class LobbyNavigation : MonoBehaviour
         }
         ShowSelectedTab(MainPage);
         bar.SetAsLastSibling();
+        BuildPlacementInventory();
         BuildResourceBar();
         BuildCardDetail();
     }
@@ -251,6 +253,8 @@ internal sealed partial class LobbyNavigation : MonoBehaviour
         _resourceBar.anchoredPosition = new Vector2(0, -topMargin);
 
         float pageTop = top.y - (topMargin + height * 2.16f) / canvas.y;
+        Rect safeCanvas = new Rect(safe.x * canvas.x / screen.x, safe.y * canvas.y / screen.y, safeWidth, safeHeight);
+        LayoutPlacementArea(safeCanvas, canvas, pageTop * canvas.y);
         for (int i = 0; i < _pages.Length; i++)
         {
             if (_pages[i] != null)
@@ -454,6 +458,7 @@ internal sealed partial class LobbyNavigation : MonoBehaviour
     private void Begin()
     {
         _target = _requested;
+        RefreshBottomBar();
         _elapsed = 0f;
         _shield.SetActive(true);
         if (_target == MainPage)
@@ -561,6 +566,7 @@ internal sealed partial class LobbyNavigation : MonoBehaviour
         }
         _field.ShowField(_current == MainPage);
         _shield.SetActive(_current != MainPage);
+        RefreshBottomBar();
         if (_requested != _current)
         {
             Begin();
