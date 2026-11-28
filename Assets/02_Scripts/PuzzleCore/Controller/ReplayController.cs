@@ -73,10 +73,8 @@ public class ReplayController : MonoBehaviour
     private int _lastStatusSeconds;
     /// <summary> 마지막으로 표시한 점수입니다. </summary>
     private int _lastStatusScore;
-    /// <summary> 마지막으로 표시한 피벗의 0.1점 단위 값이며 -1은 미표시입니다. </summary>
-    private int _lastPivotTenths;
-    /// <summary> 마지막으로 표시한 피벗 최대치입니다. </summary>
-    private int _lastPivotCapacity;
+    /// <summary> 마지막으로 표시한 피벗 백분율이며 -1은 미표시입니다. </summary>
+    private int _lastPivotPercent;
     /// <summary> 마지막으로 표시한 피벗 활성 여부입니다. </summary>
     private bool _lastPivotActive;
     /// <summary> 메인 게임에서 공동 틱 진행을 시작할 수 있는지 여부입니다. </summary>
@@ -395,27 +393,24 @@ public class ReplayController : MonoBehaviour
             statusState = waiting ? ReplayStatusState.Waiting : ReplayStatusState.Playing;
         }
         int score = CurrentScore;
-        int pivotTenths = -1;
-        int pivotCapacity = 0;
+        int pivotPercent = -1;
         bool pivotActive = false;
         if (_isInitialized && !_isComplete && _pivotSession != null && _pivotSession.Mode.IsEnabled)
         {
             PivotMode pivot = _pivotSession.Mode;
-            pivotTenths = pivot.GaugeUnits / 10;
-            pivotCapacity = pivot.Capacity;
+            pivotPercent = pivot.GaugePercent;
             pivotActive = pivot.IsActive;
         }
         // 표시값이 같으면 문자열 생성 자체를 건너뛰어 매 렌더 프레임의 할당을 막습니다.
         if (_lastStatusState == statusState && _lastStatusSeconds == seconds && _lastStatusScore == score &&
-            _lastPivotTenths == pivotTenths && _lastPivotCapacity == pivotCapacity && _lastPivotActive == pivotActive)
+            _lastPivotPercent == pivotPercent && _lastPivotActive == pivotActive)
         {
             return;
         }
         _lastStatusState = statusState;
         _lastStatusSeconds = seconds;
         _lastStatusScore = score;
-        _lastPivotTenths = pivotTenths;
-        _lastPivotCapacity = pivotCapacity;
+        _lastPivotPercent = pivotPercent;
         _lastPivotActive = pivotActive;
 
         string status;
@@ -438,11 +433,13 @@ public class ReplayController : MonoBehaviour
                 status = $"{label} · {seconds / 60}:{seconds % 60:00}";
                 break;
         }
-        string text = $"상대 리플레이\n{status}\n점수 {score}";
-        if (pivotTenths >= 0)
+        bool needsAttention = statusState == ReplayStatusState.Failed || statusState == ReplayStatusState.Mismatch;
+        _statusText.color = needsAttention ? new Color32(255, 222, 132, 255) : new Color32(217, 255, 248, 255);
+        string text = $"<b>상대 리플레이</b>\n{status}\n점수 {score}";
+        if (pivotPercent >= 0)
         {
             string pivotState = pivotActive ? "피벗 모드" : "피벗 충전";
-            text += $"\n{pivotState} · {pivotTenths / 10}.{pivotTenths % 10} / {pivotCapacity}";
+            text += $"\n{pivotState} · {pivotPercent}%";
         }
         _statusText.text = text;
     }
@@ -474,7 +471,10 @@ public class ReplayController : MonoBehaviour
         Camera uiCamera = canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera;
         if (RectTransformUtility.ScreenPointToLocalPointInRectangle(parent, screen, uiCamera, out Vector2 local))
         {
-            _statusText.rectTransform.localPosition = new Vector3(local.x, local.y, 0f);
+            RectTransform status = _statusText.rectTransform;
+            float halfWidth = status.rect.width * 0.5f;
+            float x = Mathf.Clamp(local.x, parent.rect.xMin + halfWidth, parent.rect.xMax - halfWidth);
+            status.localPosition = new Vector3(x, local.y - 6f, 0f);
         }
     }
 

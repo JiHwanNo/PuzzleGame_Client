@@ -32,8 +32,8 @@
 | 입력 충돌체와 셀 뷰 연결 | [PuzzleCellCollider.cs](../Assets/02_Scripts/PuzzleCore/PuzzleCellCollider.cs) | `PuzzleCellCollider` |
 | 리플레이 보드 생성·프레임 입력 재생·축소 배치 | [ReplayController.cs](../Assets/02_Scripts/PuzzleCore/Controller/ReplayController.cs) | `Initialize`, `AdvanceFrame`, `HasValidResult`, `HasCompatibleBattleRules`, `UpdateStatusPosition`, `AlignToTopRight` |
 | 시드 기반 난수 | [PuzzleRandom.cs](../Assets/02_Scripts/PuzzleCore/Module/PuzzleRandom.cs) | `Next`, `NextDouble`, `SetSeed` |
-| 대전 피벗 충전·활성·콤보 소비 감속 | [PivotMode.cs](../Assets/02_Scripts/Battle/Pivot/PivotMode.cs) | `AdvanceTick`, `Stop`, `GaugeUnits`, `GaugePoints`, `GaugeRatio`, `IsActive`, `ComboCount`, `CurrentDrainPercent` |
-| 피벗 충전량·소비량·콤보 간격 설정 | [PivotSettings.cs](../Assets/02_Scripts/Battle/Pivot/PivotSettings.cs) | `PivotSettings`, `IsValid`, `CopyValidated`, `HasSameRules` |
+| 대전 피벗 충전·활성·연속 매칭 회복과 소비 감속 | [PivotMode.cs](../Assets/02_Scripts/Battle/Pivot/PivotMode.cs) | `AdvanceTick`, `Stop`, `GaugeUnits`, `GaugePoints`, `GaugePercent`, `GaugeRatio`, `IsActive`, `ComboCount`, `CurrentDrainPercent` |
+| 피벗 발동 기준·소모 총점·콤보 회복 설정 | [PivotSettings.cs](../Assets/02_Scripts/Battle/Pivot/PivotSettings.cs) | `Capacity`, `DrainCapacity`, `ActiveCapacity`, `RefillPercentPerRapidCombo`, `IsValid`, `CopyValidated`, `HasSameRules` |
 | 보드 통계·모드별 효과와 독립 피벗 모듈 연결 | [BattlePivotSession.cs](../Assets/02_Scripts/Battle/Pivot/BattlePivotSession.cs) | `BattlePivotSession`, `AdvanceAfterBoardTick`, `Dispose` |
 | 세 모드 피벗의 이웃 한 겹 추가 파괴 | [LinkPivotEffect.cs](../Assets/02_Scripts/Battle/Pivot/LinkPivotEffect.cs) | `LinkPivotEffect`, `ExpandTargets`, `ExpandSquareTargets`, `ExpandNeighbors` |
 | 플레이어 피벗 게이지·발동 문구·활성 중 보드 테두리 | [PivotGaugeView.cs](../Assets/02_Scripts/Battle/Pivot/PivotGaugeView.cs), [PuzzleBoardView.cs](../Assets/02_Scripts/PuzzleCore/View/PuzzleBoardView.cs) | `Refresh`, `PlayActivationLabel`, `SetPivotBorderVisible`, `Dispose` |

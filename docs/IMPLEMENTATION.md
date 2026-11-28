@@ -4,8 +4,6 @@
 
 아래 상태는 현재 클라이언트 작업본의 실행 경로를 기준으로 한다. **구현**은 해당 동작이 게임 코드에 연결된 경우, **부분 구현**은 항목 중 일부만 연결된 경우, **기획**은 사양이나 제안이 있는 단계다.
 
-정리 시점의 `Develop` 기준 커밋은 `f1d4c0e`다. 아래 카드의 종류별 기본값·합산 전투 능력치와 상세 수치 표시는 로컬 작업본까지 포함한 상태다. 해당 커밋에는 골드 뽑기, 개별 카드 보관·배치, 별 표시가 포함되어 있다. 피벗도 해당 커밋에서 작동하며, 사양서의 300점 충전과 활성 중 회복은 로컬 조정값이다.
-
 ## 로비
 
 | 기능 | 상태 | 코드에서 확인할 수 있는 범위 |
@@ -20,7 +18,7 @@
 | 기능 | 상태 | 코드에서 확인할 수 있는 범위 |
 |---|---|---|
 | 퍼즐과 대전 시간 | 구현 | 링크·3매치·탭 매치 입력을 보드가 처리한다. 개별 퍼즐 스테이지에는 목표와 제한 시간을, 배틀에는 90초 제한을 적용한다. [보드별 C# 매핑](INGAME.md#콘텐츠와-c-매핑) · [GameSpec](../Assets/02_Scripts/PuzzleCore/Module/GameSpec.cs) |
-| 득점·피버·피벗 | 구현 | 파괴 점수·콤보·피버를 계산한다. 배틀에서는 플레이어·상대 보드마다 피벗을 구동한다. [ObjectiveManager](../Assets/02_Scripts/PuzzleCore/Module/ObjectiveManager.cs) · [피벗 구현](INGAME-VIEW-AND-BATTLE.md#대전-전용-피벗-모드) |
+| 득점·피버·피벗 | 구현 | 파괴 점수·콤보·피버를 계산한다. 배틀에서는 보드마다 300점 충전 시 피벗이 발동한다. 활성 중 빠른 연속 매칭으로 게이지의 15%p를 회복한다. [ObjectiveManager](../Assets/02_Scripts/PuzzleCore/Module/ObjectiveManager.cs) · [피벗 구현](INGAME-VIEW-AND-BATTLE.md#대전-전용-피벗-모드) |
 | 리플레이 상대·승패 | 구현 | 로컬 완주 기록을 골라 같은 시드로 재생한다. 기록이 없으면 첫 기록 도전으로 진입한다. 결과 화면에서 승패·무승부를 표시하고 저장·재도전·로비 복귀를 처리한다. [LobbyMain](../Assets/02_Scripts/Lobby/LobbyMain.cs) · [경기 종료 처리](../Assets/02_Scripts/PuzzleCore/Controller/PuzzleGameController.cs) · [상대 재생](../Assets/02_Scripts/PuzzleCore/Controller/ReplayController.cs) |
 | 리그·점수 몬스터 | 기획 | 서버 랭킹과 티어 집계, 상대 퍼즐 점수에 따른 몬스터 소환·방어 점수 합산은 후속 기능이다. [리그 사양](INGAME-BATTLE.md#배틀-리그) · [방어선 연동안](INGAME-BATTLE.md#방어선-연동안) |
 

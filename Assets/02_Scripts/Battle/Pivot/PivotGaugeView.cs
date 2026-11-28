@@ -18,8 +18,8 @@ namespace Battle.Pivot
         private readonly Image _fillImage;
         /// <summary> 표시할 피벗 상태입니다. </summary>
         private readonly PivotMode _mode;
-        /// <summary> 마지막으로 표시한 0.1점 단위 게이지입니다. </summary>
-        private int _lastDisplayedTenths = -1;
+        /// <summary> 마지막으로 표시한 게이지 백분율입니다. </summary>
+        private int _lastDisplayedPercent = -1;
         /// <summary> 마지막으로 표시한 활성 상태입니다. </summary>
         private bool _lastActive;
 
@@ -33,8 +33,8 @@ namespace Battle.Pivot
             root.anchorMin = source.anchorMin;
             root.anchorMax = source.anchorMax;
             root.pivot = source.pivot;
-            root.anchoredPosition = source.anchoredPosition + new Vector2(0f, -60f);
-            root.sizeDelta = new Vector2(source.sizeDelta.x, 62f);
+            root.anchoredPosition = source.anchoredPosition + new Vector2(0f, -source.rect.height - 8f);
+            root.sizeDelta = new Vector2(340f, 60f);
 
             RectTransform labelRect = CreateRect("State", root);
             labelRect.anchorMin = new Vector2(0f, 0.57f);
@@ -44,7 +44,8 @@ namespace Battle.Pivot
             _label = labelRect.gameObject.AddComponent<TextMeshProUGUI>();
             _label.font = template.font;
             _label.fontSharedMaterial = template.fontSharedMaterial;
-            _label.fontSize = 24f;
+            _label.fontSize = 22f;
+            _label.color = new Color32(216, 255, 246, 255);
             _label.alignment = TextAlignmentOptions.Left;
             _label.raycastTarget = false;
 
@@ -53,13 +54,13 @@ namespace Battle.Pivot
             announcement.anchorMax = Vector2.zero;
             announcement.pivot = new Vector2(0f, 1f);
             announcement.anchoredPosition = new Vector2(0f, -6f);
-            announcement.sizeDelta = new Vector2(source.sizeDelta.x, 60f);
+            announcement.sizeDelta = new Vector2(root.sizeDelta.x, 48f);
             _activationLabel = announcement.gameObject.AddComponent<TextMeshProUGUI>();
             _activationLabel.font = template.font;
             _activationLabel.fontSharedMaterial = template.fontSharedMaterial;
-            _activationLabel.fontSize = 42f;
+            _activationLabel.fontSize = 34f;
             _activationLabel.alignment = TextAlignmentOptions.Left;
-            _activationLabel.color = new Color(1f, 0.82f, 0.32f);
+            _activationLabel.color = new Color32(255, 221, 112, 255);
             _activationLabel.text = "피벗 발동!";
             _activationLabel.raycastTarget = false;
             _activationLabel.gameObject.SetActive(false);
@@ -104,18 +105,18 @@ namespace Battle.Pivot
 
             float ratio = _mode.GaugeRatio;
             _fillImage.fillAmount = ratio;
-            int displayedTenths = _mode.GaugeUnits / 10;
-            if (displayedTenths != _lastDisplayedTenths || _mode.IsActive != _lastActive)
+            int percent = _mode.GaugePercent;
+            if (percent != _lastDisplayedPercent || _mode.IsActive != _lastActive)
             {
-                _lastDisplayedTenths = displayedTenths;
+                _lastDisplayedPercent = percent;
                 if (_mode.IsActive && !_lastActive)
                 {
                     PlayActivationLabel();
                 }
                 _lastActive = _mode.IsActive;
                 string state = _mode.IsActive ? "피벗 모드" : "피벗 충전";
-                _label.text = $"{state} · {displayedTenths / 10}.{displayedTenths % 10} / {_mode.Capacity}";
-                _fillImage.color = _mode.IsActive ? new Color(1f, 0.65f, 0.15f) : new Color(0.2f, 0.75f, 1f);
+                _label.text = $"{state} · {percent}%";
+                _fillImage.color = _mode.IsActive ? new Color32(255, 177, 61, 255) : new Color32(81, 238, 220, 255);
             }
         }
 

@@ -1,9 +1,10 @@
 {
   "_comment_global": "육각형 링크 매치 게임의 규칙과 블럭 속성을 정의하는 데이터 파일입니다.",
-  "_comment_pivot": "대전 전용 피벗. 게이지 1000점, 초당 10개 파괴 기준 첫 발동 약 24초, 이후 약 30초 주기. 기본 유지 약 6초, 콤보 유지 약 8초.",
+  "_comment_pivot": "대전 전용 피벗. 300점 충전 시 발동하고 1000점부터 소모합니다. 입력이 없으면 약 6초 유지되며, 활성 중 빠른 연속 매칭마다 15%p를 회복합니다.",
   "pivotSettings": {
     "_comment_charge": "Units는 0.01점 단위. 블럭당 400 Units=4점, 10콤보마다 40 Units=0.4점 추가.",
-    "Capacity": 1000,
+    "Capacity": 300,
+    "DrainCapacity": 1000,
     "ChargePerBlockUnits": 400,
     "ChargeComboStep": 10,
     "ChargeBonusPerStepUnits": 40,
@@ -11,6 +12,7 @@
     "_comment_drain": "빠른 콤보마다 기본 소비 속도에서 10%p 감소, 최소 75% 유지. 콤보 간격은 50틱=1초.",
     "DrainReductionPercentPerCombo": 10,
     "MinimumDrainPercent": 75,
+    "RefillPercentPerRapidCombo": 15,
     "ComboWindowTicks": 50,
     "_comment_link_pivot": "피벗 중 링크 경로의 육각형 6방향 이웃 한 겹도 색상과 관계없이 함께 파괴합니다.",
     "LinkNeighborClear": true,

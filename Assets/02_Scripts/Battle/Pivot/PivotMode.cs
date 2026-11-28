@@ -23,6 +23,8 @@ namespace Battle.Pivot
         public int GaugeUnits { get; private set; }
         /// <summary> 표시용 게이지 점수입니다. 판정에는 정수 단위를 사용합니다. </summary>
         public float GaugePoints => (float)GaugeUnits / UnitsPerPoint;
+        /// <summary> 현재 단계의 최대치에 대한 정수 백분율입니다. 만충일 때만 100%를 표시합니다. </summary>
+        public int GaugePercent => (int)((long)GaugeUnits * 100 / ((long)Capacity * UnitsPerPoint));
         /// <summary> 만충 전 반올림으로 1이 되지 않게 보정한 표시용 게이지 비율입니다. </summary>
         public float GaugeRatio
         {
@@ -38,8 +40,8 @@ namespace Battle.Pivot
                 return ratio;
             }
         }
-        /// <summary> 최대 게이지 점수입니다. </summary>
-        public int Capacity => _settings.Capacity;
+        /// <summary> 충전 중에는 발동 기준, 활성 중에는 소모 게이지의 최대 점수입니다. </summary>
+        public int Capacity => IsActive ? _settings.ActiveCapacity : _settings.Capacity;
         /// <summary> 현재 적용되는 기본 소비 속도의 백분율입니다. </summary>
         public int CurrentDrainPercent { get; private set; }
         /// <summary> 피버와 독립적으로 세는 빠른 연속 유저 매칭 콤보입니다. </summary>
@@ -113,6 +115,7 @@ namespace Battle.Pivot
                 if (GaugeUnits == _settings.Capacity * UnitsPerPoint)
                 {
                     IsActive = true;
+                    GaugeUnits = _settings.ActiveCapacity * UnitsPerPoint;
                     CurrentDrainPercent = 100;
                     _drainRemainder = 0;
                 }
@@ -131,7 +134,11 @@ namespace Battle.Pivot
             const int drainDenominator = TicksPerSecond * 100;
             long drain = drainNumerator / drainDenominator;
             _drainRemainder = drainNumerator % drainDenominator;
-            GaugeUnits = (int)Math.Max(0, GaugeUnits - drain);
+            // 같은 틱의 소비와 유저 연속 매칭 회복을 함께 반영한 뒤 소진을 판정합니다.
+            long capacityUnits = (long)_settings.ActiveCapacity * UnitsPerPoint;
+            long refillPerCombo = capacityUnits * _settings.RefillPercentPerRapidCombo / 100;
+            long remainingUnits = GaugeUnits - drain + refillPerCombo * rapidCombos;
+            GaugeUnits = (int)Math.Max(0, Math.Min(capacityUnits, remainingUnits));
             if (GaugeUnits == 0)
             {
                 IsActive = false;
