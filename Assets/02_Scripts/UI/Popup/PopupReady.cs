@@ -29,6 +29,8 @@ public class PopupReady : PopupHandler
     {
         base.Awake();
         _previewSize = _reel.rectTransform.sizeDelta;
+        LagoonUI.Backplate(_reel.rectTransform, "ReelPlate", new Color32(41, 159, 170, 255), new Vector2(12f, 55f));
+        LagoonUI.Backplate(_lifeText.rectTransform, "LifePlate", new Color32(180, 246, 229, 255), Vector2.zero);
         _selectedMode = UnityEngine.Random.Range(0, RulePaths.Length);
         RefreshLives(DateTimeOffset.UtcNow.ToUnixTimeSeconds());
     }
@@ -98,7 +100,7 @@ public class PopupReady : PopupHandler
         }
         _reel.rectTransform.sizeDelta = new Vector2(300f, 300f);
         _reel.uvRect = new Rect((float)_selectedMode / RulePaths.Length, 0f, 1f / RulePaths.Length, 1f);
-        _statusText.text = $"<color=#823044>{ModeNames[_selectedMode]}</color> 모드 당첨!";
+        _statusText.text = $"<b><color=#00646A>{ModeNames[_selectedMode]}</color></b> 모드 당첨!";
         yield return new WaitForSecondsRealtime(resultSeconds);
 
         if (_popup.IsAnimating || Main.Instance == null || Main.Instance.IsMovingScene ||

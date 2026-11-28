@@ -15,7 +15,9 @@
 | 팝업 버튼 처리용 기반 클래스 | [PopupHandler.cs](../Assets/02_Scripts/Manager/PopupHandler.cs) | `ClosePopup`, `BackPopup` |
 | 탭 검색·활성화·비활성화 | [TabController.cs](../Assets/02_Scripts/Manager/TabController.cs) | `ActivateTab`, `DeactivateTab` |
 | 탭 생명주기·애니메이션 확장 | [TabBase.cs](../Assets/02_Scripts/Manager/TabBase.cs) | `Activate`, `Deactivate`, `ActivateAnimation`, `DeactivateAnimation` |
-| Inspector 버튼 콜백과 젤리 패널 표면 | [UIButton.cs](../Assets/02_Scripts/UI/UIButton.cs) | `OnClickEvent`, `LagoonUI.Surface` |
+| 공용 버튼 입력·젤리 패널·상태 배지 | [UIButton.cs](../Assets/02_Scripts/UI/UIButton.cs) | `UIButton.OnClickEvent`, `LagoonUI.Surface`, `LagoonUI.Backplate` |
+| 로비 하단 탭·페이지 배색·공통 상단 자산 바 | [LobbyNavigation.cs](../Assets/02_Scripts/Lobby/LobbyNavigation.cs) | `BuildPage`, `ShowSelectedTab`, `UpdateMotionIndicator`, `BuildResourceBar`, `LayoutResourceBar`, `RefreshResources` |
+| 대전 안내·타이머·점수·결과 카드 | [PuzzleGameController.cs](../Assets/02_Scripts/PuzzleCore/Controller/PuzzleGameController.cs) | `BuildHudSurfaces`, `ShowRoundResult` |
 | 스테이지·90초 대전 준비·슬롯 연출·게임 진입 | [PopupReady.cs](../Assets/02_Scripts/UI/Popup/PopupReady.cs) | `ConfigureBattle`, `OnClickStart`, `SpinAndStart`, `OnClickClose` |
 | 로비 튜토리얼·대전 진입 | [LobbyMain.cs](../Assets/02_Scripts/Lobby/LobbyMain.cs) | `OnClickPlay`, `PrepareBattle` |
 | 20×10 전장 가로 스크롤·셀 배치·저장 이전·스테이지 방어 | [LobbyDefenseBoard.cs](../Assets/02_Scripts/Lobby/LobbyDefenseBoard.cs) · [LobbyDefenseView.cs](../Assets/02_Scripts/Lobby/LobbyDefenseView.cs) · [전장 캐릭터 연출](../Assets/02_Scripts/Lobby/LobbyDefenseView.Combat.cs) | `FitBattlefield`, `PointerCell`, `AnimateCombat`, `TryRestoreLayout`, `BeginPlacement`, `PlaceCard`, `MoveUnit`, `StartNextAttempt`, `ShowGhosts` |
@@ -26,7 +28,7 @@
 | 로비 탭 컴포넌트 (TabBase 상속) | [LobbyTabController.cs](../Assets/02_Scripts/Lobby/LobbyTabController.cs) | `LobbyTabController` |
 | 대전 전용 피벗 게이지·발동 알림 | [PivotGaugeView.cs](../Assets/02_Scripts/Battle/Pivot/PivotGaugeView.cs) | `PivotGaugeView`, `Refresh`, `PlayActivationLabel`, `Dispose` |
 
-대전 타이머 아래에 피벗 게이지와 발동 문구를 표시한다. 피벗이 활성인 동안 보드 바깥의 금빛 테두리(링크는 엇갈린 육각 셀의 외곽선)가 은은하게 맥동하며, 종료하면 꺼진다. 조작 안내와 목표는 화면 왼쪽 위에 배치해 플레이 보드와 상대 보드의 자리를 비운다.
+대전 타이머 아래에 피벗 충전율과 발동 중 잔량을 0~100%로 표시한다. 피벗이 활성인 동안 보드 바깥의 금빛 테두리(링크는 엇갈린 육각 셀의 외곽선)가 은은하게 맥동하며, 종료하면 꺼진다. 조작 안내와 목표는 화면 왼쪽 위에 배치해 플레이 보드와 상대 보드의 자리를 비운다.
 
 상대 기록의 선택·호환 조건과 재생 실패 시 판정은 [인게임 사양서](INGAME-BATTLE.md#현재-승패와-기록)를 따른다.
 

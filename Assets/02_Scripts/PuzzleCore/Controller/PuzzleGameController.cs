@@ -30,6 +30,7 @@ public class PuzzleGameController : MonoBehaviour
 
     /// <summary> 대전 진행 안내와 최종 점수 비교를 표시합니다. </summary>
     [SerializeField] private TMP_Text _resultText;
+    [SerializeField] private GameObject _hud;
     /// <summary> 이번 플레이의 종료 규칙입니다. </summary>
     private GameMode _mode;
     /// <summary> 두 보드를 함께 진행한 총 논리 틱 수입니다. </summary>
@@ -152,15 +153,35 @@ public class PuzzleGameController : MonoBehaviour
         _objectives = gameSpec.rule.objectives;
         _playHint = gameSpec.rule.puzzleType switch
         {
-            PuzzleType.Link => "같은 색 블록을 3개 이상 이어 보세요",
-            PuzzleType.TapMatch => "같은 색 블록이 2개 이상 붙은 곳을 누르세요",
-            _ => "이웃한 블록을 바꿔 같은 색 3개를 한 줄로 맞추세요"
+            PuzzleType.Link => "같은 색 블록을\n3개 이상 이어 보세요",
+            PuzzleType.TapMatch => "같은 색 블록이 2개 이상\n붙은 곳을 누르세요",
+            _ => "이웃한 블록을 바꿔\n같은 색 3개를 한 줄로 맞추세요"
         };
         UpdatePlayHint();
+        UpdateTimerUI();
+        UpdateScoreUI();
+        BuildHudSurfaces();
         if (replayData != null && replayController != null)
         {
             replayController.Initialize(replayData);
             StageInjection.Instance.SetReplayData(null); // 사용 후 초기화
+        }
+    }
+
+    /// <summary>보드가 준비되면 안내·시간·점수 뒤에 젤리 배지를 놓습니다.</summary>
+    private void BuildHudSurfaces()
+    {
+        if (_resultText != null)
+        {
+            LagoonUI.Backplate(_resultText.rectTransform, "HintPlate", new Color32(12, 94, 108, 255), Vector2.zero);
+        }
+        if (_timerText != null)
+        {
+            LagoonUI.Backplate(_timerText.rectTransform, "TimePlate", new Color32(166, 247, 237, 255), Vector2.zero);
+        }
+        if (_scoreText != null)
+        {
+            LagoonUI.Backplate(_scoreText.rectTransform, "ScorePlate", new Color32(255, 221, 113, 255), Vector2.zero);
         }
     }
 
@@ -242,8 +263,7 @@ public class PuzzleGameController : MonoBehaviour
             {
                 summary += "\n리플레이를 저장하지 못했습니다";
             }
-            _summaryText.text = summary;
-            _resultPanel.SetActive(true);
+            ShowRoundResult(summary);
             return;
         }
         UpdatePlayHint();
@@ -320,6 +340,19 @@ public class PuzzleGameController : MonoBehaviour
     private void ShowStartError(string message)
     {
         Debug.LogError($"[PuzzleGameController] {message}");
+        ShowRoundResult(message);
+    }
+
+    /// <summary>플레이 안내와 배지를 함께 숨기고 <paramref name="message"/>와 재도전·복귀 버튼을 결과 카드에 표시합니다.</summary>
+    private void ShowRoundResult(string message)
+    {
+        if (_hud != null)
+        {
+            _hud.SetActive(false);
+        }
+        RectTransform resultCard = LagoonUI.Backplate(_summaryText.rectTransform, "ResultCard",
+            new Color32(188, 252, 235, 255), new Vector2(38f, 130f)).rectTransform;
+        resultCard.anchoredPosition = Vector2.zero;
         _summaryText.text = message;
         _resultPanel.SetActive(true);
     }
@@ -336,7 +369,8 @@ public class PuzzleGameController : MonoBehaviour
         _lastDestroyed = objective.TotalDestroyedBlocks;
         if (_mode == GameMode.Battle)
         {
-            string title = _opponent == null ? "튜토리얼 · 90초 동안 첫 대전 기록 만들기" : "90초 대전 · 상대 점수에 도전";
+            string title = _opponent == null ? "<b>튜토리얼 · 90초</b>\n첫 대전 기록을 남겨 보세요" :
+                "<b>90초 대전</b>\n상대 점수에 도전하세요";
             _resultText.text = title + "\n" + _playHint;
             return;
         }
@@ -380,7 +414,7 @@ public class PuzzleGameController : MonoBehaviour
             _lastDisplayedSeconds = seconds;
             int min = seconds / 60;
             int sec = seconds % 60;
-            _timerText.SetText("{0}:{1:00}", min, sec);
+            _timerText.SetText("<size=17>남은 시간</size>\n{0}:{1:00}", min, sec);
         }
     }
 
@@ -398,7 +432,7 @@ public class PuzzleGameController : MonoBehaviour
         if (score != _lastDisplayedScore)
         {
             _lastDisplayedScore = score;
-            _scoreText.SetText("{0}", score);
+            _scoreText.SetText("<size=17>점수</size>\n{0}", score);
         }
     }
 

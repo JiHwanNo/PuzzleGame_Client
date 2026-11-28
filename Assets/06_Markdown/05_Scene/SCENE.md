@@ -151,7 +151,8 @@ Main.MoveScene(preScene, nextScene)
 ## 씬별 초기화 흐름
 
 ### TitleScene
-타이틀 연출이 끝나면 로딩 씬을 거쳐 로비로 이동한다. [씬 전환 구현](../../../docs/SCENE.md)
+
+`TitleMain.Start()`가 `LobbyNavigation` 아틀라스를 비동기로 요청하고, `ShowCastle`이 세 번째 칸의 성을 로고 위에 표시한다. 로고 ‘NEVER LAND’는 1초 동안 서서히 나타나고 1초 더 머문 뒤 `Main.MoveScene(TitleScene, LobbyScene)`을 호출한다.
 
 ### LobbyScene
 

@@ -176,6 +176,27 @@ internal static class LagoonUI
         image.color = Color.white;
     }
 
+    /// <summary><paramref name="anchor"/> 바로 뒤에 <paramref name="name"/> 배경을 만들고 <paramref name="tint"/> 색과 양쪽 <paramref name="padding"/> 여백을 적용한다.</summary>
+    internal static Image Backplate(RectTransform anchor, string name, Color tint, Vector2 padding)
+    {
+        GameObject plate = new GameObject(name, typeof(RectTransform), typeof(Image));
+        plate.layer = anchor.gameObject.layer;
+        RectTransform rect = (RectTransform)plate.transform;
+        rect.SetParent(anchor.parent, false);
+        rect.SetSiblingIndex(anchor.GetSiblingIndex());
+        rect.anchorMin = anchor.anchorMin;
+        rect.anchorMax = anchor.anchorMax;
+        rect.pivot = anchor.pivot;
+        rect.offsetMin = anchor.offsetMin - padding;
+        rect.offsetMax = anchor.offsetMax + padding;
+        rect.localRotation = anchor.localRotation;
+        rect.localScale = anchor.localScale;
+        Image background = plate.GetComponent<Image>();
+        background.raycastTarget = false;
+        Surface(background, tint);
+        return background;
+    }
+
     /// <summary><paramref name="tint"/>마다 한 번만 9분할 표면을 구워 밝은 테두리와 반사광의 색을 보존한다.</summary>
     private static Sprite CreateSurfaceSprite(Color tint)
     {

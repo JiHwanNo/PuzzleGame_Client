@@ -9,7 +9,7 @@
 | 찾는 콘텐츠 | 담당 C# 파일 | 주요 메서드·타입·멤버 |
 |---|---|---|
 | SharedScene 로드·씬 전환·플레이어 종료 정리 | [Main.cs](../Assets/02_Scripts/Manager/Main.cs) | `SceneEnum`, `AutoCreate`, `MoveScene`, `CoMoveScene`, `IsMovingScene`, `OnApplicationQuit` |
-| 타이틀 CI 연출·로비 진입 | [TitleMain.cs](../Assets/02_Scripts/Title/TitleMain.cs) | `Start` |
+| 타이틀의 젤리 성·로고 연출과 로비 진입 | [TitleMain.cs](../Assets/02_Scripts/Title/TitleMain.cs) | `Start`, `ShowCastle` |
 | 로비 튜토리얼·대전 진입 | [LobbyMain.cs](../Assets/02_Scripts/Lobby/LobbyMain.cs) | `OnClickPlay`, `PrepareBattle` |
 | 에셋 로딩 요청 공유·캐시·해제 | [AssetManager.cs](../Assets/02_Scripts/Manager/AssetManager.cs) | `AssetArguments`, `LoadAsset`, `LoadAssetAsync`, `MarkPersistent`, `ReleaseAll` |
 | 오브젝트 풀 대여·반환·씬 전환 시 정리 | [PoolManager.cs](../Assets/02_Scripts/Manager/PoolManager.cs) | `Get`, `Release`, `ClearIfCreated`, `Clear` |
@@ -26,9 +26,9 @@
 | 씬 | 역할 | 메인 스크립트 |
 |----|------|-------------|
 | SharedScene | 영구 상주 (매니저, 카메라, EventSystem) | Main.cs |
-| TitleScene | CI 연출 후 로비로 이동 | TitleMain.cs |
-| LoadingScene | 씬 전환 시 로딩 화면 | — |
-| LobbyScene | 스테이지 선택, 게임 준비 | LobbyMain.cs |
+| [TitleScene](../Assets/01_Scenes/TitleScene.unity) | 짙은 청록 바탕에 메인 탭의 젤리 성과 크림색·민트색 로고를 표시한 뒤 로비로 이동 | TitleMain.cs |
+| [LoadingScene](../Assets/01_Scenes/LoadingScene.unity) | 씬이 바뀌는 동안 같은 청록 바탕의 오버레이에 ‘불러오는 중…’을 표시 | — |
+| LobbyScene | 방어 전장·하단 탭을 구성하고 플레이 입력으로 퍼즐 진입 준비 | LobbyMain.cs |
 | GameScene | 인게임 퍼즐 플레이 | PuzzleGameController.cs, ReplayController.cs |
 
 ## SharedScene (영구 상주)
@@ -143,12 +143,8 @@ Main.MoveScene(preScene, nextScene)
 ## 씬별 초기화 흐름
 
 ### TitleScene
-```
-TitleMain.Start()
-  → DOTween Sequence: CI 텍스트 색상 트윈 (검정 → #00FF80)
-    → 여운 대기
-      → Main.MoveScene(TitleScene, LobbyScene)
-```
+
+`TitleMain.Start()`가 `LobbyNavigation` 아틀라스를 비동기로 요청하고, `ShowCastle`이 세 번째 칸의 성을 로고 위에 표시한다. 로고 ‘NEVER LAND’는 1초 동안 서서히 나타나고 1초 더 머문 뒤 `Main.MoveScene(TitleScene, LobbyScene)`을 호출한다.
 
 ### LobbyScene
 
