@@ -150,3 +150,69 @@ public class UIButton : MonoBehaviour
         _clickSequence.OnKill(() => _clickSequence = null);
     }
 }
+
+/// <summary>라군 UI 패널과 배지에 같은 둥근 모서리와 윗면의 빛을 그린다.</summary>
+internal static class LagoonUI
+{
+    private static readonly System.Collections.Generic.Dictionary<Color32, Sprite> _surfaces =
+        new System.Collections.Generic.Dictionary<Color32, Sprite>();
+
+    /// <summary><paramref name="image"/>에 모서리가 늘어나지 않는 젤리 표면과 <paramref name="tint"/> 색을 적용한다.</summary>
+    internal static void Surface(Image image, Color tint)
+    {
+        Color32 color = tint;
+        if (!_surfaces.TryGetValue(color, out Sprite surface) || surface == null)
+        {
+            surface = CreateSurfaceSprite(color);
+            _surfaces[color] = surface;
+        }
+        image.sprite = surface;
+        image.type = Image.Type.Sliced;
+        Canvas canvas = image.GetComponentInParent<Canvas>(true);
+        if (canvas != null)
+        {
+            image.pixelsPerUnitMultiplier = canvas.referencePixelsPerUnit / surface.pixelsPerUnit;
+        }
+        image.color = Color.white;
+    }
+
+    /// <summary><paramref name="tint"/>마다 한 번만 9분할 표면을 구워 밝은 테두리와 반사광의 색을 보존한다.</summary>
+    private static Sprite CreateSurfaceSprite(Color tint)
+    {
+        const int size = 64;
+        const float radius = 18f;
+        Texture2D texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+        texture.name = "Lagoon Panel";
+        texture.wrapMode = TextureWrapMode.Clamp;
+        texture.filterMode = FilterMode.Bilinear;
+        Color lowerFace = Color.Lerp(tint, new Color(0.02f, 0.19f, 0.24f), 0.13f);
+        Color upperFace = Color.Lerp(tint, Color.white, 0.14f);
+        Color32[] pixels = new Color32[size * size];
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                // 모서리 원호와의 거리로 윤곽을 부드럽게 하고, 반사광을 왼쪽 위 고정 영역 안에 담는다.
+                float dx = Mathf.Max(Mathf.Abs(x + 0.5f - size * 0.5f) - (size * 0.5f - radius), 0f);
+                float dy = Mathf.Max(Mathf.Abs(y + 0.5f - size * 0.5f) - (size * 0.5f - radius), 0f);
+                float inset = radius - Mathf.Sqrt(dx * dx + dy * dy);
+                float height = y / (size - 1f);
+                Color face = Color.Lerp(lowerFace, upperFace, height);
+                Color rim = Color.Lerp(lowerFace * 0.70f, Color.Lerp(tint, Color.white, 0.56f), height);
+                Color pixel = Color.Lerp(rim, face, Mathf.Clamp01((inset - 1f) / 3f));
+                float glintX = (x - 12f) / 5.2f;
+                float glintY = (y - 55f - (x - 12f) * 0.42f) / 1.9f;
+                float glint = Mathf.Clamp01(1.5f - glintX * glintX - glintY * glintY);
+                pixel = Color.Lerp(pixel, Color.white, 0.46f * glint);
+                pixel.a = tint.a * Mathf.Clamp01(inset + 0.5f);
+                pixels[y * size + x] = pixel;
+            }
+        }
+        texture.SetPixels32(pixels);
+        texture.Apply(false, true);
+        Sprite sprite = Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f),
+            100f, 0, SpriteMeshType.FullRect, new Vector4(20, 20, 20, 20));
+        sprite.name = texture.name;
+        return sprite;
+    }
+}

@@ -52,10 +52,6 @@ internal sealed partial class LobbyDefenseView
         _rim.enabled = _placing;
         _forest.texture = _placing ? _placementForest : _meadow;
         _stageHeader.anchoredPosition = new Vector2(0f, 410f - centerY);
-        RectTransform portrait = (RectTransform)_hero.transform;
-        portrait.sizeDelta = Vector2.one * (_placing ? 264f : 145f);
-        portrait.anchoredPosition = new Vector2(0f, (_placing ? -162f : -205f) - centerY);
-        ((RectTransform)_selectionText.transform.parent).anchoredPosition = new Vector2(0f, (_placing ? -299f : -308f) - centerY);
     }
 
     /// <summary><paramref name="cell"/> 바닥에서 <paramref name="size"/>를 기준으로 캐릭터 몸통 중심을 구한다.</summary>

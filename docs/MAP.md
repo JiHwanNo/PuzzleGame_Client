@@ -13,6 +13,7 @@
 | [ARCHITECTURE.md](ARCHITECTURE.md) | MVC, 데이터 흐름, 리플레이, 게임 흐름, 폴더 구조 | 아키텍처 이해 시 |
 | [LOBBY-DEFENSE.md](LOBBY-DEFENSE.md) | 방어 카드 뽑기·등급, 20×10 숲 전장 캐릭터 전투와 카드 배치 모드, 스테이지 방어 완료·다음 스테이지 진입 조건 | 로비 디펜스와 퍼즐 연동 개발 시 |
 | [LOBBY-CARDS.md](LOBBY-CARDS.md) | 종류별 기본값, 뽑기 보너스와 별, 개별 카드 분해·강화, 화면과 검증 기준 | 방어 카드 수집과 성장 설계 시 |
+| [배틀 리그 사양 초안](LEAGUE.md) | 상시 리그와 로비 프로필 티어, 미정인 집계·시즌 규칙 | 리그 기획 시 |
 | [CONVENTIONS.md](CONVENTIONS.md) | 코드 리뷰 체크리스트, 위반 예시, 수정 가이드 | 코드 리뷰 및 [호출 시점 커밋 검증](../.agents/skills/review-commit/SKILL.md) 시 |
 | [INGAME.md](INGAME.md) | 게임 루프, 보드 상태, 블럭, 매칭, 뷰 동기화, 애니메이션, 리플레이 | 인게임 퍼즐 작업 시 |
 | [DATA.md](DATA.md) | JSON 구조, GameSpec, Rule/Stage/Replay 데이터, 추가 방법 | 데이터/설정 작업 시 |

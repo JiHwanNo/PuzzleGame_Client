@@ -34,6 +34,136 @@ internal sealed partial class LobbyNavigation
     private bool _detailClosing;
     private bool _placeOnClose;
     private CanvasGroup _tabInput;
+    private const float PlacementStep = 144f;
+    private readonly List<LobbyCard> _availableCards = new List<LobbyCard>();
+    private readonly List<PlacementSlot> _placementSlots = new List<PlacementSlot>();
+    private ScrollRect _placementScroll;
+    private TMP_Text _emptyPlacement;
+    private int _placementVersion = -1;
+    private LobbyCard _highlightedCard;
+    private Image _placementGlow;
+
+    /// <summary>가로 목록에서 재사용할 카드 그림과 선택 테두리를 보관한다.</summary>
+    private sealed class PlacementSlot
+    {
+        public RectTransform Rect;
+        public Image Border;
+        public InventoryArt Art;
+        public LobbyCard Card;
+    }
+
+    /// <summary>전장 하단에 드래그와 휠로 이동하는 미배치 카드 목록을 만든다.</summary>
+    private void BuildPlacementInventory()
+    {
+        RectTransform tray = JellyPanel("PlacementInventory", _field.PlacementBar, 0, 0, 1, 1, Lagoon);
+        RectTransform viewport = Panel("Viewport", tray, .012f, .015f, .988f, .985f, Color.clear);
+        viewport.gameObject.AddComponent<RectMask2D>();
+        _placementScroll = tray.gameObject.AddComponent<ScrollRect>();
+        _placementScroll.viewport = viewport;
+        _placementScroll.content = Box("Cards", viewport, 0, 0, 0, 1);
+        _placementScroll.content.pivot = new Vector2(0, .5f);
+        _placementScroll.horizontal = true;
+        _placementScroll.vertical = false;
+        _placementScroll.movementType = ScrollRect.MovementType.Clamped;
+        _placementScroll.scrollSensitivity = 48f;
+        _placementScroll.onValueChanged.AddListener(position => BindPlacementSlots());
+        _emptyPlacement = Label(tray, "미배치 카드가 없습니다", .05f, .25f, .95f, .75f, 28);
+        _emptyPlacement.color = Pearl;
+    }
+
+    /// <summary>보유 상태가 바뀔 때만 미배치 카드를 다시 모으고 새로 선택한 카드가 보이도록 스크롤한다.</summary>
+    private void RefreshPlacementCards()
+    {
+        LobbyCard selected = _field.SelectedCard;
+        bool rosterChanged = _placementVersion != _field.Board.RosterVersion;
+        if (!rosterChanged && selected == _highlightedCard)
+        {
+            return;
+        }
+        if (rosterChanged)
+        {
+            _placementVersion = _field.Board.RosterVersion;
+            _availableCards.Clear();
+            foreach (LobbyCard card in _field.Board.Cards)
+            {
+                if (card.Cell < 0)
+                {
+                    _availableCards.Add(card);
+                }
+            }
+        }
+        float width = _placementScroll.viewport.rect.width;
+        RectTransform content = _placementScroll.content;
+        float extent = Mathf.Max(width, _availableCards.Count * PlacementStep);
+        content.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, extent);
+        float offset = Mathf.Clamp(-content.anchoredPosition.x, 0f, extent - width);
+        if (selected != null && selected != _highlightedCard)
+        {
+            int index = _availableCards.IndexOf(selected);
+            if (index >= 0)
+            {
+                offset = Mathf.Clamp(offset, (index + 1) * PlacementStep - width, index * PlacementStep);
+            }
+        }
+        _placementScroll.StopMovement();
+        content.anchoredPosition = new Vector2(-offset, 0f);
+        _highlightedCard = selected;
+        _emptyPlacement.gameObject.SetActive(_availableCards.Count == 0);
+        BindPlacementSlots();
+    }
+
+    /// <summary>스크롤 영역에 보이는 카드와 양끝의 부분 카드만 슬롯에 연결한다.</summary>
+    private void BindPlacementSlots()
+    {
+        _placementGlow = null;
+        int visible = Mathf.CeilToInt(_placementScroll.viewport.rect.width / PlacementStep) + 1;
+        int count = Mathf.Min(visible, _availableCards.Count);
+        int first = Mathf.Clamp(Mathf.FloorToInt(-_placementScroll.content.anchoredPosition.x / PlacementStep), 0, _availableCards.Count - count);
+        while (_placementSlots.Count < count)
+        {
+            _placementSlots.Add(BuildPlacementSlot());
+        }
+        for (int i = count; i < _placementSlots.Count; i++)
+        {
+            _placementSlots[i].Rect.gameObject.SetActive(false);
+        }
+        // 스크롤로 한 칸 이동하면 새로 들어온 카드의 초상만 교체한다.
+        for (int i = 0; i < count; i++)
+        {
+            int index = first + i;
+            PlacementSlot slot = _placementSlots[index % count];
+            slot.Rect.gameObject.SetActive(true);
+            LobbyCard card = _availableCards[index];
+            slot.Rect.anchoredPosition = new Vector2((index + .5f) * PlacementStep, 0);
+            if (slot.Card != card)
+            {
+                slot.Card = card;
+                BindOwnedArt(slot.Art, card);
+            }
+            slot.Border.enabled = card == _highlightedCard;
+            if (slot.Border.enabled)
+            {
+                _placementGlow = slot.Border;
+            }
+        }
+    }
+
+    /// <summary>공용 카드 원화 뒤에 밝은 금색 테두리와 번짐을 넣고 클릭을 전장 선택으로 연결한다.</summary>
+    private PlacementSlot BuildPlacementSlot()
+    {
+        PlacementSlot slot = new PlacementSlot();
+        slot.Rect = Panel("PlacementCard", _placementScroll.content, 0, .5f, 0, .5f, Color.clear);
+        slot.Rect.sizeDelta = new Vector2(130f, 174f);
+        Button button = slot.Rect.gameObject.AddComponent<Button>();
+        button.onClick.AddListener(() => _field.SelectCard(slot.Card));
+        slot.Border = JellyPanel("GoldBorder", slot.Rect, 0, 0, 1, 1, new Color32(255, 210, 55, 255)).GetComponent<Image>();
+        slot.Border.raycastTarget = false;
+        Outline glow = slot.Border.gameObject.AddComponent<Outline>();
+        glow.effectColor = new Color32(255, 177, 27, 155);
+        glow.effectDistance = new Vector2(3f, 3f);
+        slot.Art = BuildOwnedArt(Box("Face", slot.Rect, .035f, .026f, .965f, .974f), false);
+        return slot;
+    }
 
     /// <summary>한 보유 카드의 초상, 등급, 이름, 능력치와 배치 상태를 표시한다.</summary>
     private sealed class InventoryArt

@@ -567,7 +567,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3615526853626541721, guid: 1dd7abb55ae232d44b600f5607c47108, type: 3}
       propertyPath: m_SizeDelta.x
-      value: 200
+      value: 330
       objectReference: {fileID: 0}
     - target: {fileID: 3615526853626541721, guid: 1dd7abb55ae232d44b600f5607c47108, type: 3}
       propertyPath: m_SizeDelta.y
@@ -627,19 +627,31 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5290254282973616013, guid: 1dd7abb55ae232d44b600f5607c47108, type: 3}
       propertyPath: m_fontColor32.rgba
-      value: 4281479730
+      value: 4279449439
       objectReference: {fileID: 0}
     - target: {fileID: 5290254282973616013, guid: 1dd7abb55ae232d44b600f5607c47108, type: 3}
       propertyPath: m_fontColor.r
-      value: 0.19607843
+      value: 0.37254903
       objectReference: {fileID: 0}
     - target: {fileID: 5290254282973616013, guid: 1dd7abb55ae232d44b600f5607c47108, type: 3}
       propertyPath: m_fontColor.g
-      value: 0.19607843
+      value: 0.21568628
       objectReference: {fileID: 0}
     - target: {fileID: 5290254282973616013, guid: 1dd7abb55ae232d44b600f5607c47108, type: 3}
       propertyPath: m_fontColor.b
-      value: 0.19607843
+      value: 0.07450981
+      objectReference: {fileID: 0}
+    - target: {fileID: 5290254282973616013, guid: 1dd7abb55ae232d44b600f5607c47108, type: 3}
+      propertyPath: m_fontSize
+      value: 40
+      objectReference: {fileID: 0}
+    - target: {fileID: 5290254282973616013, guid: 1dd7abb55ae232d44b600f5607c47108, type: 3}
+      propertyPath: m_fontSizeBase
+      value: 40
+      objectReference: {fileID: 0}
+    - target: {fileID: 5290254282973616013, guid: 1dd7abb55ae232d44b600f5607c47108, type: 3}
+      propertyPath: m_fontStyle
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5290254282973616013, guid: 1dd7abb55ae232d44b600f5607c47108, type: 3}
       propertyPath: m_text
@@ -656,6 +668,10 @@ PrefabInstance:
     - target: {fileID: 4760552368652298055, guid: 1dd7abb55ae232d44b600f5607c47108, type: 3}
       propertyPath: m_SizeDelta.x
       value: 330
+      objectReference: {fileID: 0}
+    - target: {fileID: 4760552368652298055, guid: 1dd7abb55ae232d44b600f5607c47108, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 96
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

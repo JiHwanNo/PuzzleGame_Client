@@ -8,8 +8,8 @@ UI, 팝업, 탭 관련 작업 시 이 문서를 참고.
 
 | 찾는 콘텐츠 | 담당 C# 파일 | 주요 메서드·타입·멤버 |
 |---|---|---|
-| 로비 상점 카드 뽑기·개별 카드 인벤토리·20×10 전장 배치 모드 | [LobbyNavigation.cs](../Assets/02_Scripts/Lobby/LobbyNavigation.cs) · [LobbyUnit.cs](../Assets/02_Scripts/Lobby/LobbyUnit.cs) · [LobbyDefenseView.cs](../Assets/02_Scripts/Lobby/LobbyDefenseView.cs) | `InitializeCatalog`, `DrawCard`, `RefreshCatalog`, `LobbyCard.Grade`, `SelectCard` |
-| 보유 카드 3열 스크롤·별 등급·카드 전체 클릭과 확대 팝업 | [LobbyNavigation.Inventory.cs](../Assets/02_Scripts/Lobby/LobbyNavigation.Inventory.cs) · [LobbyCardPortrait.cs](../Assets/02_Scripts/Lobby/LobbyCardPortrait.cs) | `BuildInventoryList`, `BindOwnedArt`, `InspectCard`, `ApplyDetailZoom`, `PlaySpecial` |
+| 로비 상단 재화·프로필, 상점 카드 뽑기·개별 카드 인벤토리·20×10 전장 배치 모드 | [LobbyNavigation.cs](../Assets/02_Scripts/Lobby/LobbyNavigation.cs) · [LobbyUnit.cs](../Assets/02_Scripts/Lobby/LobbyUnit.cs) · [LobbyDefenseView.cs](../Assets/02_Scripts/Lobby/LobbyDefenseView.cs) | `BuildResourceBar`, `RefreshProfile`, `InitializeCatalog`, `DrawCard`, `RefreshCatalog`, `LobbyCard.Grade`, `SelectCard` |
+| 미배치 카드 가로 목록·보유 카드 3열 스크롤·별 등급·카드 전체 클릭과 확대 팝업 | [LobbyNavigation.Inventory.cs](../Assets/02_Scripts/Lobby/LobbyNavigation.Inventory.cs) · [LobbyCardPortrait.cs](../Assets/02_Scripts/Lobby/LobbyCardPortrait.cs) | `RefreshPlacementCards`, `BuildInventoryList`, `BindOwnedArt`, `InspectCard`, `ApplyDetailZoom`, `PlaySpecial` |
 | 팝업/탭 스택·뒤로 가기·전체 닫기 | [DomainManager.cs](../Assets/02_Scripts/Manager/DomainManager.cs) | `OpenPopup`, `OpenTab`, `Back`, `CloseAll` |
 | 팝업/탭 공통 계약 | [IDomainNode.cs](../Assets/02_Scripts/Manager/IDomainNode.cs) | `IDomainNode` |
 | 팝업 생성·파괴·씬별 등록 | [PopupController.cs](../Assets/02_Scripts/Manager/PopupController.cs) | `CreatePopup`, `DestroyPopup` |
@@ -17,7 +17,7 @@ UI, 팝업, 탭 관련 작업 시 이 문서를 참고.
 | 팝업 버튼 처리용 기반 클래스 | [PopupHandler.cs](../Assets/02_Scripts/Manager/PopupHandler.cs) | `ClosePopup`, `BackPopup` |
 | 탭 검색·활성화·비활성화 | [TabController.cs](../Assets/02_Scripts/Manager/TabController.cs) | `ActivateTab`, `DeactivateTab` |
 | 탭 생명주기·애니메이션 확장 | [TabBase.cs](../Assets/02_Scripts/Manager/TabBase.cs) | `Activate`, `Deactivate`, `ActivateAnimation`, `DeactivateAnimation` |
-| Inspector 버튼 콜백 연결 | [UIButton.cs](../Assets/02_Scripts/UI/UIButton.cs) | `OnClickEvent` |
+| Inspector 버튼 콜백과 젤리 패널 표면 | [UIButton.cs](../Assets/02_Scripts/UI/UIButton.cs) | `OnClickEvent`, `LagoonUI.Surface` |
 | 스테이지·90초 대전 준비·슬롯 연출·게임 진입 | [PopupReady.cs](../Assets/02_Scripts/UI/Popup/PopupReady.cs) | `ConfigureBattle`, `OnClickStart`, `SpinAndStart`, `OnClickClose` |
 | 로비 튜토리얼·대전 진입 | [LobbyMain.cs](../Assets/02_Scripts/Lobby/LobbyMain.cs) | `OnClickPlay`, `PrepareBattle` |
 | 20×10 전장·배치 모드·저장 이전·스테이지 방어 | [LobbyDefenseBoard.cs](../Assets/02_Scripts/Lobby/LobbyDefenseBoard.cs) · [LobbyDefenseView.cs](../Assets/02_Scripts/Lobby/LobbyDefenseView.cs) · [전장 캐릭터 연출](../Assets/02_Scripts/Lobby/LobbyDefenseView.Combat.cs) | `AnimateCombat`, `TryRestoreLayout`, `BeginPlacement`, `PlaceCard`, `MoveUnit`, `StartNextAttempt`, `ShowGhosts` |
@@ -191,7 +191,7 @@ Inspector에서 설정하는 범용 버튼 컴포넌트.
 
 릴의 세 칸 구성과 생성 프롬프트는 [슬롯 스타일](ART-STYLE.md#준비-팝업-슬롯), 배경 이미지와 글자색은 [준비 팝업 패널](ART-STYLE.md#준비-팝업-패널)을 참고한다.
 
-- **플레이** 오른쪽 카드 아이콘으로 배치 모드를 연다. **카드 선택**으로 인벤토리를 열 수 있고, 빈 셀을 고른 뒤 **배치 확정**을 누르면 잔디가 흙으로 바뀌고 캐릭터가 선다. **취소**로 선택을 버린다. 일반 로비에서는 배치한 캐릭터의 발사와 이동 중인 적의 피격이 숲 공터에 보인다. 완전 방어 후 스테이지명 옆 **다음 스테이지**로 진행한다. 그 아래 중앙의 **플레이** 버튼으로 퍼즐에 진입한다. 최신 호환 완주 기록이 있으면 같은 규칙·스테이지·시드로 상대 보드를 재생한다.
+- **플레이** 옆 방패로 배치 모드를 연다. 하단 가로 목록에서 미배치 카드를 누르면 금색 테두리가 켜진다. 배치 가능한 셀을 누르면 그 카드가 즉시 배치·저장되고 목록에서 빠진다. 다른 카드를 이어서 놓거나 **완료**로 돌아간다. 일반 로비에서는 배치한 캐릭터의 발사와 이동 중인 적의 피격이 숲 공터에 보인다. 완전 방어 후 스테이지명 옆 **다음 스테이지**로 진행한다. 그 아래 중앙의 **플레이** 버튼으로 퍼즐에 진입한다. 최신 호환 완주 기록이 있으면 같은 규칙·스테이지·시드로 상대 보드를 재생한다.
 - 라이프는 최초 5개이며 최대 5개까지 30분마다 1개씩 회복한다. 완충 예정 UTC 시각을 PlayerPrefs에 보관해 앱 종료 중에도 충전한다. 로비에서 튜토리얼 또는 대전 준비가 성공한 뒤 진입 시 1개를 소비한다. 잔량이 0이면 START를 비활성화하고 다음 충전까지 남은 시간을 표시한다.
 - 호환 기록이 없으면 탭 매치 조작 안내가 있는 90초 튜토리얼을 시작한다. 시간 종료 시 저장한 첫 기록을 다음 대전에서 사용한다.
 - 게임 결과 화면의 `다시 도전`은 같은 규칙·시드·상대로 새 판을 시작하고, `로비로`는 모드 선택으로 돌아간다.

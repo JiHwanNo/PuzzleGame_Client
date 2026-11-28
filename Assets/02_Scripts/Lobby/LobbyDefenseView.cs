@@ -6,7 +6,7 @@ using UnityEngine.UI;
 
 /// <summary>로비 전투와 경로를 표시하고 보유 카드 배치와 스테이지 진행 입력을 전달한다.</summary>
 [RequireComponent(typeof(CanvasRenderer))]
-internal sealed partial class LobbyDefenseView : MaskableGraphic, IPointerClickHandler
+internal sealed partial class LobbyDefenseView : MaskableGraphic, IPointerClickHandler, IPointerMoveHandler, IPointerExitHandler
 {
     private const int FieldWidth = 744;
     private const int FieldHeight = FieldWidth * LobbyDefenseBoard.Height / LobbyDefenseBoard.Width;
@@ -20,9 +20,11 @@ internal sealed partial class LobbyDefenseView : MaskableGraphic, IPointerClickH
     private static readonly string[] _directions = { "S", "SE", "E", "NE", "N", "NW", "W", "SW" };
     private readonly List<RawImage> _unitIcons = new List<RawImage>();
     private readonly List<int> _visibleCells = new List<int>();
-    private static readonly Color CardBlue = new Color32(45, 76, 98, 255);
-    private static readonly Color SelectedBlue = new Color32(32, 111, 145, 255);
-    private static readonly Color Honey = new Color32(255, 213, 117, 255);
+    private static readonly Color DeepTeal = new Color32(10, 89, 100, 255);
+    private static readonly Color Mint = new Color32(150, 246, 230, 255);
+    private static readonly Color Honey = new Color32(255, 220, 85, 255);
+    private static readonly Color Cocoa = new Color32(95, 55, 19, 255);
+    private static readonly Color Cream = new Color32(255, 251, 222, 255);
     private const string SaveKey = "Lobby.Defense.Cards.v1";
     internal static bool HasSavedProgress => PlayerPrefs.HasKey(SaveKey);
     private Button _stageButton;
@@ -30,24 +32,20 @@ internal sealed partial class LobbyDefenseView : MaskableGraphic, IPointerClickH
     private GameObject _play;
     private GameObject _playHint;
     private GameObject _placeIcon;
-    private GameObject _placementBar;
+    internal RectTransform PlacementBar { get; private set; }
     private bool _placing;
-    private LobbyCard _focused;
-    private LobbyCardPortrait _hero;
     private LobbyCardPortrait _previewActor;
     private RawImage _forest;
     private Texture2D _terrain;
     public override Texture mainTexture => _terrain != null ? _terrain : base.mainTexture;
-    private TMP_Text _selectionText;
     private LobbyCard _selectedCard;
-    internal event System.Action InventoryRequested;
+    internal LobbyCard SelectedCard => _selectedCard;
+    internal event System.Action PlacementChanged;
     private RectTransform _backdrop;
     private RectTransform _actorsRoot;
-    private TMP_Text _gold;
     private TMP_Text _waveTime;
     private TMP_Text _summary;
     private TMP_Text _hint;
-    private Button _confirmPlacement;
     private LobbyDefenseBoard.Piece SelectedRole
     {
         get
@@ -144,6 +142,9 @@ internal sealed partial class LobbyDefenseView : MaskableGraphic, IPointerClickH
         view._mainTab = status.transform.parent;
         view._font = status.font;
         view._playHint = status.gameObject;
+        status.color = Cream;
+        status.outlineColor = DeepTeal;
+        status.outlineWidth = 0.24f;
         view._play = view._mainTab.Find("PlayButton").gameObject;
         view._terrain = AssetManager.Instance.LoadAsset<Texture2D>("LobbyTerrain");
         view._archerSheet = AssetManager.Instance.LoadAsset<Texture2D>("LobbyArcher8Way");
@@ -156,7 +157,7 @@ internal sealed partial class LobbyDefenseView : MaskableGraphic, IPointerClickH
         view._raiders = AssetManager.Instance.LoadAsset<Texture2D>("LobbyRaiders");
         view._forest.texture = view._meadow;
         view._forest.raycastTarget = false;
-        Image rim = Panel("FieldFrame", field.transform, 0, 160, FieldWidth + 8, FieldHeight + 8, new Color32(57, 80, 49, 255));
+        Image rim = Panel("FieldFrame", field.transform, 0, 160, FieldWidth + 10, FieldHeight + 10, DeepTeal);
         view._rim = rim;
         rim.transform.SetSiblingIndex(board.GetSiblingIndex());
         view.FitTab();
@@ -262,42 +263,38 @@ internal sealed partial class LobbyDefenseView : MaskableGraphic, IPointerClickH
         return rect;
     }
 
-    /// <summary><paramref name="parent"/> 아래 지정한 중심과 크기로 입력을 통과시키는 <paramref name="color"/> 바탕을 만든다.</summary>
+    /// <summary><paramref name="name"/> 패널을 <paramref name="parent"/>의 (<paramref name="x"/>, <paramref name="y"/>)에 <paramref name="width"/> × <paramref name="height"/> 크기와 <paramref name="color"/> 색으로 만든다.</summary>
     private static Image Panel(string name, Transform parent, float x, float y, float width, float height, Color color)
     {
         Image image = Element(name, parent, x, y, width, height).gameObject.AddComponent<Image>();
-        image.color = color;
+        LagoonUI.Surface(image, color);
         image.raycastTarget = false;
         return image;
     }
 
-    /// <summary>전장 위에 스테이지 정보를 두고 아래 숲 공터에 대표 캐릭터를 표시한다.</summary>
+    /// <summary>전장 위에 스테이지 진행 상태를 표시하고 배치 도구를 연결한다.</summary>
     private void BuildControls()
     {
-        Color canopy = new Color32(19, 53, 53, 230);
-        RectTransform header = Panel("StageHeader", transform, 0, 250, FieldWidth + 8, 110, canopy).rectTransform;
+        RectTransform header = Element("StageHeader", transform, 0, 250, FieldWidth + 8, 110);
         _stageHeader = header;
-        _summary = Label(Element("Stage", header, -229, 13, 240, 52), 37);
+        RectTransform stage = Panel("StagePlate", header, -238, 0, 265, 100, DeepTeal).rectTransform;
+        _summary = Label(Element("Stage", stage, 0, 15, 220, 47), 34);
         _summary.alignment = TextAlignmentOptions.MidlineLeft;
-        _stageButton = MakeButton(header, "다음 스테이지", 0, 0, 206, 66, StartStage);
+        _summary.fontStyle = FontStyles.Bold;
+        _stageButton = MakeButton(header, "다음 스테이지", 0, 206, 66, Honey, Cocoa, StartStage);
         _stageAction = _stageButton.GetComponentInChildren<TMP_Text>();
-        _gold = Label(Element("Gold", header, 234, 9, 226, 52), 32);
-        _gold.alignment = TextAlignmentOptions.MidlineRight;
-        _gold.color = Honey;
-        _waveTime = Label(Element("WaveTimer", header, -230, -28, 238, 35), 21);
+        _waveTime = Label(Element("WaveTimer", stage, 0, -23, 220, 32), 21);
         _waveTime.alignment = TextAlignmentOptions.MidlineLeft;
-        _hero = Element("FeaturedUnit", transform, 0, -322, 264, 264).gameObject.AddComponent<LobbyCardPortrait>();
-        RectTransform plate = Panel("FeaturedCaption", transform, 0, -459, 388, 54, canopy).rectTransform;
-        _selectionText = Label(Element("FeaturedName", plate, 0, 0, 382, 52), 26);
+        _waveTime.color = Mint;
         BuildPlacementBar();
     }
 
-    /// <summary>플레이 옆 배치 아이콘과 같은 자리에 전환해 표시할 카드 선택·확정·취소 UI를 구성한다.</summary>
+    /// <summary>플레이 버튼 아래쪽 공간에 미배치 카드 목록과 안내, 편집 완료 버튼을 배치한다.</summary>
     private void BuildPlacementBar()
     {
         RectTransform play = (RectTransform)_play.transform;
         Vector2 position = play.anchoredPosition;
-        RectTransform icon = Element("PlacementIcon", _mainTab, position.x + 228, position.y, 88, 88);
+        RectTransform icon = Element("PlacementIcon", _mainTab, position.x + 228, position.y, 96, 96);
         RawImage card = icon.gameObject.AddComponent<RawImage>();
         card.texture = AssetManager.Instance.LoadAsset<Texture2D>("LobbyPlaceIcon");
         Button toggle = icon.gameObject.AddComponent<Button>();
@@ -305,38 +302,14 @@ internal sealed partial class LobbyDefenseView : MaskableGraphic, IPointerClickH
         toggle.onClick.AddListener(BeginPlacement);
         _placeIcon = icon.gameObject;
 
-        RectTransform bar = Element("PlacementMode", _mainTab, position.x, position.y, 730, 90);
-        _placementBar = bar.gameObject;
-        MakeButton(bar, "카드 선택", -225, 0, 182, 74, OpenInventory);
-        _confirmPlacement = MakeButton(bar, "배치 확정", 0, 0, 228, 84, Confirm);
-        _confirmPlacement.image.color = SelectedBlue;
-        MakeButton(bar, "취소", 206, 0, 138, 74, CancelPlacement);
-        RectTransform strip = Panel("PlacementGuide", bar, 0, -84, 640, 56, new Color32(16, 48, 44, 228)).rectTransform;
-        _hint = Label(Element("PlacementHint", strip, 0, 0, 632, 56), 23);
+        PlacementBar = Element("PlacementMode", _mainTab, position.x, position.y, 730, 192);
+        RectTransform strip = Panel("PlacementGuide", PlacementBar, 0, 134, 730, 62, DeepTeal).rectTransform;
+        _hint = Label(Element("PlacementHint", strip, -66, 0, 560, 52), 23);
+        MakeButton(strip, "완료", 296, 112, 52, Honey, Cocoa, CancelPlacement);
     }
 
-    /// <summary>첫 미배치 카드를 후보로 열고 플레이 버튼 자리를 배치 도구로 전환한다.</summary>
-    private void BeginPlacement()
-    {
-        foreach (LobbyCard card in _session.Cards)
-        {
-            if (card.Cell < 0)
-            {
-                SelectCard(card);
-                return;
-            }
-        }
-        SelectCard(null);
-    }
-
-    /// <summary>하단 인벤토리를 열어 보유 카드를 고르게 한다.</summary>
-    private void OpenInventory()
-    {
-        if (InventoryRequested != null)
-        {
-            InventoryRequested();
-        }
-    }
+    /// <summary>미배치 카드를 직접 고를 수 있도록 하단 목록을 연다.</summary>
+    private void BeginPlacement() => SelectCard(null);
 
     /// <summary>방어 결과에 따라 다음 스테이지 또는 같은 스테이지의 새 전투를 시작한다.</summary>
     private void StartStage()
@@ -642,6 +615,10 @@ internal sealed partial class LobbyDefenseView : MaskableGraphic, IPointerClickH
     /// <summary>인벤토리에서 선택한 <paramref name="card"/>를 메인 전장의 배치 후보로 지정한다.</summary>
     internal void SelectCard(LobbyCard card)
     {
+        if (card != null && card.Cell >= 0)
+        {
+            return;
+        }
         _selectedCard = card;
         _moving = -1;
         _selected = -1;
@@ -655,22 +632,27 @@ internal sealed partial class LobbyDefenseView : MaskableGraphic, IPointerClickH
         TextMeshProUGUI label = rect.gameObject.AddComponent<TextMeshProUGUI>();
         label.font = _font;
         label.fontSize = size;
+        label.color = Cream;
         label.textWrappingMode = TextWrappingModes.NoWrap;
         label.alignment = TextAlignmentOptions.Center;
         label.raycastTarget = false;
         return label;
     }
 
-    /// <summary><paramref name="caption"/> 버튼을 (<paramref name="x"/>, <paramref name="y"/>)에 <paramref name="width"/> × <paramref name="height"/> 크기로 만들고 <paramref name="action"/>을 연결한다.</summary>
-    private Button MakeButton(Transform parent, string caption, int x, int y, int width, int height, UnityEngine.Events.UnityAction action)
+    /// <summary><paramref name="parent"/>의 <paramref name="x"/> 위치에 <paramref name="width"/> × <paramref name="height"/> 버튼을 만들고 <paramref name="action"/>을 연결한다.
+    /// <paramref name="tint"/> 젤리 면 위에 <paramref name="ink"/> 색으로 <paramref name="caption"/>을 표시한다.</summary>
+    private Button MakeButton(Transform parent, string caption, int x, int width, int height, Color tint, Color ink, UnityEngine.Events.UnityAction action)
     {
-        RectTransform rect = Element(caption, parent, x, y, width, height);
+        RectTransform rect = Element(caption, parent, x, 0, width, height);
         Image background = rect.gameObject.AddComponent<Image>();
-        background.color = CardBlue;
+        LagoonUI.Surface(background, tint);
         Button button = rect.gameObject.AddComponent<Button>();
         button.targetGraphic = background;
         button.onClick.AddListener(action);
-        Label(Element("Label", rect, 0, 0, width, height), 24).text = caption;
+        TMP_Text label = Label(Element("Label", rect, 0, 1, width - 12, height), 25);
+        label.color = ink;
+        label.fontStyle = FontStyles.Bold;
+        label.text = caption;
         return button;
     }
 
@@ -707,59 +689,73 @@ internal sealed partial class LobbyDefenseView : MaskableGraphic, IPointerClickH
         }
     }
 
-    /// <summary><paramref name="eventData"/>의 화면 좌표를 보드 칸으로 변환해 대표 캐릭터 또는 배치 후보 칸을 선택한다.</summary>
-    public void OnPointerClick(PointerEventData eventData)
+    /// <summary><paramref name="eventData"/>가 가리키는 전장 셀을 찾고 격자 밖이면 -1을 반환한다.</summary>
+    private int PointerCell(PointerEventData eventData)
     {
-        if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(rectTransform, eventData.position, eventData.pressEventCamera, out Vector2 point))
+        if (!_placing || !RectTransformUtility.ScreenPointToLocalPointInRectangle(rectTransform, eventData.position, _world.worldCamera, out Vector2 point))
         {
-            return;
+            return -1;
         }
         Rect area = rectTransform.rect;
         int column = Mathf.FloorToInt((point.x - area.xMin) * LobbyDefenseBoard.Width / area.width);
         int row = Mathf.FloorToInt((area.yMax - point.y) * LobbyDefenseBoard.Height / area.height);
         if (column < 0 || column >= LobbyDefenseBoard.Width || row < 0 || row >= LobbyDefenseBoard.Height)
         {
-            return;
+            return -1;
         }
-        int cell = row * LobbyDefenseBoard.Width + column;
-        LobbyCard card = _session.CardAt(cell);
-        if (!_placing)
+        return row * LobbyDefenseBoard.Width + column;
+    }
+
+    /// <summary>배치 후보가 있으면 <paramref name="eventData"/>가 가리키는 칸의 경로를 미리 표시한다.</summary>
+    public void OnPointerMove(PointerEventData eventData)
+    {
+        if (!_placing || (_selectedCard == null && _moving < 0))
         {
-            if (card != null)
-            {
-                _focused = card;
-                RefreshPlacementControls();
-                _hero.PlaySpecial();
-            }
             return;
         }
-        if (_session.Finished && card != null)
+        int cell = PointerCell(eventData);
+        if (_selected != cell)
+        {
+            _selected = cell;
+            Refresh();
+        }
+    }
+
+    /// <summary><paramref name="eventData"/>의 포인터가 전장을 떠나면 셀 미리보기를 지운다.</summary>
+    public void OnPointerExit(PointerEventData eventData)
+    {
+        if (_selected >= 0)
+        {
+            _selected = -1;
+            Refresh();
+        }
+    }
+
+    /// <summary><paramref name="eventData"/>의 셀에 선택한 카드를 즉시 배치하거나 정비 중인 유닛을 옮긴다.</summary>
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        int cell = PointerCell(eventData);
+        if (cell < 0 || eventData.button != PointerEventData.InputButton.Left)
+        {
+            return;
+        }
+        LobbyCard card = _session.CardAt(cell);
+        if (_selectedCard == null && _session.Finished && card != null)
         {
             _moving = cell;
-            _selectedCard = null;
             _selected = -1;
         }
         else if (_selectedCard != null || _moving >= 0)
         {
             _selected = cell;
-        }
-        Refresh();
-    }
-
-    /// <summary>선택한 후보 칸의 배치를 확정한다.</summary>
-    private void Confirm()
-    {
-        if (!_placing || _selected < 0)
-        {
-            return;
-        }
-        bool placed = _moving >= 0 ? _session.MoveUnit(_moving, _selected) : _session.PlaceCard(_selected, _selectedCard);
-        if (placed)
-        {
-            SaveProgress();
-            _focused = _session.CardAt(_selected);
-            CancelPlacement();
-            return;
+            bool placed = _moving >= 0 ? _session.MoveUnit(_moving, cell) : _session.PlaceCard(cell, _selectedCard);
+            if (placed)
+            {
+                SaveProgress();
+                _selectedCard = null;
+                _moving = -1;
+                _selected = -1;
+            }
         }
         Refresh();
     }
@@ -788,7 +784,7 @@ internal sealed partial class LobbyDefenseView : MaskableGraphic, IPointerClickH
         SetVerticesDirty();
     }
 
-    /// <summary>스테이지명 옆 진행 버튼과 보유 골드, 다음 소환 시점을 표시한다.</summary>
+    /// <summary>스테이지명 옆에 진행 버튼과 다음 소환 시점을 표시한다.</summary>
     private void RefreshStageControls()
     {
         string timer = "첫 카드 배치 대기";
@@ -803,11 +799,10 @@ internal sealed partial class LobbyDefenseView : MaskableGraphic, IPointerClickH
         _stageButton.gameObject.SetActive(_session.Finished);
         _stageAction.text = _session.Cleared ? "다음 스테이지" : "다시 도전";
         _summary.text = $"스테이지 {_session.Stage}";
-        _gold.text = $"{_session.Gold} 골드";
         _waveTime.text = timer;
     }
 
-    /// <summary>배치 모드에서만 조작 도구를 열고 대표 캐릭터와 선택한 셀의 경로를 갱신한다.</summary>
+    /// <summary>배치 모드의 조작 도구와 선택한 셀의 유닛 미리보기 및 경로를 갱신한다.</summary>
     private void RefreshPlacementControls()
     {
         bool preview = _placing && _selected >= 0 && _previewLength != LobbyDefenseBoard.InvalidPlacement;
@@ -815,45 +810,29 @@ internal sealed partial class LobbyDefenseView : MaskableGraphic, IPointerClickH
         _play.SetActive(!_placing);
         _playHint.SetActive(!_placing);
         _placeIcon.SetActive(!_placing);
-        _placementBar.SetActive(_placing);
-        LobbyCard card = _selectedCard;
-        if (_moving >= 0)
-        {
-            card = _session.CardAt(_moving);
-        }
-        if (card == null)
-        {
-            card = _focused;
-            if (card == null || card.Cell < 0)
-            {
-                card = _session.Cards[0];
-                foreach (LobbyCard owned in _session.Cards)
-                {
-                    if (owned.Cell >= 0)
-                    {
-                        card = owned;
-                        break;
-                    }
-                }
-            }
-        }
-        if (preview)
-        {
-            RectTransform actor = (RectTransform)_previewActor.transform;
-            actor.anchoredPosition = CellCenter(_selected, rectTransform.rect.width / LobbyDefenseBoard.Width);
-            _previewActor.Bind(card.Unit, this);
-        }
-        _hero.Bind(card.Unit, this);
-        _selectionText.fontSize = _placing ? 21 : 26;
-        _selectionText.text = _placing ? $"{card.Unit.Name}  ·  {card.Grade}\n{card.Stats}" : $"{card.Unit.Name}  ·  {card.Grade}";
+        PlacementBar.gameObject.SetActive(_placing);
         if (!_placing)
         {
             return;
         }
-        _confirmPlacement.interactable = _previewLength != LobbyDefenseBoard.InvalidPlacement;
+        if (PlacementChanged != null)
+        {
+            PlacementChanged();
+        }
+        if (preview)
+        {
+            LobbyCard card = _selectedCard;
+            if (_moving >= 0)
+            {
+                card = _session.CardAt(_moving);
+            }
+            RectTransform actor = (RectTransform)_previewActor.transform;
+            actor.anchoredPosition = CellCenter(_selected, rectTransform.rect.width / LobbyDefenseBoard.Width);
+            _previewActor.Bind(card.Unit, this);
+        }
         if (_selected >= 0)
         {
-            if (!_confirmPlacement.interactable)
+            if (_previewLength == LobbyDefenseBoard.InvalidPlacement)
             {
                 _hint.text = "이 칸에는 배치할 수 없습니다";
                 return;
@@ -866,13 +845,9 @@ internal sealed partial class LobbyDefenseView : MaskableGraphic, IPointerClickH
         {
             _hint.text = "유닛을 옮길 빈 칸을 선택하세요";
         }
-        else if (_session.Finished)
-        {
-            _hint.text = _selectedCard == null ? "옮길 유닛을 선택하세요" : "배치할 빈 칸 또는 옮길 유닛을 선택하세요";
-        }
         else if (_selectedCard == null)
         {
-            _hint.text = "보유 카드가 모두 배치되어 있습니다";
+            _hint.text = _session.Finished ? "카드 또는 옮길 유닛을 선택하세요" : "배치할 카드를 선택하세요";
         }
     }
 
@@ -899,14 +874,14 @@ internal sealed partial class LobbyDefenseView : MaskableGraphic, IPointerClickH
             }
             Tile(mesh, cell, 0.036f, tint, 1f, GroundUV(cell, _session.HasUnit(cell)));
         }
-        DrawRoute(mesh, false, new Color32(77, 161, 166, 255));
+        DrawRoute(mesh, false, new Color32(29, 169, 185, 255));
         if (_previewLength >= 0)
         {
-            DrawRoute(mesh, true, new Color32(248, 197, 100, 255));
+            DrawRoute(mesh, true, Honey);
         }
         DrawTraps(mesh);
-        Tile(mesh, LobbyDefenseBoard.Entrance, 0.12f, new Color32(130, 212, 154, 255));
-        Tile(mesh, LobbyDefenseBoard.Exit, 0.12f, new Color32(209, 164, 241, 255));
+        Tile(mesh, LobbyDefenseBoard.Entrance, 0.12f, new Color32(134, 220, 114, 255));
+        Tile(mesh, LobbyDefenseBoard.Exit, 0.12f, new Color32(202, 159, 239, 255));
         if (_selected >= 0)
         {
             bool valid = _previewLength != LobbyDefenseBoard.InvalidPlacement;

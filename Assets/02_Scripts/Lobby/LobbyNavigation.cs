@@ -1,4 +1,6 @@
 ﻿using TMPro;
+using System;
+using System.Globalization;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -9,12 +11,31 @@ internal sealed partial class LobbyNavigation : MonoBehaviour
     private const string MotionKey = "Lobby.TabMotion";
     private static readonly string[] Names = { "상점", "인벤토리", "메인", "미확정", "옵션" };
     private const int CardsPerPage = 6;
-    private static readonly Color Ink = new Color32(18, 35, 49, 255);
+    private static readonly Color Ink = new Color32(13, 67, 79, 255);
+    private static readonly Color Lagoon = new Color32(6, 105, 117, 255);
+    private static readonly Color Mint = new Color32(159, 245, 222, 255);
+    private static readonly Color Pearl = new Color32(253, 255, 240, 255);
     private static readonly Color Surface = new Color32(35, 61, 73, 255);
     private static readonly Color Gold = new Color32(255, 211, 132, 255);
     private readonly RectTransform[] _pages = new RectTransform[5];
+    private readonly RectTransform[] _pageTops = new RectTransform[5];
     private readonly Image[] _marks = new Image[5];
+    private readonly TMP_Text[] _tabLabels = new TMP_Text[5];
     private readonly CatalogPage _shop = new CatalogPage();
+    private int _barGold = -1;
+    private int _barLives = -1;
+    private long? _barGems;
+    private double _nextLifeCheck;
+    private TMP_Text _lifeAmount;
+    private TMP_Text _goldAmount;
+    private TMP_Text _gemAmount;
+    private TMP_Text _profileName;
+    private TMP_Text _profileInitial;
+    private string _shownNickname;
+    private RectTransform _resourceBar;
+    private Rect _resourceSafeArea;
+    private Vector2Int _resourceScreenSize;
+    private Vector2 _resourceCanvasSize;
     private int _shownGold;
     private int _shownRosterVersion = -1;
     private TMP_Text _motionLabel;
@@ -65,7 +86,8 @@ internal sealed partial class LobbyNavigation : MonoBehaviour
         nav._cardIcons = AssetManager.Instance.LoadAsset<Texture2D>("LobbyCardIcons");
         nav._motion = PlayerPrefs.GetInt(MotionKey, 1) == 1;
         nav.Build();
-        field.InventoryRequested += nav.OpenInventory;
+        nav.BuildPlacementInventory();
+        field.PlacementChanged += nav.RefreshPlacementCards;
     }
 
     /// <summary>페이지와 탭 바를 한 번 생성하고 첫 선택을 메인으로 표시한다.</summary>
@@ -73,7 +95,7 @@ internal sealed partial class LobbyNavigation : MonoBehaviour
     {
         _shield = Panel("InputShield", _root, 0, 0, 1, 1, Color.clear).gameObject;
         _shield.SetActive(false);
-        RectTransform bar = Panel("TabBar", _root, 0, 0, 1, .10f, Ink);
+        RectTransform bar = JellyPanel("TabBar", _root, 0, 0, 1, .10f, Lagoon);
         _tabInput = bar.gameObject.AddComponent<CanvasGroup>();
         for (int i = 0; i < Names.Length; i++)
         {
@@ -83,15 +105,197 @@ internal sealed partial class LobbyNavigation : MonoBehaviour
                 _pages[i].gameObject.SetActive(false);
             }
             int index = i;
-            RectTransform tab = Panel("Tab" + i, bar, i / 5f, .02f, (i + 1) / 5f, 1f, Ink);
-            tab.gameObject.AddComponent<Button>().onClick.AddListener(() => Select(index));
-            Icon(tab, i, .44f);
-            Label(tab, Names[i], .04f, .05f, .96f, .34f, 23);
-            _marks[i] = Panel("Selected", tab, .16f, .955f, .84f, 1, Gold).GetComponent<Image>();
-            _marks[i].enabled = i == MainPage;
+            RectTransform tab = Panel("Tab" + i, bar, i / 5f, 0, (i + 1) / 5f, 1, Color.clear);
+            _marks[i] = JellyPanel("Selected", tab, .035f, .035f, .965f, .985f, Mint).GetComponent<Image>();
+            _marks[i].raycastTarget = false;
+            Button button = tab.gameObject.AddComponent<Button>();
+            button.targetGraphic = Icon(tab, i, .645f, .59f);
+            button.onClick.AddListener(() => Select(index));
+            _tabLabels[i] = Label(tab, Names[i], .035f, .055f, .965f, .32f, 26);
+            _tabLabels[i].fontStyle = FontStyles.Bold;
         }
+        ShowSelectedTab(MainPage);
         bar.SetAsLastSibling();
+        BuildResourceBar();
         BuildCardDetail();
+    }
+
+    /// <summary>모든 탭 위에 독립된 재화 캡슐 세 개를 표시하고 입력은 아래 화면에 전달한다.</summary>
+    private void BuildResourceBar()
+    {
+        _resourceBar = Box("ResourceBar", _root, 0, 1, 1, 1);
+        _resourceBar.pivot = new Vector2(.5f, 1);
+        CanvasGroup group = _resourceBar.gameObject.AddComponent<CanvasGroup>();
+        group.blocksRaycasts = false;
+        group.interactable = false;
+        Texture2D atlas = AssetManager.Instance.LoadAsset<Texture2D>("LobbyResourceBar");
+        _lifeAmount = ResourceAmount(atlas, "Life", "라이프", 0);
+        _goldAmount = ResourceAmount(atlas, "Gold", "골드", 1);
+        _gemAmount = ResourceAmount(atlas, "Gem", "잼", 2);
+        BuildProfile();
+        LayoutResourceBar();
+        RefreshResources();
+    }
+
+    /// <summary><paramref name="atlas"/>의 <paramref name="column"/>번째 메달과 <paramref name="name"/> 잔량을 만들며, 원화가 없으면 <paramref name="caption"/>을 표시한다.</summary>
+    private TMP_Text ResourceAmount(Texture2D atlas, string name, string caption, int column)
+    {
+        // D안의 666폭 기준 원본 치수로 메달과 캡슐이 겹치는 위치를 유지한다.
+        float left = (column * 222f + 4f) / 666f;
+        RectTransform capsule = Box(name + "Capsule", _resourceBar, left + 17f / 666f, .087f, left + 214f / 666f, .913f);
+        RectTransform medal = Box(name + "Medal", _resourceBar, left, .027f, left + 63f / 666f, .973f);
+        if (atlas != null)
+        {
+            float row = (2 - column) / 3f;
+            ResourceArt(capsule, atlas, new Rect(0, row, .75f, 1f / 3f));
+            ResourceArt(medal, atlas, new Rect(.75f, row, .25f, 1f / 3f));
+        }
+        else
+        {
+            Image backing = capsule.gameObject.AddComponent<Image>();
+            LagoonUI.Surface(backing, Lagoon);
+            backing.raycastTarget = false;
+            TMP_Text title = Label(medal, caption, .19f, 0, 1, 1, 22);
+            title.color = Mint;
+        }
+
+        TMP_Text amount = Label(_resourceBar, "—", left + 65f / 666f, .197f, left + 201f / 666f, .833f, 35);
+        amount.name = name + "Amount";
+        TMP_FontAsset numberFont = TMP_Settings.defaultFontAsset;
+        if (numberFont != null)
+        {
+            amount.font = numberFont;
+        }
+        amount.color = new Color32(255, 246, 217, 255);
+        amount.fontStyle = FontStyles.Bold;
+        amount.fontSizeMin = 4;
+        amount.textWrappingMode = TextWrappingModes.NoWrap;
+        return amount;
+    }
+
+    /// <summary>재화 줄 아래 왼쪽에 닉네임 첫 글자와 계정 이름을 배치한다.</summary>
+    private void BuildProfile()
+    {
+        RectTransform profile = JellyPanel("UserProfile", _resourceBar, .006f, -.95f, .36f, -.09f, Ink);
+        RectTransform portrait = JellyPanel("Monogram", profile, .025f, .12f, .215f, .88f, Mint);
+        _profileInitial = Label(portrait, "·", .08f, .06f, .92f, .94f, 33);
+        _profileInitial.color = Ink;
+        _profileInitial.richText = false;
+        _profileInitial.fontStyle = FontStyles.Bold;
+        _profileName = Label(profile, "플레이어", .25f, .10f, .96f, .90f, 28);
+        _profileName.richText = false;
+        _profileName.alignment = TextAlignmentOptions.Left;
+        _profileName.textWrappingMode = TextWrappingModes.NoWrap;
+        _profileName.overflowMode = TextOverflowModes.Ellipsis;
+        _profileName.fontStyle = FontStyles.Bold;
+        _profileName.color = Pearl;
+    }
+
+    /// <summary><paramref name="identity"/>에 이미 로드된 닉네임을 프로필에 표시한다.</summary>
+    private void RefreshProfile(IdentityLayer identity)
+    {
+        string nickname = null;
+        if (identity != null && identity.Data != null)
+        {
+            nickname = identity.Data.nickname;
+        }
+        if (_shownNickname != nickname)
+        {
+            _shownNickname = nickname;
+            bool named = !string.IsNullOrWhiteSpace(nickname);
+            _profileName.text = named ? nickname : "플레이어";
+            _profileInitial.text = named ? StringInfo.GetNextTextElement(nickname) : "·";
+        }
+    }
+
+    /// <summary><paramref name="target"/>에 <paramref name="atlas"/>의 <paramref name="region"/>을 입력을 받지 않는 원화로 표시한다.</summary>
+    private static void ResourceArt(RectTransform target, Texture2D atlas, Rect region)
+    {
+        RawImage art = target.gameObject.AddComponent<RawImage>();
+        art.texture = atlas;
+        art.uvRect = region;
+        art.raycastTarget = false;
+    }
+
+    /// <summary>화면 안전 영역의 너비에 맞춰 메달을 정사각형으로 유지하고, 그 아래에 탭 페이지 공간을 확보한다.</summary>
+    private void LayoutResourceBar()
+    {
+        Rect safe = Screen.safeArea;
+        Vector2Int screen = new Vector2Int(Screen.width, Screen.height);
+        Vector2 canvas = _root.rect.size;
+        if (screen.x <= 0 || screen.y <= 0 || canvas.x <= 0f || canvas.y <= 0f)
+        {
+            return;
+        }
+        if (safe.width <= 0f || safe.height <= 0f)
+        {
+            safe = new Rect(0, 0, screen.x, screen.y);
+        }
+        if (_resourceScreenSize == screen && _resourceSafeArea == safe && _resourceCanvasSize == canvas)
+        {
+            return;
+        }
+        _resourceScreenSize = screen;
+        _resourceSafeArea = safe;
+        _resourceCanvasSize = canvas;
+
+        float safeWidth = canvas.x * safe.width / screen.x;
+        float safeHeight = canvas.y * safe.height / screen.y;
+        float width = Mathf.Min(safeWidth * .924f, safeHeight * .72f);
+        float height = width * .10f;
+        float topMargin = height * .40f;
+        Vector2 top = new Vector2(safe.center.x / screen.x, safe.yMax / screen.y);
+        _resourceBar.anchorMin = top;
+        _resourceBar.anchorMax = top;
+        _resourceBar.sizeDelta = new Vector2(width, height);
+        _resourceBar.anchoredPosition = new Vector2(0, -topMargin);
+
+        float pageTop = top.y - (topMargin + height * 2.16f) / canvas.y;
+        for (int i = 0; i < _pages.Length; i++)
+        {
+            if (_pages[i] != null)
+            {
+                _pages[i].anchorMax = new Vector2(1f, pageTop);
+                _pageTops[i].sizeDelta = new Vector2(0, canvas.y * (1f - pageTop));
+            }
+        }
+    }
+
+    /// <summary>보상·소비와 계정 변경을 반영하고, 저장된 라이프 충전 시각은 초당 한 번만 확인한다.</summary>
+    private void RefreshResources()
+    {
+        int gold = _field.Board.Gold;
+        if (gold != _barGold)
+        {
+            _barGold = gold;
+            _goldAmount.text = gold.ToString("N0", CultureInfo.InvariantCulture);
+            _draw.interactable = gold >= LobbyDefenseBoard.DrawCost;
+        }
+
+        UserDataManager user = UserDataManager.Instance;
+        RefreshProfile(user != null ? user.Identity : null);
+        double now = Time.unscaledTimeAsDouble;
+        if (now >= _nextLifeCheck)
+        {
+            _nextLifeCheck = now + 1d;
+            int lives = PlayerLives.GetRemaining(DateTimeOffset.UtcNow.ToUnixTimeSeconds(), out _);
+            if (lives != _barLives)
+            {
+                _barLives = lives;
+                _lifeAmount.text = $"{lives}/{PlayerLives.Capacity}";
+            }
+        }
+
+        long? gems = null;
+        if (user != null && user.Identity != null && user.Identity.IsLoaded && user.Identity.Data != null)
+        {
+            gems = (long)user.Identity.Data.freeDia + user.Identity.Data.paidDia;
+        }
+        if (_barGems != gems)
+        {
+            _barGems = gems;
+            _gemAmount.text = gems.HasValue ? gems.Value.ToString("N0", CultureInfo.InvariantCulture) : "—";
+        }
     }
 
     /// <summary><paramref name="index"/> 페이지에 표제와 실제 배치·보유 정보 또는 옵션을 구성한다.</summary>
@@ -99,10 +303,14 @@ internal sealed partial class LobbyNavigation : MonoBehaviour
     {
         RectTransform page = Panel("Page" + index, _root, 0, .10f, 1, 1, Ink);
         page.gameObject.AddComponent<CanvasGroup>();
+        RectTransform top = Panel("TopBackground", page, 0, 1, 1, 1, Ink);
+        top.pivot = new Vector2(.5f, 0);
+        top.GetComponent<Image>().raycastTarget = false;
+        _pageTops[index] = top;
         bool catalog = index < MainPage;
         float headerBottom = catalog ? .79f : .60f;
         RectTransform banner = Panel("Header", page, 0, headerBottom, 1, 1, Surface);
-        Icon(banner, index, .51f);
+        Icon(banner, index, .65f, .51f);
         Label(banner, Names[index], .08f, .06f, .92f, .33f, 56);
         Panel("Rule", page, .08f, headerBottom - .004f, .92f, headerBottom, Gold);
         if (index == 0)
@@ -181,9 +389,6 @@ internal sealed partial class LobbyNavigation : MonoBehaviour
         RefreshCatalog(0);
     }
 
-    /// <summary>전장 아래 카드 배치 버튼으로 보유 카드 목록을 연다.</summary>
-    private void OpenInventory() => Select(1);
-
     /// <summary>뽑기에 성공하면 인벤토리를 열고 새로 획득한 카드까지 스크롤한다.</summary>
     private void DrawCard()
     {
@@ -193,7 +398,7 @@ internal sealed partial class LobbyNavigation : MonoBehaviour
             return;
         }
         _revealNewestCard = true;
-        OpenInventory();
+        Select(1);
     }
 
     /// <summary>선택한 <paramref name="card"/>가 아직 배치되지 않았으면 전장으로 연결한다.</summary>
@@ -227,13 +432,21 @@ internal sealed partial class LobbyNavigation : MonoBehaviour
             HideCardDetail();
         }
         _requested = index;
-        for (int i = 0; i < _marks.Length; i++)
-        {
-            _marks[i].enabled = i == index;
-        }
+        ShowSelectedTab(index);
         if (_current == _target && _current != index)
         {
             Begin();
+        }
+    }
+
+    /// <summary><paramref name="index"/>에 해당하는 탭은 민트 받침과 짙은 글자로 표시한다.</summary>
+    private void ShowSelectedTab(int index)
+    {
+        for (int i = 0; i < _marks.Length; i++)
+        {
+            bool selected = i == index;
+            _marks[i].enabled = selected;
+            _tabLabels[i].color = selected ? Ink : Pearl;
         }
     }
 
@@ -310,6 +523,13 @@ internal sealed partial class LobbyNavigation : MonoBehaviour
     /// <summary>전환을 마친 뒤 가려진 전장 렌더링을 쉬고 마지막 탭 요청을 처리한다.</summary>
     private void Update()
     {
+        if (_current == MainPage && _placementGlow != null && _placementGlow.isActiveAndEnabled)
+        {
+            float brightness = _motion ? .82f + .18f * Mathf.Cos(Time.unscaledTime * 4f) : 1f;
+            _placementGlow.canvasRenderer.SetAlpha(brightness);
+        }
+        LayoutResourceBar();
+        RefreshResources();
         if (_current == _target)
         {
             bool goldChanged = _current == 0 && _shownGold != _field.Board.Gold;
@@ -380,6 +600,14 @@ internal sealed partial class LobbyNavigation : MonoBehaviour
         return rect;
     }
 
+    /// <summary><paramref name="parent"/>의 지정 앵커 안에 <paramref name="name"/> 젤리 패널을 만들고 <paramref name="color"/>로 물들인다.</summary>
+    private static RectTransform JellyPanel(string name, Transform parent, float left, float bottom, float right, float top, Color color)
+    {
+        RectTransform rect = Box(name, parent, left, bottom, right, top);
+        LagoonUI.Surface(rect.gameObject.AddComponent<Image>(), color);
+        return rect;
+    }
+
     /// <summary><paramref name="parent"/>의 지정 범위에 <paramref name="value"/>를 <paramref name="size"/> 이하로 표시한다.</summary>
     private TMP_Text Label(Transform parent, string value, float left, float bottom, float right, float top, int size)
     {
@@ -407,11 +635,12 @@ internal sealed partial class LobbyNavigation : MonoBehaviour
         return icon;
     }
 
-    /// <summary><paramref name="parent"/>에 <paramref name="index"/> 탭의 원화를 <paramref name="height"/> 비율로 배치한다.</summary>
-    private void Icon(RectTransform parent, int index, float height)
+    /// <summary><paramref name="parent"/>의 <paramref name="center"/> 위치에 <paramref name="index"/> 탭 원화를 <paramref name="height"/> 높이로 배치한다.</summary>
+    private RawImage Icon(RectTransform parent, int index, float center, float height)
     {
-        RawImage icon = Square(parent, .65f, height);
+        RawImage icon = Square(parent, center, height);
         icon.texture = _icons;
         icon.uvRect = new Rect(index / 5f, 0, .2f, 1);
+        return icon;
     }
 }

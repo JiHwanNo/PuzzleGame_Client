@@ -65,6 +65,11 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 111a8310710e48bbbc6e913232085b86
+    m_Address: LobbyResourceBar
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 577871944a0d4ba097769e1a89e3f33a
     m_Address: LobbyArcher8Way
     m_ReadOnly: 0

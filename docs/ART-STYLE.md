@@ -9,14 +9,14 @@
 | 작업할 화면 | 색과 글자 위계 | 기준 리소스 |
 |---|---|---|
 | 타이틀 | 영문 CI ‘NEVER LAND’는 밝은 민트색 `#00FF80`, 크기 52의 `font_En`을 쓴다. | [TitleScene](../Assets/01_Scenes/TitleScene.unity) |
-| 로비 | 전장 아래 중앙의 플레이 버튼은 노란 공용 버튼을 사용한다. 상태 안내는 흰색 한글 TMP, 크기 30이다. | [LobbyScene](../Assets/01_Scenes/LobbyScene.unity) |
+| 로비 | 하단 탭은 청록 바탕과 크림색 글자, 선택한 탭은 민트 받침과 짙은 글자를 쓴다. 전장 아래에는 레몬색 플레이 버튼과 방패 배치 버튼을 나란히 놓고 선택한 카드는 금색 테두리로 표시한다. | [LobbyScene](../Assets/01_Scenes/LobbyScene.unity) · [다섯 탭 아이콘](../Assets/04_Resources/Images/LobbyNavigation.png) |
 | 준비 팝업 | 버터색 패널 위에 고동색 `#493128` 글자를 올린다. 제목 60, 모드 안내 30, 라이프 27 순으로 읽히며 START는 하늘색으로 구분한다. | [PopupReady](../Assets/Resources/Prefab/UI/Popup/PopupReady.prefab) · [한글 TMP 폰트](../Assets/Resources/Font/font_Ko.asset) |
 | 인게임 HUD·결과 | 점수와 타이머는 흰색 36, 리플레이 상태는 흰색 27이다. 대전 피벗은 타이머 아래에 같은 폰트로 크기 24의 라벨을 붙인다. | [GameScene](../Assets/01_Scenes/GameScene.unity) · [PivotGaugeView](../Assets/02_Scripts/Battle/Pivot/PivotGaugeView.cs) |
-| 로비 디펜스 | 배치 모드의 20×10 격자는 빈 셀을 잔디, 배치된 셀을 흙으로 그린다. 일반 전투는 연속된 숲 공터 위에 유닛과 흙 발판을 표시한다. 현재 경로는 청록색 `#4DA1A6`, 배치 미리보기는 금색 `#F8C564`으로 구별한다. 적은 정찰 여우·병사 멧돼지·호위 오소리로 구분하며, 입구와 출구는 각각 연두색과 연보라색이다. | [로비 디펜스 기획](LOBBY-DEFENSE.md) |
+| 로비 디펜스 | 배치 모드의 20×10 격자는 빈 셀을 잔디, 배치된 셀을 흙으로 그린다. 일반 전투는 연속된 숲 공터 위에 유닛과 흙 발판을 표시한다. 현재 경로는 청록색 `#1DA9B9`, 배치 미리보기는 금색 `#FFDC55`으로 구별한다. 적은 정찰 여우·병사 멧돼지·호위 오소리로 구분하며, 입구와 출구는 각각 연두색과 연보라색이다. | [로비 디펜스 기획](LOBBY-DEFENSE.md) |
 
-로비 하단 탭과 플레이·배치 버튼의 개편 기준으로 [라군 젤리 A안](art/LobbyUI-LagoonJelly.png)을 선택했다. 아이콘은 퍼즐 블럭처럼 모서리를 둥글게 잡고 왼쪽 위에 밝은 반사광을 둔다. 짙은 청록 탭 바 위에서 선택한 탭은 밝은 민트색으로 강조하고, 플레이 버튼에는 레몬색을 쓴다.
+로비 하단 탭과 플레이·배치 버튼의 개편 기준으로 [라군 젤리 A안](art/LobbyUI-LagoonJelly.png)을 선택했다. 아이콘은 퍼즐 블럭처럼 모서리를 둥글게 잡고 왼쪽 위에 밝은 반사광을 둔다. 짙은 청록 탭 바 위에서 선택한 탭은 밝은 민트색으로 강조하고, 플레이 버튼에는 레몬색을 쓴다. 상단 재화 바는 젤리 캡슐 D안으로 확정했다. 짙은 청록 바탕에 크림색 숫자를 놓고, 하트·골드·잼 테두리를 각각 메달과 같은 분홍·금색·하늘색으로 표시한다. 바로 아래 왼쪽에 닉네임 첫 글자와 이름을 담은 프로필을 배치한다. [재화 바 아틀라스](../Assets/04_Resources/Images/LobbyResourceBar.png)
 
-숲 전경과 지면, 배치 아이콘은 ImageGen으로 제작했다. 숲은 세로형 카툰 공터와 청록색 수관을, 지면은 위에서 본 잔디·황갈색 흙을, 아이콘은 잔디 타일 위에 꽂힌 방패 카드와 더하기 표식을 기준으로 삼았다. [숲 배경](../Assets/04_Resources/Images/LobbyForest.png) · [지면 아틀라스](../Assets/04_Resources/Images/LobbyTerrain.png) · [배치 아이콘](../Assets/04_Resources/Images/LobbyPlaceIcon.png)
+숲 전경과 지면, 배치 아이콘은 ImageGen으로 제작했다. 숲은 세로형 카툰 공터와 청록색 수관을, 지면은 위에서 본 잔디·황갈색 흙을, 아이콘은 하늘색 젤리 버튼 위의 크림색 방패와 청록 더하기 표식을 기준으로 삼았다. [숲 배경](../Assets/04_Resources/Images/LobbyForest.png) · [지면 아틀라스](../Assets/04_Resources/Images/LobbyTerrain.png) · [배치 아이콘](../Assets/04_Resources/Images/LobbyPlaceIcon.png)
 
 ImageGen으로 제작한 일반 전투 배경은 나무가 화면 가장자리를 두르는 [숲 공터](../Assets/04_Resources/Images/LobbyBattleMeadow.png)다. [습격대와 투사체 아틀라스](../Assets/04_Resources/Images/LobbyRaiders.png)는 위쪽에 정찰·병사·호위 세 캐릭터를, 아래쪽에 화살·마법탄·착탄 빛을 둔다. 유닛은 발밑의 행을 기준으로 겹치고 미리보기보다 크게 표시한다.
 
@@ -49,7 +49,7 @@ ImageGen으로 제작한 일반 전투 배경은 나무가 화면 가장자리�
 
 제작 문장 예시 — “파란 퍼즐 블록과 초록 퍼즐 블록 옆에 놓일 작은 동물 유닛. 머리가 큰 둥근 몸, 콩알 같은 발, 살구색 볼. 왼쪽 위에 타원형 흰 반사광 하나, 아래쪽에 한 단계 진한 색. 손에 든 장비는 한눈에 읽히는 덩어리 하나. 한 칸에 들어가는 전신, 투명 배경.” 털 한 올, 가죽 주름, 금속 흠집처럼 실제 재질을 묘사하는 세부는 생략한다.
 
-인벤토리 카드에 초상, 이름, 별 등급, 공격·방어·체력, 배치 상태를 표시한다. 전장 아래 숲 공터에 선택한 캐릭터를 크게 두고 이름과 등급을 표시한다. 플레이 옆 카드 아이콘을 누르면 같은 줄이 카드 선택·확정·취소 버튼으로 바뀐다. 전장 위 스테이지명 옆에는 전투 결과에 맞는 진행 버튼을 표시한다. 화면 아래의 노란 **플레이** 버튼은 퍼즐 진입에 쓴다.
+배치 모드에서는 화면 하단의 가로 카드 목록에서 선택한 카드 가장자리에 금색 테두리와 빛 번짐을 표시한다. 전장 위 스테이지명 옆에는 진행 버튼을, 전장 아래에는 노란 플레이 버튼과 하늘색 방패를 둔다. [로비 배치와 조작](LOBBY-DEFENSE.md)
 
 - [토끼 사수 방향 시트](../Assets/04_Resources/Images/LobbyArcher8Way.png)는 S · SE · E · NE · N · NW · W · SW 순서로 대기·걷기·사격·특수 포즈를 담는다. 전장에서는 입구를 바라보고, 사격할 때 표적 방향으로 활을 내민다.
 - [새싹거북 프리팹](../Assets/Resources/Prefab/LobbyTurtle.prefab)은 [파츠 아틀라스](../Assets/Resources/Texture/LobbyTurtle/LobbyTurtleAtlas.png)의 몸통 5방향·발·움츠린 등딱지를 조합한다. 피격 시 적 쪽으로 몸을 숨겨도 떡잎과 금빛 잎 표식은 보인다. [남동쪽 초상](art/lobby-units/SproutTurtle-portrait.png)
