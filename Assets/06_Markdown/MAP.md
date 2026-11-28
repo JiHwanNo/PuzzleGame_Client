@@ -1,133 +1,17 @@
-# PuzleBattleGame 문서 네비게이션
+# 프로젝트 문서 지도
 
-작업 전 이 문서에서 대상 문서를 확인하고 이동하세요.
+## 1. 사양서
 
-> 문서는 콘텐츠별 폴더(`00_Guide`/`01_Architecture`/`02_Ingame`/`03_Data`/`04_UI`/`05_Scene`/`06_Server`/`07_Agents`)로 묶여 있다.
-> 아래 표의 백틱 문서명(예: `INGAME.md`)은 **위치가 아닌 식별자**다. 실제 위치는 [README.md](README.md) 인덱스의 링크를 따른다.
+[게임 사양서](../../docs/SPEC.md)에서 [로비](../../docs/LOBBY-DEFENSE.md), [인게임](../../docs/INGAME-BATTLE.md), [카드](../../docs/LOBBY-CARDS.md)의 규칙과 기획을 찾을 수 있다.
 
----
+## 2. 구현 현황
 
-## 문서 목록
+[구현 현황](../../docs/IMPLEMENTATION.md)은 영역별 구현 상태와 근거 코드를 연결한다. Unity 안에 있는 기술 자료는 [영역별 구현 문서 목록](README.md)에서 찾는다.
 
-| 문서 | 내용 | 언제 읽을까? |
-|------|------|-------------|
-| [../AGENTS.md](../AGENTS.md) | Codex 작업 원칙, 코딩 규칙, 주의사항(Known Pitfalls), 작업별 참고 링크 | 항상 (기본 규칙) |
-| [../CLAUDE.md](../CLAUDE.md) | Claude Code 호환용 기존 가이드 | Claude Code 사용 시 |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | MVC, 데이터 흐름, 리플레이, 게임 흐름, 폴더 구조 | 아키텍처 이해 시 |
-| [LOBBY-DEFENSE.md](../../docs/LOBBY-DEFENSE.md) | 방어 카드 뽑기·등급, 20×10 숲 전장 캐릭터 전투와 카드 배치 모드, 스테이지 방어 완료·다음 스테이지 진입 조건 | 로비 디펜스와 퍼즐 연동 개발 시 |
-| [LOBBY-CARDS.md](../../docs/LOBBY-CARDS.md) | 종류별 기본값, 뽑기 보너스와 별, 개별 카드 분해·강화, 화면과 검증 기준 | 방어 카드 수집과 성장 설계 시 |
-| [CONVENTIONS.md](CONVENTIONS.md) | 코드 리뷰 체크리스트, 위반 예시, 수정 가이드 | 커밋 전 리뷰 시 필독 |
-| [INGAME.md](INGAME.md) | 게임 루프, 보드 상태, 블럭, 매칭, 뷰 동기화, 애니메이션, 리플레이 | 인게임 퍼즐 작업 시 |
-| [DATA.md](DATA.md) | JSON 구조, GameSpec, Rule/Stage/Replay 데이터, 추가 방법 | 데이터/설정 작업 시 |
-| [UI.md](UI.md) | 도메인 시스템, 팝업/탭 생명주기, UIButton, 추가 방법 | UI 작업 시 |
-| [ART-STYLE.md](../../docs/ART-STYLE.md) | 로비 유닛·퍼즐 블록 기준 원화, 생성 예시, 임포트 규격 | 유닛·보드 블록·슬롯 릴을 만들 때 |
-| [SCENE.md](SCENE.md) | 씬 전환, SharedScene, 매니저, AssetManager, PoolManager | 인프라 작업 시 |
-| [SERVER.md](SERVER.md) | 서버 통신, 공유 DLL, 네트워크 레이어, API 연동 | 서버 API 작업 시 |
-| [RULES-AND-STAGES.md](RULES-AND-STAGES.md) | 규칙·스테이지 JSON과 피벗 설정 | 게임 데이터 추가 시 |
-| [INGAME-VIEW-AND-BATTLE.md](INGAME-VIEW-AND-BATTLE.md) | 뷰 동기화·리플레이·대전 | 연출과 대전 처리 확인 시 |
-| [CHANGELOG.md](CHANGELOG.md) | 전체 변경 이력 | 이전 작업 맥락 파악 시 |
+### 작업별 빠른 경로
 
-### 상세 단편 문서 (주제 문서에서 분리)
-
-| 문서 | 상위 문서 | 내용 |
-|------|----------|------|
-| `ARCHITECTURE_FLOW.md` | `ARCHITECTURE.md` | 메인 대전/사이드 스테이지 게임 흐름 상세 |
-| [INGAME_GIMMICK.md](02_Ingame/INGAME_GIMMICK.md) | `INGAME.md` | 기믹 생성·부착, 폭탄 파괴 연쇄, 새 행동 등록 절차 |
-| `INGAME_REPLAY.md` | `INGAME.md` | 리플레이 기록/재생 흐름 상세 |
-| `DATA_SCHEMA.md` | `DATA.md` | GameSpec 전체 필드 스키마 트리 + ReplayData JSON |
-| `DATA_STAGE.md` | `DATA.md` | 스테이지 저장소(StageStorage)·맵 툴(StageMapTool) 레퍼런스 |
-| `STAGE_MAP_TOOL_ARCH.md` | `DATA_STAGE.md` | 맵 툴(ToolScene) 아키텍처·데이터 흐름·구현 순서 |
-| `SERVER_DTO.md` | `SERVER.md` | 공유 DLL DTO 필드 정의 |
-| `UI_SIDE_STAGE.md` | `UI.md` | 사이드 스테이지 팝업 진입 흐름 |
-| `STAGE_MAP_TOOL.md` | `DATA_STAGE.md`/`CHANGELOG.md` | 스테이지 맵 툴 상태·작업 메모 |
-
----
-
-## 디버깅/최적화 시 필독
-
-| 상황 | 읽을 곳 |
-|------|---------|
-| 정렬 변경 후 버그 | [../AGENTS.md](../AGENTS.md) → "주의사항 - 정렬 안정성" |
-| 뷰 블럭 미씽/소실 | [ExecuteBatchMovement 처리 순서 규칙](INGAME-VIEW-AND-BATTLE.md#executebatchmovement-처리-순서-규칙) |
-| LINQ 제거 최적화 | [../AGENTS.md](../AGENTS.md) → "주의사항 - 최적화 체크리스트" |
-| 씬 전환 후 에셋 미씽 | [../AGENTS.md](../AGENTS.md) → "주의사항 - Pool/Addressable 생명주기" |
-| struct null 비교 에러 | [../AGENTS.md](../AGENTS.md) → "주의사항 - 데이터 타입" |
-| Model에서 Debug.Log 사용 | [../AGENTS.md](../AGENTS.md) → "주의사항 - Model 레이어 로깅" |
-| 데이터 타입 확인 | [DATA.md](DATA.md) → "데이터 타입 주의" |
-
----
-
-## 작업별 빠른 경로
-
-기능 이름으로 찾은 뒤 **시작 파일 → 상세 문서의 콘텐츠와 C# 매핑 → 주요 메서드** 순서로 따라가세요. 전체 경로는 링크 대상에 포함되어 있습니다.
-
-| 찾는 기능·수정할 내용 | 먼저 볼 C# 파일 | 관련 코드 전체 표 |
-|---|---|---|
-| 스테이지·90초 대전 준비 팝업·슬롯·라이프 | [PopupReady.cs](../Assets/02_Scripts/UI/Popup/PopupReady.cs) | [UI.md](UI.md#콘텐츠와-c-매핑) |
-| 로비 튜토리얼·대전 진입 | [LobbyMain.cs](../Assets/02_Scripts/Lobby/LobbyMain.cs) | [UI.md](UI.md#준비-팝업의-플레이-진입) |
-| 퍼즐 입력·게임 루프·종료 처리 | [PuzzleGameController.cs](../Assets/02_Scripts/PuzzleCore/Controller/PuzzleGameController.cs) | [INGAME.md](INGAME.md#콘텐츠와-c-매핑) |
-| 3매치·스왑·자동 셔플 | [ThreeMatchPuzzleBoard.cs](../Assets/02_Scripts/PuzzleCore/Module/Board/ThreeMatchPuzzleBoard.cs) | [INGAME.md](INGAME.md#콘텐츠와-c-매핑) |
-| 링크 연결 | [LinkPuzzleBoard.cs](../Assets/02_Scripts/PuzzleCore/Module/Board/LinkPuzzleBoard.cs) | [INGAME.md](INGAME.md#콘텐츠와-c-매핑) |
-| 탭 매치·연결 블럭 탐색 | [TapMatchPuzzleBoard.cs](../Assets/02_Scripts/PuzzleCore/Module/Board/TapMatchPuzzleBoard.cs) | [INGAME.md](INGAME.md#콘텐츠와-c-매핑) |
-| 새 블럭·기믹 추가 | [PuzzleBlockFactory.cs](../Assets/02_Scripts/PuzzleCore/Module/Block/PuzzleBlockFactory.cs) | [INGAME.md](INGAME.md#콘텐츠와-c-매핑) |
-| 폭탄 범위·연쇄 파괴 | [BombGimmick.cs](../Assets/02_Scripts/PuzzleCore/Module/Gimmick/BombGimmick.cs) | [INGAME.md](INGAME.md#콘텐츠와-c-매핑) |
-| 점수·콤보·피버·목표 | [ObjectiveManager.cs](../Assets/02_Scripts/PuzzleCore/Module/ObjectiveManager.cs) | [INGAME.md](INGAME.md#콘텐츠와-c-매핑) |
-| 대전 피벗 충전·유지·빠른 콤보 감속 | [PivotMode.cs](../Assets/02_Scripts/Battle/Pivot/PivotMode.cs) | [INGAME.md](INGAME.md#콘텐츠와-c-매핑) |
-| 링크·3매치·탭 매치 피벗의 주변 한 겹 파괴 | [LinkPivotEffect.cs](../Assets/02_Scripts/Battle/Pivot/LinkPivotEffect.cs) | [INGAME-VIEW-AND-BATTLE.md](INGAME-VIEW-AND-BATTLE.md#링크-피벗-육각형-이웃-한-겹) |
-| 피벗 게이지·충전·소비 수치 JSON 수정 | [PivotSettings.cs](../Assets/02_Scripts/Battle/Pivot/PivotSettings.cs) | [RULES-AND-STAGES.md](RULES-AND-STAGES.md#피벗-게임-데이터) |
-| 낙하 중 블럭 소실·뷰 액션 순서 | [PuzzleBoardView.cs](../Assets/02_Scripts/PuzzleCore/View/PuzzleBoardView.cs) | [INGAME.md](INGAME.md#콘텐츠와-c-매핑) |
-| 블럭 애니메이션 | [PuzzleBlockView.cs](../Assets/02_Scripts/PuzzleCore/View/PuzzleBlockView.cs) | [INGAME.md](INGAME.md#콘텐츠와-c-매핑) |
-| 보드 좌표·링크 선·배치 | [PuzzleBoardView.cs](../Assets/02_Scripts/PuzzleCore/View/PuzzleBoardView.cs) | [INGAME.md](INGAME.md#콘텐츠와-c-매핑) |
-| 리플레이 기록·저장 | [ReplayStorage.cs](../Assets/02_Scripts/PuzzleCore/Module/ReplayStorage.cs) | [DATA.md](DATA.md#콘텐츠와-c-매핑) |
-| 리플레이 재생 | [ReplayController.cs](../Assets/02_Scripts/PuzzleCore/Controller/ReplayController.cs) | [INGAME.md](INGAME.md#콘텐츠와-c-매핑) |
-| 새 스테이지·Rule JSON 로드 | [StageInjection.cs](../Assets/02_Scripts/StageInjection.cs) | [DATA.md](DATA.md#콘텐츠와-c-매핑) |
-| JSON 필드·enum·입력 타입 추가 | [PuzzleDefine.cs](../Assets/02_Scripts/PuzzleCore/Module/PuzzleDefine.cs) | [DATA.md](DATA.md#콘텐츠와-c-매핑) |
-| 팝업·탭·뒤로 가기 | [DomainManager.cs](../Assets/02_Scripts/Manager/DomainManager.cs) | [UI.md](UI.md#콘텐츠와-c-매핑) |
-| 로비 하단 메뉴·페이지 슬라이드·인벤토리 카드 스크롤·상세 | [LobbyNavigation.cs](../02_Scripts/Lobby/LobbyNavigation.cs) | [UI.md](04_UI/UI.md#콘텐츠와-c-매핑) |
-| 로비 보유 카드·등급·캐릭터 목록·프리팹 | [LobbyUnit.cs](../02_Scripts/Lobby/LobbyUnit.cs) | [UI.md](04_UI/UI.md#콘텐츠와-c-매핑) |
-| UI 버튼 콜백 | [UIButton.cs](../Assets/02_Scripts/UI/UIButton.cs) | [UI.md](UI.md#콘텐츠와-c-매핑) |
-| 새 씬·씬 전환·상주 초기화 | [Main.cs](../Assets/02_Scripts/Manager/Main.cs) | [SCENE.md](SCENE.md#콘텐츠와-c-매핑) |
-| 에셋 로드·씬 전환 후 리소스 소실 | [AssetManager.cs](../Assets/02_Scripts/Manager/AssetManager.cs) | [SCENE.md](SCENE.md#콘텐츠와-c-매핑) |
-| 풀 생성·반환 | [PoolManager.cs](../Assets/02_Scripts/Manager/PoolManager.cs) | [SCENE.md](SCENE.md#콘텐츠와-c-매핑) |
-| 서버 API·네트워크 | [NetworkManager.cs](../Assets/02_Scripts/Manager/NetworkManager.cs) | [SERVER.md](SERVER.md#콘텐츠와-c-매핑) |
-| 유저 정보·더미 폴백 | [IdentityLayer.cs](../Assets/02_Scripts/Manager/UserData/IdentityLayer.cs) | [SERVER.md](SERVER.md#콘텐츠와-c-매핑) |
-
----
-
-## 확장 포인트 체크리스트
-
-### 새 퍼즐 모드 추가
-1. `IPuzzleBoard` 구현 클래스 작성 (`PuzzleCore/Module/Board/`)
-2. `PuzzleType` enum 값 추가 (`PuzzleDefine.cs`)
-3. [PuzzleGameController](../Assets/02_Scripts/PuzzleCore/Controller/PuzzleGameController.cs)와 [ReplayController](../Assets/02_Scripts/PuzzleCore/Controller/ReplayController.cs)의 `puzzleType` 분기에 같은 보드 타입을 등록한다. 둘 중 한쪽이 빠지면 해당 경로에서 기본 3매치 보드가 생성된다.
-4. Rule JSON을 Addressables에 등록하고 준비 팝업의 무작위 선택 대상이면 `PopupReady.RulePaths`와 표시 이름·릴 이미지의 칸 순서를 맞춘다. [규칙 추가 방법](RULES-AND-STAGES.md#새-규칙-추가-방법)
-
-### 새 블럭/기믹 추가 (기믹 컴포지션)
-- 일반 색 블럭: Rule JSON `blocks[]`에 BlockData 추가만으로 동작 (코드 변경 불필요)
-- 새 행동(기믹)이 필요한 경우:
-  1. `GimmickBase` 상속 기믹 클래스 작성 (`PuzzleCore/Module/Gimmick/`)
-  2. `PuzzleDefine.cs`의 `GimmickType` enum 값 추가
-  3. `GimmickFactory.Create()`에 `GimmickType → 기믹` 생성 분기 추가
-  4. Rule JSON BlockData에 `gimmickIds`(문자열 목록) + 필요한 `inputType` 추가 → 상세: [INGAME.md](INGAME.md), [DATA.md](DATA.md)
-
-### 새 매니저 추가
-1. `02_Scripts/Manager/`에 MonoBehaviour 싱글톤 작성
-2. SharedScene 하이어라키에 배치
-3. 초기화 순서 의존성 있으면 `Main`에서 순서 보장 → 상세: [SCENE.md](SCENE.md)
-
-### 새 서버 API 추가
-1. 공유 DLL(`PuzleBattleShared`)에 DTO 추가 → `Plugins/`로 복사
-2. `UserData/`에 Layer 클래스 작성 (Endpoint + Request)
-3. `UserDataManager`에 Layer 등록 → 상세: [SERVER.md](SERVER.md)
-
----
-
-## 소스 경로와 문서 관리 기준
-
-- 실제 프로젝트 경로는 저장소 루트의 `Assets/02_Scripts/`에서 시작합니다. `IPuzzleBoard.cs`는 `PuzzleCore/Module/Board/`, `PopupReady.cs`는 `UI/Popup/` 아래에 있습니다.
-- `Assets/02_Scripts/`의 C# 파일별 역할은 위에서 연결한 INGAME/DATA/UI/SCENE/SERVER의 코드 표에서 찾습니다. 파일명을 알고 있으면 해당 문서들에서 파일명으로 검색하세요.
-- 하나의 파일에 여러 타입이 있을 수 있습니다. 예: `GameSpec.cs`에 `StageData`/`CellData`, `IGimmick.cs`에 `IGimmickHost`/`GimmickBase`가 함께 정의됩니다.
-- 설계 방향과 예정 콘텐츠는 [ARCHITECTURE.md](ARCHITECTURE.md), 현재 구현 위치는 각 영역의 코드 표, 과거 변경은 [CHANGELOG.md](CHANGELOG.md)에서 확인합니다. 별 재화·랭킹 등 계획을 구현 완료로 해석하지 않습니다.
-- 매 작업 완료 전 문서 영향을 점검합니다. 파일 추가·삭제·이동·이름 변경, 주요 타입/메서드 또는 책임·동작·데이터 구조 변경 시 담당 영역의 코드 표와 관련 본문을 같은 작업에서 갱신합니다. 작업 시작 파일이 달라지면 이 문서의 빠른 경로도 갱신합니다.
-- 완료 기준과 보고 방식은 [AGENTS.md의 문서와 코드 동기화 지침](../AGENTS.md#문서와-코드-동기화-매-작업-필수)을 따릅니다. 문서 영향이 없으면 불필요한 수정 대신 그 사유를 보고합니다.
-- 코드 링크는 문서 기준 상대 경로를 사용하고 줄 번호 대신 메서드/타입 이름을 기록합니다. 수정 후 링크 대상 파일과 해당 심볼의 존재를 확인합니다.
+- [기능별 시작 파일과 C# 매핑](../../docs/MAP.md#작업별-빠른-경로)
+- [문제 유형별 디버깅 경로](../../docs/MAP.md#디버깅최적화-시-필독)
+- [새 모드·블럭·매니저·서버 API 확장 방법](../../docs/MAP.md#확장-포인트-체크리스트)
+- [프리팹 구조](00_Guide/PREFAB_STRUCTURE.md) · [기믹과 파괴 연쇄](02_Ingame/INGAME_GIMMICK.md) · [스테이지 저장소와 맵 툴](03_Data/DATA_STAGE.md)
+- [저장소 작업 규칙](../../AGENTS.md) · [팀 작업 방식](07_Agents/AGENT_TEAM.md) · [변경 이력](CHANGELOG.md)

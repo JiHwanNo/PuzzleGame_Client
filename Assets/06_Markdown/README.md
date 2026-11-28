@@ -1,6 +1,6 @@
 # 문서 인덱스
 
-PuzleBattleGame(Unity 6000.0.38f1, URP) 문서 모음. 작업 영역에 맞는 문서를 골라 읽으세요.
+프로젝트 문서의 두 진입점은 [1. 사양서](../../docs/SPEC.md)와 [2. 구현 현황](../../docs/IMPLEMENTATION.md)이다. 이 인덱스에는 구현 현황에서 참조하는 Unity 영역별 기술 문서와 개발 도구 안내가 있다.
 세부 네비게이션(확장 포인트·소스 위치)은 [MAP.md](MAP.md), 코딩 규칙 전체는 [../../AGENTS.md](../../AGENTS.md) 참고.
 
 > **폴더 구조.** 문서는 콘텐츠별 폴더로 묶여 있다(`00_Guide`/`01_Architecture`/`02_Ingame`/`03_Data`/`04_UI`/`05_Scene`/`06_Server`/`07_Agents`).

@@ -1,35 +1,19 @@
-# PuzleBattleGame 리플레이 상세
+# PuzleBattleGame 리플레이 구현
 
-`INGAME.md`의 리플레이 시스템 분리 문서.
-
----
+대전의 상대 선정·승패는 [인게임 사양서](../../../docs/INGAME-BATTLE.md#현재-승패와-기록), 저장 JSON과 구형 기록 호환성은 [데이터 문서](../../../docs/DATA.md#대전-기록-호환성)에 있다.
 
 ## 기록 흐름
 
-```
-게임 시작 → StageInjection이 randomSeed 생성 → Board.Initialize(spec)에 시드 주입
-게임 중   → Board가 InputRecord / InputEndRecord 자동 기록
-게임 종료 → PuzzleGameController가 Finish 감지
-  → board.GetRecordedInputs() + GetRecordedInputEnds()
-    → ReplayData 조립 → ReplayStorage.Save() → JSON 파일 저장
-```
-
----
+1. `StageInjection`이 준비한 `GameSpec`의 시드로 보드를 초기화한다.
+2. 보드는 고정 틱에서 처리한 위치 입력과 손 떼기 입력에 프레임·공통 순번을 기록한다.
+3. [PuzzleGameController](../../02_Scripts/PuzzleCore/Controller/PuzzleGameController.cs)는 종료 시 입력 목록과 시드, 스테이지 스냅샷, 대전 피벗 설정, 규칙 버전, 종료 틱·점수를 모아 `ReplayStorage.Save()`에 전달한다.
 
 ## 재생 흐름
 
-```
-ReplayData 로드 → GameSpec 복원 (동일 Rule/Stage + 동일 시드)
-  → IPuzzleBoard 생성 + Initialize
-    → FixedUpdate에서 프레임 카운터 증가
-      → 해당 프레임의 Input/InputEnd 기록을 보드에 주입
-        → 동일한 게임 결과 재현
-```
-
----
+1. [ReplayController.Initialize](../../02_Scripts/PuzzleCore/Controller/ReplayController.cs)는 Rule 주소를 읽고, 기록의 `stageJson`을 우선 사용한다. 이 필드가 없으면 원래 스테이지 주소를 읽는다. 시드와 기록 당시 계산 규칙으로 별도 보드를 초기화한다.
+2. `PuzzleGameController.FixedUpdate()`에서 호출하는 `AdvanceFrame()`은 해당 틱의 입력을 순서대로 주입하고 보드와 피벗을 전진시킨 뒤 프레임 수를 늘린다.
+3. 현재 형식은 보드의 종료 상태와 실제 재생 틱·점수를 기록과 대조한다. 그 결과는 `HasValidResult`에서 확인한다.
 
 ## ReplayController 배치
 
-- 메인 보드와 독립적으로 동작 (별도 IPuzzleBoard + PuzzleBoardView).
-- `viewScale`, `margin` 파라미터로 우측 상단에 축소 자동 배치.
-- `PuzzleBoardView.skipCameraAlign = true`로 카메라 간섭 방지.
+메인 보드와 별도의 `IPuzzleBoard`와 `PuzzleBoardView`를 사용한다. `viewScale`과 `margin`으로 우측 상단에 배치하고 `skipCameraAlign`으로 메인 카메라 정렬을 유지한다.

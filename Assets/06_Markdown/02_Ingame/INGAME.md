@@ -1,44 +1,44 @@
 # PuzleBattleGame 인게임 퍼즐 참고 문서
 
 보드, 블럭, 매칭, 게임 루프, 뷰 동기화 작업 시 참고.
-데이터/JSON 구조는 `DATA.md` 참고.
+배틀의 진행과 승패는 [인게임 사양서](../../../docs/INGAME-BATTLE.md), 데이터 구조는 [데이터 문서](../03_Data/DATA.md)를 참고한다.
 
 ## 콘텐츠와 C# 매핑
 
-[전체 작업 지도](MAP.md) · [문서 목록](README.md)
+[전체 작업 지도](../MAP.md) · [문서 목록](../README.md)
 
 파일 링크는 이 문서 기준 상대 경로이며, 마지막 열의 이름을 파일 안에서 검색하면 구현 위치를 찾을 수 있습니다.
 
 | 찾는 콘텐츠 | 담당 C# 파일 | 주요 메서드·타입·멤버 |
 |---|---|---|
-| 입력, 게임 루프, 종료 후 저장, 점수/타이머 UI | [PuzzleGameController.cs](../Assets/02_Scripts/PuzzleCore/Controller/PuzzleGameController.cs) | `Start`, `Update`(입력 수집/UI), `FixedUpdate`(양쪽 공통 틱), `SaveReplay`, `GetBattleResult`, `UpdatePlayHint`, `OnClickRetry`, `OnClickLobby`, `UpdateTimerUI` |
-| 보드 공통 계약 | [IPuzzleBoard.cs](../Assets/02_Scripts/PuzzleCore/Module/Board/IPuzzleBoard.cs) | `IPuzzleBoard`, `BoardViewAction` |
-| 3매치 스왑·매칭·낙하·셔플 | [ThreeMatchPuzzleBoard.cs](../Assets/02_Scripts/PuzzleCore/Module/Board/ThreeMatchPuzzleBoard.cs) | `ProcessSwapInput`, `FindMatches`, `ProcessFallingAndFilling`, `FillFromGenerator`, `CheckAndShuffleIfNoMoves`, `MatchTargetsExpanding` |
-| 드래그 링크 성립 기준·연결·해제·낙하·매칭 대상 확장 | [LinkPuzzleBoard.cs](../Assets/02_Scripts/PuzzleCore/Module/Board/LinkPuzzleBoard.cs) | `MinimumLinkLength`, `Input`, `InputEnd`(큐 등록), `FixedUpdate`, `UpdateState`, `ProcessFallingAndFilling`, `FillFromGenerator`, `HasEmptyCell`, `MatchTargetsExpanding` |
-| 탭 매치 연결 블럭 탐색·파괴 | [TapMatchPuzzleBoard.cs](../Assets/02_Scripts/PuzzleCore/Module/Board/TapMatchPuzzleBoard.cs) | `Input`, `InputEnd`(큐 등록), `FixedUpdate`, `UpdateState`, `GetConnectedBlocks`, `FillFromGenerator`, `CheckAndShuffleIfNoMoves`, `MatchTargetsExpanding` |
-| 블럭 상태·입력 플래그·기믹 발화 | [Block.cs](../Assets/02_Scripts/PuzzleCore/Module/Block/Block.cs) | `Block`, `GetInputType`, `FireDestroyed` |
-| 블럭 생성·기믹 부착 | [PuzzleBlockFactory.cs](../Assets/02_Scripts/PuzzleCore/Module/Block/PuzzleBlockFactory.cs) | `PuzzleBlockFactory` |
-| 기믹 계약·호스트·기본 클래스 | [IGimmick.cs](../Assets/02_Scripts/PuzzleCore/Module/Gimmick/IGimmick.cs) | `IGimmick`, `IGimmickHost`, `GimmickBase` |
-| 폭탄 범위·연쇄 파괴 | [BombGimmick.cs](../Assets/02_Scripts/PuzzleCore/Module/Gimmick/BombGimmick.cs) | `Radius`, `OnDestroyed` |
-| 기믹 종류별 생성 | [GimmickFactory.cs](../Assets/02_Scripts/PuzzleCore/Module/Gimmick/GimmickFactory.cs) | `Create` |
-| 공통 파괴·목표 갱신·뷰 액션 등록 | [GimmickUtil.cs](../Assets/02_Scripts/PuzzleCore/Module/Gimmick/GimmickUtil.cs) | `DestroyBlock` |
-| 셀 상태와 블럭 보관 | [PuzzleCell.cs](../Assets/02_Scripts/PuzzleCore/Module/PuzzleCell.cs) | `PuzzleCell` |
-| 바닥 패널 기본 타입 | [PuzzlePanel.cs](../Assets/02_Scripts/PuzzleCore/Module/PuzzlePanel.cs) | `PuzzlePanel`, `NormalPanel` |
-| 점수·콤보·피버·시간 제한·목표 판정·누적 파괴/조작 성공 수 | [ObjectiveManager.cs](../Assets/02_Scripts/PuzzleCore/Module/ObjectiveManager.cs) | `OnMatchEvent`, `OnBlockDestroyed`, `UpdateTimer`, `ShouldFinish`, `IsAllObjectivesCleared`, `GetCollectedCount`, `TotalDestroyedBlocks`, `TotalPlayerMatches`, `IsValidTimeLimit`, `GetTimeLimitFrames`, `RemainingSeconds` |
-| 보드 배치·좌표 변환·뷰 액션 순서·링크 성립 표시·파괴 파편·폭탄 충격파 | [PuzzleBoardView.cs](../Assets/02_Scripts/PuzzleCore/View/PuzzleBoardView.cs) | `DrawBoard`, `Shape`, `GetLocalPos`, `ExecuteBatchMovement`, `UpdateLineRenderer`, `CacheLinkPathIfChanged`, `AnimateLinkTip`, `PlayLinkRing`, `PlayMatchFragments`, `PlayBombWaves` |
+| 입력, 게임 루프, HUD 배지와 종료 결과 카드 | [PuzzleGameController.cs](../../02_Scripts/PuzzleCore/Controller/PuzzleGameController.cs) | `Start`, `Update`, `FixedUpdate`, `SaveReplay`, `GetBattleResult`, `BuildHudSurfaces`, `UpdatePlayHint`, `UpdateScoreUI`, `UpdateTimerUI`, `ShowRoundResult`, `OnClickRetry`, `OnClickLobby` |
+| 보드 공통 계약 | [IPuzzleBoard.cs](../../02_Scripts/PuzzleCore/Module/Board/IPuzzleBoard.cs) | `IPuzzleBoard`, `BoardViewAction` |
+| 3매치 스왑·매칭·낙하·셔플 | [ThreeMatchPuzzleBoard.cs](../../02_Scripts/PuzzleCore/Module/Board/ThreeMatchPuzzleBoard.cs) | `ProcessSwapInput`, `FindMatches`, `ProcessFallingAndFilling`, `FillFromGenerator`, `CheckAndShuffleIfNoMoves`, `MatchTargetsExpanding` |
+| 드래그 링크 성립 기준·연결·해제·낙하·매칭 대상 확장 | [LinkPuzzleBoard.cs](../../02_Scripts/PuzzleCore/Module/Board/LinkPuzzleBoard.cs) | `MinimumLinkLength`, `Input`, `InputEnd`(큐 등록), `FixedUpdate`, `UpdateState`, `ProcessFallingAndFilling`, `FillFromGenerator`, `HasEmptyCell`, `MatchTargetsExpanding` |
+| 탭 매치 연결 블럭 탐색·파괴 | [TapMatchPuzzleBoard.cs](../../02_Scripts/PuzzleCore/Module/Board/TapMatchPuzzleBoard.cs) | `Input`, `InputEnd`(큐 등록), `FixedUpdate`, `UpdateState`, `GetConnectedBlocks`, `FillFromGenerator`, `CheckAndShuffleIfNoMoves`, `MatchTargetsExpanding` |
+| 블럭 상태·입력 플래그·기믹 발화 | [Block.cs](../../02_Scripts/PuzzleCore/Module/Block/Block.cs) | `Block`, `GetInputType`, `FireDestroyed` |
+| 블럭 생성·기믹 부착 | [PuzzleBlockFactory.cs](../../02_Scripts/PuzzleCore/Module/Block/PuzzleBlockFactory.cs) | `PuzzleBlockFactory` |
+| 기믹 계약·호스트·기본 클래스 | [IGimmick.cs](../../02_Scripts/PuzzleCore/Module/Gimmick/IGimmick.cs) | `IGimmick`, `IGimmickHost`, `GimmickBase` |
+| 폭탄 범위·연쇄 파괴 | [BombGimmick.cs](../../02_Scripts/PuzzleCore/Module/Gimmick/BombGimmick.cs) | `Radius`, `OnDestroyed` |
+| 기믹 종류별 생성 | [GimmickFactory.cs](../../02_Scripts/PuzzleCore/Module/Gimmick/GimmickFactory.cs) | `Create` |
+| 공통 파괴·목표 갱신·뷰 액션 등록 | [GimmickUtil.cs](../../02_Scripts/PuzzleCore/Module/Gimmick/GimmickUtil.cs) | `DestroyBlock` |
+| 셀 상태와 블럭 보관 | [PuzzleCell.cs](../../02_Scripts/PuzzleCore/Module/PuzzleCell.cs) | `PuzzleCell` |
+| 바닥 패널 기본 타입 | [PuzzlePanel.cs](../../02_Scripts/PuzzleCore/Module/PuzzlePanel.cs) | `PuzzlePanel`, `NormalPanel` |
+| 점수·콤보·피버·시간 제한·목표 판정·누적 파괴/조작 성공 수 | [ObjectiveManager.cs](../../02_Scripts/PuzzleCore/Module/ObjectiveManager.cs) | `OnMatchEvent`, `OnBlockDestroyed`, `UpdateTimer`, `ShouldFinish`, `IsAllObjectivesCleared`, `GetCollectedCount`, `TotalDestroyedBlocks`, `TotalPlayerMatches`, `IsValidTimeLimit`, `GetTimeLimitFrames`, `RemainingSeconds` |
+| 보드 배치·좌표 변환·뷰 액션 순서·링크 성립 표시·파괴 파편·폭탄 충격파 | [PuzzleBoardView.cs](../../02_Scripts/PuzzleCore/View/PuzzleBoardView.cs) | `DrawBoard`, `Shape`, `GetLocalPos`, `ExecuteBatchMovement`, `UpdateLineRenderer`, `CacheLinkPathIfChanged`, `AnimateLinkTip`, `PlayLinkRing`, `PlayMatchFragments`, `PlayBombWaves` |
 | 블럭 스프라이트·3매치 파괴 전 원색 유지·클릭/이동/낙하/파괴 연출 | [PuzzleBlockView.cs](../../02_Scripts/PuzzleCore/View/PuzzleBlockView.cs) | `UpdateVisual`, `UpdateStateVisual`, `PlayMoveAnimation`, `PlayFallAnimation`, `PlayDestroyAnimation` |
-| 사각·육각 보드 타일과 셀 상태 표시 | [PuzzleCellView.cs](../Assets/02_Scripts/PuzzleCore/View/PuzzleCellView.cs) | `Initialize`, `UpdateVisual` |
-| 입력 충돌체와 블럭 뷰 연결 | [PuzzleBlockCollider.cs](../Assets/02_Scripts/PuzzleCore/PuzzleBlockCollider.cs) | `PuzzleBlockCollider` |
-| 입력 충돌체와 셀 뷰 연결 | [PuzzleCellCollider.cs](../Assets/02_Scripts/PuzzleCore/PuzzleCellCollider.cs) | `PuzzleCellCollider` |
-| 리플레이 보드 생성·프레임 입력 재생·축소 배치 | [ReplayController.cs](../Assets/02_Scripts/PuzzleCore/Controller/ReplayController.cs) | `Initialize`, `AdvanceFrame`, `HasValidResult`, `HasCompatibleBattleRules`, `UpdateStatusPosition`, `AlignToTopRight` |
-| 시드 기반 난수 | [PuzzleRandom.cs](../Assets/02_Scripts/PuzzleCore/Module/PuzzleRandom.cs) | `Next`, `NextDouble`, `SetSeed` |
-| 대전 피벗 충전·활성·콤보 소비 감속 | [PivotMode.cs](../Assets/02_Scripts/Battle/Pivot/PivotMode.cs) | `AdvanceTick`, `Stop`, `GaugeUnits`, `GaugePoints`, `GaugeRatio`, `IsActive`, `ComboCount`, `CurrentDrainPercent` |
-| 피벗 충전량·소비량·콤보 간격 설정 | [PivotSettings.cs](../Assets/02_Scripts/Battle/Pivot/PivotSettings.cs) | `PivotSettings`, `IsValid`, `CopyValidated`, `HasSameRules` |
-| 보드 통계·모드별 효과와 독립 피벗 모듈 연결 | [BattlePivotSession.cs](../Assets/02_Scripts/Battle/Pivot/BattlePivotSession.cs) | `BattlePivotSession`, `AdvanceAfterBoardTick`, `Dispose` |
-| 세 모드 피벗의 이웃 한 겹 추가 파괴 | [LinkPivotEffect.cs](../Assets/02_Scripts/Battle/Pivot/LinkPivotEffect.cs) | `LinkPivotEffect`, `ExpandTargets`, `ExpandSquareTargets`, `ExpandNeighbors` |
+| 사각·육각 보드 타일과 셀 상태 표시 | [PuzzleCellView.cs](../../02_Scripts/PuzzleCore/View/PuzzleCellView.cs) | `Initialize`, `UpdateVisual` |
+| 입력 충돌체와 블럭 뷰 연결 | [PuzzleBlockCollider.cs](../../02_Scripts/PuzzleCore/PuzzleBlockCollider.cs) | `PuzzleBlockCollider` |
+| 입력 충돌체와 셀 뷰 연결 | [PuzzleCellCollider.cs](../../02_Scripts/PuzzleCore/PuzzleCellCollider.cs) | `PuzzleCellCollider` |
+| 리플레이 보드 생성·프레임 입력 재생·축소 배치 | [ReplayController.cs](../../02_Scripts/PuzzleCore/Controller/ReplayController.cs) | `Initialize`, `AdvanceFrame`, `HasValidResult`, `HasCompatibleBattleRules`, `UpdateStatusPosition`, `AlignToTopRight` |
+| 시드 기반 난수 | [PuzzleRandom.cs](../../02_Scripts/PuzzleCore/Module/PuzzleRandom.cs) | `Next`, `NextDouble`, `SetSeed` |
+| 대전 피벗 충전·활성·연속 매칭 회복과 소비 감속 | [PivotMode.cs](../../02_Scripts/Battle/Pivot/PivotMode.cs) | `AdvanceTick`, `Stop`, `GaugeUnits`, `GaugePoints`, `GaugePercent`, `GaugeRatio`, `IsActive`, `ComboCount`, `CurrentDrainPercent` |
+| 피벗 발동 기준·소모 총점·콤보 회복 설정 | [PivotSettings.cs](../../02_Scripts/Battle/Pivot/PivotSettings.cs) | `Capacity`, `DrainCapacity`, `ActiveCapacity`, `RefillPercentPerRapidCombo`, `IsValid`, `CopyValidated`, `HasSameRules` |
+| 보드 통계·모드별 효과와 독립 피벗 모듈 연결 | [BattlePivotSession.cs](../../02_Scripts/Battle/Pivot/BattlePivotSession.cs) | `BattlePivotSession`, `AdvanceAfterBoardTick`, `Dispose` |
+| 세 모드 피벗의 이웃 한 겹 추가 파괴 | [LinkPivotEffect.cs](../../02_Scripts/Battle/Pivot/LinkPivotEffect.cs) | `LinkPivotEffect`, `ExpandTargets`, `ExpandSquareTargets`, `ExpandNeighbors` |
 | 플레이어 피벗 게이지·발동 문구·활성 중 보드 테두리 | [PivotGaugeView.cs](../../02_Scripts/Battle/Pivot/PivotGaugeView.cs), [PuzzleBoardView.cs](../../02_Scripts/PuzzleCore/View/PuzzleBoardView.cs) | `Refresh`, `PlayActivationLabel`, `SetPivotBorderVisible`, `Dispose` |
 
-규칙/좌표/입력 기록 타입과 리플레이 파일 저장은 [DATA.md](DATA.md)의 코드 표를 함께 확인하세요.
+규칙/좌표/입력 기록 타입과 리플레이 파일 저장은 [DATA.md](../../../docs/DATA.md)의 코드 표를 함께 확인하세요.
 
 ## 게임 루프
 
@@ -139,4 +139,4 @@ Finish
 **목표 종류**: `Score` (점수 달성), `CollectBlock` (특정 블럭 수집).
 - 알 수 없는 목표 종류도 미달성으로 판정한다. 현재 플레이용 Rule에는 지원하는 목표만 사용한다.
 
-[뷰 동기화와 리플레이·대전](INGAME-VIEW-AND-BATTLE.md)에서 상세 내용을 확인한다.
+플레이 HUD는 좌상단의 청록 조작 안내, 민트색 시간, 레몬색 점수 배지로 구성한다. 종료하면 HUD를 닫고 민트색 결과 카드에 점수와 재도전·복귀 버튼을 표시한다. [뷰 동기화와 리플레이·대전](../../../docs/INGAME-VIEW-AND-BATTLE.md#스테이지와-90초-대전)

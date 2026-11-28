@@ -11,9 +11,11 @@
 | [../AGENTS.md](../AGENTS.md) | Codex 작업 원칙, 코딩 규칙, 주의사항(Known Pitfalls), 작업별 참고 링크 | 항상 (기본 규칙) |
 | [../CLAUDE.md](../CLAUDE.md) | Claude Code 호환용 기존 가이드 | Claude Code 사용 시 |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | MVC, 데이터 흐름, 리플레이, 게임 흐름, 폴더 구조 | 아키텍처 이해 시 |
-| [LOBBY-DEFENSE.md](LOBBY-DEFENSE.md) | 방어 카드 뽑기·등급, 20×10 숲 전장 캐릭터 전투와 카드 배치 모드, 스테이지 방어 완료·다음 스테이지 진입 조건 | 로비 디펜스와 퍼즐 연동 개발 시 |
-| [LOBBY-CARDS.md](LOBBY-CARDS.md) | 종류별 기본값, 뽑기 보너스와 별, 개별 카드 분해·강화, 화면과 검증 기준 | 방어 카드 수집과 성장 설계 시 |
-| [배틀 리그 사양 초안](LEAGUE.md) | 상시 리그와 로비 프로필 티어, 미정인 집계·시즌 규칙 | 리그 기획 시 |
+| [게임 사양서](SPEC.md) | 로비·인게임·카드 사양 목차와 영역 간 연결 | 게임 규칙을 찾거나 수정할 때 |
+| [구현 현황](IMPLEMENTATION.md) | 로비·인게임·카드의 구현 여부와 확인할 코드 | 사양의 현재 반영 범위를 확인할 때 |
+| [로비 사양서](LOBBY-DEFENSE.md) | 로비 탭, 전장 배치, 자동 방어·보상·스테이지 진행 | 로비 플레이 설계 시 |
+| [인게임 사양서](INGAME-BATTLE.md) | 퍼즐 한 판의 진행·득점·승패, 리플레이 상대, 방어선 연동안 | 인게임 배틀 설계 시 |
+| [카드 사양서](LOBBY-CARDS.md) | 종류별 기본값, 뽑기 보너스와 별, 개별 카드 분해·강화 | 카드 수집과 성장 설계 시 |
 | [CONVENTIONS.md](CONVENTIONS.md) | 코드 리뷰 체크리스트, 위반 예시, 수정 가이드 | 코드 리뷰 및 [호출 시점 커밋 검증](../.agents/skills/review-commit/SKILL.md) 시 |
 | [INGAME.md](INGAME.md) | 게임 루프, 보드 상태, 블럭, 매칭, 뷰 동기화, 애니메이션, 리플레이 | 인게임 퍼즐 작업 시 |
 | [DATA.md](DATA.md) | JSON 구조, GameSpec, Rule/Stage/Replay 데이터, 추가 방법 | 데이터/설정 작업 시 |
@@ -113,7 +115,7 @@
 - 실제 프로젝트 경로는 저장소 루트의 `Assets/02_Scripts/`에서 시작합니다. `IPuzzleBoard.cs`는 `PuzzleCore/Module/Board/`, `PopupReady.cs`는 `UI/Popup/` 아래에 있습니다.
 - `Assets/02_Scripts/`의 C# 파일별 역할은 위에서 연결한 INGAME/DATA/UI/SCENE/SERVER의 코드 표에서 찾습니다. 파일명을 알고 있으면 해당 문서들에서 파일명으로 검색하세요.
 - 하나의 파일에 여러 타입이 있을 수 있습니다. 예: `GameSpec.cs`에 `StageData`/`CellData`, `IGimmick.cs`에 `IGimmickHost`/`GimmickBase`가 함께 정의됩니다.
-- 설계 방향과 예정 콘텐츠는 [ARCHITECTURE.md](ARCHITECTURE.md), 현재 구현 위치는 각 영역의 코드 표, 과거 변경은 [CHANGELOG.md](CHANGELOG.md)에서 확인합니다. 별 재화·랭킹 등 계획을 구현 완료로 해석하지 않습니다.
+- 플레이 규칙과 예정 콘텐츠는 [게임 사양서](SPEC.md), 현재 구현 위치는 각 영역의 코드 표, 과거 변경은 [변경 이력](CHANGELOG.md)에서 확인합니다.
 - 매 작업 완료 전 문서 영향을 점검합니다. 파일 추가·삭제·이동·이름 변경, 주요 타입/메서드 또는 책임·동작·데이터 구조 변경 시 담당 영역의 코드 표와 관련 본문을 같은 작업에서 갱신합니다. 작업 시작 파일이 달라지면 이 문서의 빠른 경로도 갱신합니다.
 - 완료 기준과 보고 방식은 [AGENTS.md의 문서와 코드 동기화 지침](../AGENTS.md#문서와-코드-동기화-매-작업-필수)을 따릅니다. 문서 영향이 없으면 불필요한 수정 대신 그 사유를 보고합니다.
 - 코드 링크는 문서 기준 상대 경로를 사용하고 줄 번호 대신 메서드/타입 이름을 기록합니다. 수정 후 링크 대상 파일과 해당 심볼의 존재를 확인합니다.

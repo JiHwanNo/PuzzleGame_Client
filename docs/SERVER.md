@@ -4,7 +4,7 @@
 
 ## 콘텐츠와 C# 매핑
 
-[전체 작업 지도](MAP.md) · [문서 목록](README.md)
+[전체 작업 지도](MAP.md) · [문서 목록](README.md) · [게임 사양서](SPEC.md) · [구현 현황](IMPLEMENTATION.md)
 
 파일 링크는 이 문서 기준 상대 경로이며, 마지막 열의 이름을 파일 안에서 검색하면 구현 위치를 찾을 수 있습니다.
 
@@ -12,7 +12,7 @@
 |---|---|---|
 | 서버 URL·HTTP 초기화·GET/POST 진입점 | [NetworkManager.cs](../Assets/02_Scripts/Manager/NetworkManager.cs) | `Initialize`, `Get`, `Post` |
 | UnityWebRequest·JSON 직렬화·응답/오류 처리 | [HttpNetworkClient.cs](../Assets/02_Scripts/Manager/Network/HttpNetworkClient.cs) | `CoGet`, `CoPost`, `HandleResponse`, `BuildUrl` |
-| 유저 데이터 레이어 초기화·로드·초기화 해제 | [UserDataManager.cs](../Assets/02_Scripts/Manager/UserDataManager.cs) | `Initialize`, `LoadIdentity`, `ClearAll` |
+| 유저 데이터 레이어 초기화·로드·초기화 해제 | [UserDataManager.cs](../Assets/02_Scripts/Manager/UserDataManager.cs) | `Initialize`, `EnsureIdentityLoaded`, `LoadIdentity`, `ClearAll` |
 | user/identity 요청·실패 시 더미 데이터 | [IdentityLayer.cs](../Assets/02_Scripts/Manager/UserData/IdentityLayer.cs) | `Request`, `CreateDummyData`, `Clear` |
 
 공유 DTO의 소스는 이 저장소의 C# 파일에 없습니다. 클라이언트는 [PuzleBattleShared.dll](../Assets/Plugins/PuzleBattleShared.dll)을 참조하며, DTO 수정은 서버의 공유 프로젝트에서 진행합니다.
@@ -183,7 +183,8 @@ NetworkManager.Instance.Post<RequestDto, ResponseDto>(
 - 서버에서 `PascalCase`로 직렬화하면 클라이언트에서 파싱 실패 → 서버 직렬화 설정 확인 필수.
 
 ### 네트워크 초기화 순서
-- 유저 정보를 요청하려면 `NetworkManager.Initialize()` → `UserDataManager.Initialize()` → `LoadIdentity()` 순서로 호출한다. 현재 타이틀·로비 시작 코드에는 이 호출이 연결되어 있지 않으며, 로컬 대전 상대는 `LobbyMain`이 저장된 리플레이에서 고른다.
+- 로비 상단 바의 `RefreshResources()`는 `UserDataManager.EnsureIdentityLoaded()`로 계정 정보를 요청한다. 두 매니저는 필요할 때 초기화하고 진행 중인 요청과 이미 받은 정보를 재사용한다. 상단 바는 응답의 무료·유료 잼을 합산해 표시한다. [로비 프로필과 재화](LOBBY-DEFENSE.md#로비-화면과-탭)
+- 현재 `LobbyMain.PrepareBattle`은 로컬 리플레이에서 상대를 찾는다. 상시 리그의 배치·승급과 티어 집계는 [배틀 리그 기획](INGAME-BATTLE.md#배틀-리그)을 따른다.
 - `Initialize()` 전 API 호출 시 에러 콜백으로 안내 메시지 반환.
 
 ### 서버 연결 실패 폴백

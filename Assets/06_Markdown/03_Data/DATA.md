@@ -1,187 +1,62 @@
 # PuzleBattleGame 데이터/설정 참고 문서
 
-JSON 규칙, 스테이지, GameSpec, 블럭 데이터 관련 작업 시 참고.
-
----
+게임 규칙은 [게임 사양서](../../../docs/SPEC.md)에서, 데이터 정의와 저장 위치는 [데이터 구현 문서](../../../docs/DATA.md)에서 찾는다. 아래는 Unity 프로젝트에서 사용하는 로드 경로다.
 
 ## 데이터 흐름
 
-[로비 유닛 명단](../../04_Resources/LobbyUnitCatalog.json)은 로비 진입 시 [LobbyUnit.InitializeCatalog](../../02_Scripts/Lobby/LobbyUnit.cs)에서 읽는다. 각 항목의 역할과 프리팹 연결 규칙은 [데이터 매핑](../../../docs/DATA.md#콘텐츠와-c-매핑)을 따른다.
-
-```
-Rule JSON + Stage JSON
-  → AssetManager.LoadAsset<TextAsset>(address)
-    → JsonUtility.FromJson<T>()
-      → StageInjection.MakeGameSpec()
-        → GameSpec { StageData, RuleData, List<BlockData> }
-          → PuzzleGameController.Start() 에서 소비
-            → board.Initialize(gameSpec)
-```
-
-**StageInjection**: 싱글톤. JSON 로드 후 `GetGameSpec()`으로 반환. 파싱 실패 시 `false` 반환 + `_gameSpec = null`. `MakeGameSpec`은 두 가지 오버로드를 제공한다.
-- `MakeGameSpec(ruleAddress, stageAddress)` — 레거시/메인·리플레이 경로. Rule·Stage 둘 다 **Addressable** 에셋(`AssetManager.LoadAsset<TextAsset>`)으로 로드. `PopupReady`(시작/리플레이)가 사용.
-- `MakeGameSpec(ruleAddress, puzzleType, stageId)` — 사이드 스테이지 모드 경로. Rule은 Addressable, Stage는 **`StageStorage`**(Resources/다운로드 경로)로 로드. `DATA_STAGE.md` 참고.
+- 로비는 [유닛 명단](../../04_Resources/LobbyUnitCatalog.json)을 주소 `LobbyUnitCatalog`로 읽고 각 행을 [유닛 정의](../../02_Scripts/Lobby/LobbyUnit.cs)에 연결한다. 종류별 기본값과 저장된 카드 보너스의 관계는 [카드 사양서](../../../docs/LOBBY-CARDS.md)에 있다.
+- [StageInjection](../../02_Scripts/StageMapTool/StageInjection.cs)의 `MakeGameSpec(ruleAddress, stageAddress, mode)`는 규칙과 스테이지 주소를 받아 `GameSpec`을 구성한다. `mode`의 기본값은 Stage이며 대전은 Battle을 지정한다.
+- `MakeGameSpec(ruleAddress, puzzleType, stageId)`는 모드와 번호로 `StageStorage`에 스테이지를 요청한다. `MakeGameSpecFromData`는 맵 툴에서 정규화한 편집 데이터를 메모리로 주입한다.
+- 성공한 `GameSpec`은 `GetGameSpec()`로 인게임 컨트롤러에 전달한다. 로드 또는 검증 실패 시 반환값과 오류 로그를 확인한다.
 
 ### 데이터 타입 주의 (struct vs class)
-| 타입 | 종류 | `== null` 가능 | 비고 |
-|------|------|:---:|------|
-| `GameRuleContainer` | class | O | JSON 파싱 실패 시 null 반환 |
-| `RuleData` | **struct** | X | 파싱 실패 시 기본값(zero) — 컨테이너(`GameRuleContainer`) null 체크로 대체 |
-| `ObjectiveData` | **struct** | X | |
-| `GameSpec` | class | O | |
-| `StageData` | class | O | JSON 파싱 실패 시 null 반환 |
-| `CellData` | class | O | |
-| `BlockData` | class | O | |
-| `InputRecord` | **struct** | X | |
-| `InputEndRecord` | **struct** | X | |
-| `ReplayData` | class | O | |
 
----
+`RuleData`, `ObjectiveData`, `InputRecord`, `InputEndRecord`는 값 타입이다. JSON 파싱 실패 검사는 이를 담는 클래스에서 수행한다. [타입별 표](../../../docs/DATA.md#데이터-타입-주의-struct-vs-class)
 
 ## GameSpec 구조
 
-GameSpec 전체 필드 스키마 트리는 [`DATA_SCHEMA.md`](DATA_SCHEMA.md) 참고.
-
----
+[GameSpec 필드 구조](../../../docs/DATA.md#gamespec-구조)
 
 ## Rule JSON 구조
 
-파일 위치: `Assets/05_Table/Rule/`
-- `ThreeMatchRule.json` — 3매치 규칙
-- `TapMatchRule.json` — 탭 매치 규칙
-- `LinkMatchRule.json` — 링크 매치 규칙
-
-```json
-{
-  "rule": {
-    "ruleId": "ThreeMatch_Quadrangle",
-    "puzzleType": 1,
-    "boardShape": 1,
-    "timeLimit": 0,
-    "objectives": [
-      { "type": 0, "count": 1000 },
-      { "type": 1, "targetId": "100-1", "count": 20 }
-    ]
-  },
-  "blocks": [
-    {
-      "blockId": "100-1",
-      "inputType": [ "Swap", "Touch" ],
-      "destroyType": 2,
-      "life": 1
-    },
-    {
-      "blockId": "200-1",
-      "inputType": [ "Swap", "Touch" ],
-      "destroyType": 51,
-      "life": 1,
-      "gimmickIds": [ "Bomb" ]
-    }
-  ]
-}
-```
-
-> JSON에는 `_comment*` 형태의 설명 필드를 자유롭게 넣을 수 있다. `JsonUtility`는 매칭되지 않는 키를 무시하므로 파싱에 영향 없음.
+규칙 파일 위치, 예제와 피벗 설정의 단위는 [Rule JSON 구조](../../../docs/RULES-AND-STAGES.md#rule-json-구조)를 참고한다.
 
 ### puzzleType 값
-| 값 | 모드 | 보드 클래스 |
-|----|------|------------|
-| 1 | ThreeMatch | ThreeMatchPuzzleBoard |
-| 2 | Link | LinkPuzzleBoard |
-| 3 | TapMatch | TapMatchPuzzleBoard |
+
+[퍼즐 타입과 보드 클래스](../../../docs/RULES-AND-STAGES.md#puzzletype-값)
 
 ### inputType 값 (문자열 목록 → InputType 플래그)
-JSON에는 **가독성을 위해 문자열 목록**으로 두고, 게임 로직에서는 `Block` 생성자가 `Enum.TryParse`로 `InputType` 플래그(int)로 변환한다. 보드는 이 플래그로 조작 가능 여부를 게이팅한다.
 
-| 문자열 | InputType 플래그 | 의미 |
-|--------|:---:|------|
-| `"Swap"` | 1 | 위치 바꾸기 (ThreeMatch) |
-| `"Link"` | 2 | 연결하기 (Link) |
-| `"Touch"` | 4 | 터치(클릭)하기 (TapMatch) |
-
-조합 예: `["Swap","Touch"]` → `Swap|Touch`(5). `inputType`은 조작 방법을, `gimmickIds`는 부착할 기믹을 지정한다.
+[조작 문자열과 플래그](../../../docs/RULES-AND-STAGES.md#inputtype-값-문자열-목록--inputtype-플래그)
 
 ### gimmickIds 값
 
-`["Bomb"]`를 지정하면 `PuzzleBlockFactory`가 폭탄 기믹을 부착한다. 목록을 생략하거나 비워 두면 기믹 없이 생성한다.
-
----
+일반 블럭은 기믹 목록을 비워 두며, 행동 이름은 등록된 기믹 타입과 연결한다. [기믹 연결 방식](../02_Ingame/INGAME_GIMMICK.md)
 
 ## Stage JSON 구조
 
-파일 위치:
-- **레거시/메인**: `Assets/05_Table/Stage/Stage.json` (Addressable 등록 에셋)
-- **모드별 스테이지**: `Assets/Resources/Stage/{모드}/Stage_{번호:000}.json` (예: `Resources/Stage/ThreeMatch/Stage_001.json`). `StageStorage`로 로드. `DATA_STAGE.md` 참고.
-
-```json
-{
-  "stage_id": 1,
-  "stage_width": 8,
-  "stage_height": 8,
-  "cells": [
-    {
-      "x": 0, "y": 0,
-      "block_id": "100-1",
-      "panel_id": 0,
-      "cell_type": 1,
-      "generator_block_ids": []
-    },
-    {
-      "x": 0, "y": 7,
-      "block_id": null,
-      "panel_id": 0,
-      "cell_type": 3,
-      "generator_block_ids": ["100-1", "100-2", "100-3"]
-    }
-  ]
-}
-```
+대전의 기본 스테이지 주소는 `Stage`다. 맵 툴과 모드별 스테이지는 `Assets/Resources/Stage/{모드}/Stage_{번호:000}.json` 경로를 사용한다. [Stage JSON 예제](../../../docs/RULES-AND-STAGES.md#stage-json-구조)
 
 ### cell_type 값
-| 값 | 종류 | 설명 |
-|----|------|------|
-| 0 | Close | 비활성 셀 (블럭 배치 불가) |
-| 1 | Normal | 일반 셀 |
-| 2 | Lock | 잠금 셀 |
-| 3 | Generator | 블럭 생성기 (보통 최상단 행) |
 
----
+[셀 타입과 데이터 값](../../../docs/RULES-AND-STAGES.md#cell_type-값)
 
 ## 새 규칙 추가 방법
 
-1. `Assets/05_Table/Rule/`에 새 JSON 파일 생성 (기존 형식 참고)
-2. `puzzleType`에 새 값 할당
-3. `PuzzleDefine.cs`의 `PuzzleType` 열거형에 값 추가
-4. `IPuzzleBoard` 구현 클래스 작성 (`INGAME.md` 참고)
-5. `PuzzleGameController.Start()`에서 PuzzleType별 분기 추가
-6. Addressable에 JSON 등록
+기존 모드에 규칙을 추가하는 절차와 새 보드 구현을 추가하는 절차는 [규칙 추가 방법](../../../docs/RULES-AND-STAGES.md#새-규칙-추가-방법)에 있다.
 
 ## 새 스테이지 추가 방법
 
-1. 모드별 스테이지: `Assets/Resources/Stage/{모드}/Stage_{번호:000}.json` 생성 (스테이지 맵 툴 권장). 레거시 메인 경로는 `Assets/05_Table/Stage/Stage.json` 수정
-2. `cells` 배열에 보드 크기만큼 셀 데이터 작성
-3. 최상단 행은 `cell_type: 3` (Generator) + `generator_block_ids` 설정
-4. `block_id`로 초기 블럭 배치 (null이면 빈 셀)
-5. `stage_id`는 파일 번호와 일치해야 한다 (맵 툴 검증 규칙)
-
----
+Addressables용 스테이지는 [스테이지 추가 방법](../../../docs/RULES-AND-STAGES.md#새-스테이지-추가-방법)을 따른다. 맵 툴이 저장하는 모드별 파일은 `stage_id`와 파일 번호를 일치시킨다.
 
 ## 스테이지 저장소 / 맵 툴
 
-모드별 스테이지 로드 저장소(`StageStorage`)와 시각 편집 도구(`StageMapTool`)는 [`DATA_STAGE.md`](DATA_STAGE.md) 참고.
-
----
+[StageStorage와 편집기 검증 규칙](DATA_STAGE.md) · [맵 툴 작업 메모](STAGE_MAP_TOOL.md)
 
 ## 새 블럭 추가 방법
 
-1. Rule JSON의 `blocks` 배열에 새 BlockData 추가
-2. `blockId` 고유 값 지정
-3. `inputType` 조작 방법 문자열 목록 설정 (예: `["Swap","Touch"]`)
-4. 기존 기믹은 `gimmickIds`에 이름을 지정한다. 새 행동은 [블럭 기믹 확장 지침](../02_Ingame/INGAME_GIMMICK.md)에 따라 등록한다.
-5. 블럭 스프라이트를 `Assets/04_Resources/Ingame/Block/`에 추가하고 `Block_{blockId}` 주소로 Addressables에 등록한다. 예를 들어 `blockId`가 `200-1`이면 주소는 `Block_200-1`이다.
-
----
+[블럭 데이터·기믹·스프라이트 등록 절차](../../../docs/RULES-AND-STAGES.md#새-블럭-추가-방법)
 
 ## ReplayData JSON 구조
 
-ReplayData JSON 포맷과 필드 표는 [`DATA_SCHEMA.md`](DATA_SCHEMA.md) 참고. 기록/재생 흐름은 `INGAME_REPLAY.md` 참고.
+[저장 필드와 호환 버전](../../../docs/DATA.md#replaydata-json-구조) · [기록과 재생 경로](../02_Ingame/INGAME_REPLAY.md)

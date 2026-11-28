@@ -48,38 +48,21 @@
 
 ### 피벗 게임 데이터
 
-다음 세 파일의 최상위 `pivotSettings`를 수정한다. 이미 등록된 Rule Addressable을 `AssetManager`로 읽으므로 별도 리소스 등록은 필요 없다.
+피벗 동작과 밸런스는 [인게임 사양서](INGAME-BATTLE.md)에 정리한다. 세 규칙은 최상위 `pivotSettings`를 `AssetManager`로 읽고 대전 진입 시 검증한 복사본을 사용한다. 설정값은 [3매치 Rule](../Assets/05_Table/Rule/ThreeMatchRule.json), [링크 Rule](../Assets/05_Table/Rule/LinkMatchRule.json), [탭 매치 Rule](../Assets/05_Table/Rule/TapMatchRule.json)에서 수정한다.
 
-- [ThreeMatchRule.json](../Assets/05_Table/Rule/ThreeMatchRule.json): 3매치
-- [LinkMatchRule.json](../Assets/05_Table/Rule/LinkMatchRule.json): 링크
-- [TapMatchRule.json](../Assets/05_Table/Rule/TapMatchRule.json): 탭 매치
+| 필드 | 저장 단위와 처리 |
+|---|---|
+| `Capacity`, `DrainCapacity`, `DrainPerSecond` | 충전 완료 점수, 활성 게이지 총점, 초당 소비 점수. `DrainCapacity`가 0이거나 누락되면 `Capacity`를 활성 총점으로 사용한다. |
+| `ChargePerBlockUnits`, `ChargeComboStep`, `ChargeBonusPerStepUnits` | `Units`는 점수의 1/100 단위다. 콤보가 한 단계(`ChargeComboStep`) 오를 때마다 블럭당 충전량에 단계 보너스를 더한다. |
+| `DrainReductionPercentPerCombo`, `MinimumDrainPercent` | 빠른 콤보당 기본 소비 속도 감소분(퍼센트포인트)과 최소 소비 비율(퍼센트). |
+| `RefillPercentPerRapidCombo`, `ComboWindowTicks` | 빠른 매칭당 활성 게이지 회복 비율(0~100), 콤보 허용 간격(논리 틱). 회복 비율이 없는 기록은 0을 사용한다. |
+| `LinkNeighborClear`, `SquareNeighborClear` | 육각 링크와 사각 보드 각각의 이웃 추가 파괴 스위치. 기록에서 누락된 필드는 false로 읽는다. |
 
-```json
-"pivotSettings": {
-  "Capacity": 1000,
-  "ChargePerBlockUnits": 400,
-  "ChargeComboStep": 10,
-  "ChargeBonusPerStepUnits": 40,
-  "DrainPerSecond": 167,
-  "DrainReductionPercentPerCombo": 10,
-  "MinimumDrainPercent": 75,
-  "ComboWindowTicks": 50,
-  "LinkNeighborClear": true,
-  "SquareNeighborClear": false
-}
-```
-
-`Capacity`는 최대 점수, `DrainPerSecond`는 초당 소비 점수다. `Units`로 끝나는 충전량은 0.01점 단위이므로 `ChargePerBlockUnits: 400`은 블럭당 4점(10개당 40점)이다. 콤보가 `ChargeComboStep`만큼 증가할 때마다 블럭당 `ChargeBonusPerStepUnits`를 더한다. 현재 JSON에서 10콤보는 블럭당 4.4점, 20콤보는 4.8점이다. 기본 충전량을 바꿀 때 배율을 유지하려면 추가 충전량도 함께 조정한다.
-
-`DrainReductionPercentPerCombo`는 빠른 콤보마다 감소하는 기본 소비 속도의 퍼센트포인트, `MinimumDrainPercent`는 최소 소비 비율이다. `ComboWindowTicks`는 초당 50틱 기준이므로 50은 1초다. 모든 값은 양수이고 소비 비율은 1~100이다. 자세한 판정 규칙은 [피벗 모드](INGAME-VIEW-AND-BATTLE.md#대전-전용-피벗-모드)를 참고한다.
-
-`LinkNeighborClear`는 링크 JSON에서만 true이며, 피벗 중 육각형 링크 경로의 이웃 한 겹을 추가 파괴한다. 3매치·탭 매치는 false다. 이 필드가 없는 기존 리플레이 설정은 false로 읽어 당시 점수와 파괴 범위를 유지한다. 콤보는 유저 조작의 매칭 성공 기준이며 자동 연쇄는 횟수·시간 갱신에서 제외한다.
-
-대전 시작 시 검증한 복사본을 사용하며, 게임 도중 원본 설정을 바꿔도 현재 게임에는 적용하지 않는다. 새 대전은 수정한 JSON을 사용하고 상대 리플레이는 기록된 `pivotSettings`를 우선 사용한다. 기존 기록에 필드가 없을 때만 이전 기본값을 사용한다.
+재생 시에는 `ReplayData.pivotSettings`를 사용하며 스냅샷 전체가 없으면 구형 기본값을 적용한다. [리플레이 저장 형식](DATA.md#replaydata-json-구조)
 
 ### 시간과 좌표 데이터 검증
 
-- `StageInjection`은 Rule 제한 시간을 `ObjectiveManager.IsValidTimeLimit`로 검증한다. NaN·Infinity·음수·int 틱 범위 초과는 로그를 남기고 진입을 중단한다. 0은 무제한이며 대전 실제 제한 시간은 90초다.
+- `StageInjection`은 Rule 제한 시간을 `ObjectiveManager.IsValidTimeLimit`로 검증한다. NaN·Infinity·음수·int 틱 범위 초과는 로그를 남기고 진입을 중단한다. 0은 무제한이며 대전 시간은 `GameSpec.BattleDurationSeconds`를 사용한다.
 - Stage는 양수 `stage_width`/`stage_height`, null이 아닌 `cells`, 각 셀의 `0 <= x < stage_width`, `0 <= y < stage_height`를 요구한다. `HasValidCoordinates`는 일반 로드·리플레이·보드 직접 초기화에서 공통 사용한다.
 - 새 기록은 `numericRuleVersion: 1`을 저장한다. 버전 0은 유효한 입력 범위 내에서 이전 시간·점수 계산을 재현한다. 알 수 없는 버전은 로드와 재생에서 거부한다. 새 버전의 계산 정책은 [수치 경계와 시간 변환](INGAME-VIEW-AND-BATTLE.md#수치-경계와-시간-변환)을 참고한다.
 

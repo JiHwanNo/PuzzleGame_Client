@@ -2,33 +2,33 @@
 
 ## 콘텐츠와 C# 매핑
 
-[전체 작업 지도](MAP.md) · [문서 목록](README.md)
+[전체 작업 지도](../MAP.md) · [문서 목록](../README.md) · [게임 사양서](../../../docs/SPEC.md) · [구현 현황](../../../docs/IMPLEMENTATION.md)
 
 파일 링크는 이 문서 기준 상대 경로이며, 마지막 열의 이름을 파일 안에서 검색하면 구현 위치를 찾을 수 있습니다.
 
 | 찾는 콘텐츠 | 담당 C# 파일 | 주요 메서드·타입·멤버 |
 |---|---|---|
 | SharedScene 로드·씬 전환·플레이어 종료 정리 | [Main.cs](../../02_Scripts/Manager/Main.cs) | `SceneEnum`, `AutoCreate`, `MoveScene`, `CoMoveScene`, `IsMovingScene`, `OnApplicationQuit` |
-| 타이틀 CI 연출·로비 진입 | [TitleMain.cs](../Assets/02_Scripts/Title/TitleMain.cs) | `Start` |
-| 로비 튜토리얼·대전 진입 | [LobbyMain.cs](../Assets/02_Scripts/Lobby/LobbyMain.cs) | `OnClickPlay`, `PrepareBattle` |
-| 에셋 로딩 요청 공유·캐시·해제 | [AssetManager.cs](../Assets/02_Scripts/Manager/AssetManager.cs) | `AssetArguments`, `LoadAsset`, `LoadAssetAsync`, `MarkPersistent`, `ReleaseAll` |
-| 오브젝트 풀 대여·반환·씬 전환 시 정리 | [PoolManager.cs](../Assets/02_Scripts/Manager/PoolManager.cs) | `Get`, `Release`, `ClearIfCreated`, `Clear` |
-| 메인 카메라 접근·중복 처리 | [CameraController.cs](../Assets/02_Scripts/CameraController.cs) | `MainCamera` |
-| 사운드 매니저 틀 (스텁) | [SoundManager.cs](../Assets/02_Scripts/Manager/SoundManager.cs) | `Awake` |
-| 게임 데이터 매니저 틀 (스텁; 실제 사양 로드는 StageInjection) | [GameDataManager.cs](../Assets/02_Scripts/Manager/GameDataManager.cs) | `Awake` |
-| 공통 UI 매니저 틀 (스텁; 팝업/탭은 DomainManager) | [UIManager.cs](../Assets/02_Scripts/Manager/UIManager.cs) | `Awake` |
-| 다국어 매니저 틀 (스텁) | [LocalizationManager.cs](../Assets/02_Scripts/Manager/LocalizationManager.cs) | `Awake` |
+| 타이틀의 젤리 성·로고 연출과 로비 진입 | [TitleMain.cs](../../02_Scripts/Title/TitleMain.cs) | `Start`, `ShowCastle` |
+| 로비 튜토리얼·대전 진입 | [LobbyMain.cs](../../02_Scripts/Lobby/LobbyMain.cs) | `OnClickPlay`, `PrepareBattle` |
+| 에셋 로딩 요청 공유·캐시·해제 | [AssetManager.cs](../../02_Scripts/Manager/AssetManager.cs) | `AssetArguments`, `LoadAsset`, `LoadAssetAsync`, `MarkPersistent`, `ReleaseAll` |
+| 오브젝트 풀 대여·반환·씬 전환 시 정리 | [PoolManager.cs](../../02_Scripts/Manager/PoolManager.cs) | `Get`, `Release`, `ClearIfCreated`, `Clear` |
+| 메인 카메라 접근·중복 처리 | [CameraController.cs](../../02_Scripts/CameraController.cs) | `MainCamera` |
+| 사운드 매니저 틀 (스텁) | [SoundManager.cs](../../02_Scripts/Manager/SoundManager.cs) | `Awake` |
+| 게임 데이터 매니저 틀 (스텁; 실제 사양 로드는 StageInjection) | [GameDataManager.cs](../../02_Scripts/Manager/GameDataManager.cs) | `Awake` |
+| 공통 UI 매니저 틀 (스텁; 팝업/탭은 DomainManager) | [UIManager.cs](../../02_Scripts/Manager/UIManager.cs) | `Awake` |
+| 다국어 매니저 틀 (스텁) | [LocalizationManager.cs](../../02_Scripts/Manager/LocalizationManager.cs) | `Awake` |
 
-게임 씬의 Controller는 [INGAME.md](INGAME.md), 팝업/탭 매니저는 [UI.md](UI.md), 네트워크/유저 데이터 매니저는 [SERVER.md](SERVER.md)에 매핑되어 있습니다.
+게임 씬의 Controller는 [INGAME.md](../02_Ingame/INGAME.md), 팝업/탭 매니저는 [UI.md](../04_UI/UI.md), 네트워크/유저 데이터 매니저는 [SERVER.md](../06_Server/SERVER.md)에 매핑되어 있습니다.
 
 ## 씬 구성
 
 | 씬 | 역할 | 메인 스크립트 |
 |----|------|-------------|
 | SharedScene | 영구 상주 (매니저, 카메라, EventSystem) | Main.cs |
-| TitleScene | CI 연출 후 로비로 이동 | TitleMain.cs |
-| LoadingScene | 씬 전환 시 로딩 화면 | — |
-| LobbyScene | 스테이지 선택, 게임 준비 | LobbyMain.cs |
+| [TitleScene](../../01_Scenes/TitleScene.unity) | 짙은 청록 바탕에 메인 탭의 젤리 성과 크림색·민트색 로고를 표시한 뒤 로비로 이동 | TitleMain.cs |
+| [LoadingScene](../../01_Scenes/LoadingScene.unity) | 씬이 바뀌는 동안 같은 청록 바탕의 오버레이에 ‘불러오는 중…’을 표시 | — |
+| LobbyScene | 방어 전장·하단 탭을 구성하고 플레이 입력으로 퍼즐 진입 준비 | LobbyMain.cs |
 | GameScene | 인게임 퍼즐 플레이 | PuzzleGameController.cs, ReplayController.cs |
 | ToolScene | 스테이지 맵 편집 도구 (에디터 전용) | StageMapToolController.cs |
 
@@ -75,7 +75,7 @@ Main.MoveScene(preScene, nextScene)
 | DomainManager | 팝업/탭 도메인 관리 | `UI.md` 참고 |
 | CameraController | 메인 카메라 싱글톤 | `MainCamera` 정적 접근 |
 
-네트워크와 유저 데이터는 구현되어 있습니다. `NetworkManager` → `HttpNetworkClient`, `UserDataManager` → `IdentityLayer`의 API와 초기화 순서는 [SERVER.md](SERVER.md)를 참고하세요.
+네트워크와 유저 데이터는 구현되어 있습니다. `NetworkManager` → `HttpNetworkClient`, `UserDataManager` → `IdentityLayer`의 API와 초기화 순서는 [SERVER.md](../06_Server/SERVER.md)를 참고하세요.
 
 ### 스텁 (미구현)
 | 매니저 | 예정 역할 |
@@ -151,18 +151,16 @@ Main.MoveScene(preScene, nextScene)
 ## 씬별 초기화 흐름
 
 ### TitleScene
-```
-TitleMain.Start()
-  → DOTween Sequence: CI 텍스트 색상 트윈 (검정 → #00FF80)
-    → 여운 대기
-      → Main.MoveScene(TitleScene, LobbyScene)
-```
+타이틀 연출이 끝나면 로딩 씬을 거쳐 로비로 이동한다. [씬 전환 구현](../../../docs/SCENE.md)
 
 ### LobbyScene
+
+로비 구성과 퍼즐 입장 조건은 [로비 사양서](../../../docs/LOBBY-DEFENSE.md#로비-화면과-탭)와 [인게임 사양서](../../../docs/INGAME-BATTLE.md#한-판의-진행)를 따른다.
+
 ```
 LobbyMain.OnClickPlay()
-  → 최신 호환 대전 기록 선택 (없으면 탭 매치 튜토리얼 준비)
-  → 라이프 1개 사용 → Main.MoveScene(LobbyScene, GameScene)
+  → LobbyMain.PrepareBattle(null)로 GameSpec과 상대 기록 준비
+  → PlayerLives.TrySpend 성공 시 Main.MoveScene(LobbyScene, GameScene)
 ```
 
 ### GameScene
@@ -180,7 +178,7 @@ PuzzleGameController.Start()
 PuzzleGameController.Update()
   → BoardState.Finish 감지
     → ReplayStorage.Save(replayData) — 모드/시간/완료 틱/점수 포함
-      → 결과 화면에서 선택 → 같은 시드·상대로 GameScene 재시작 또는 LobbyScene 이동
+      → 결과 버튼에서 Main.MoveScene 호출 (GameScene 재시작 또는 LobbyScene 이동)
 ```
 
 ## 새 매니저 구현 시 체크리스트

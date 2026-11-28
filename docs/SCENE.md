@@ -2,7 +2,7 @@
 
 ## 콘텐츠와 C# 매핑
 
-[전체 작업 지도](MAP.md) · [문서 목록](README.md)
+[전체 작업 지도](MAP.md) · [문서 목록](README.md) · [게임 사양서](SPEC.md) · [구현 현황](IMPLEMENTATION.md)
 
 파일 링크는 이 문서 기준 상대 경로이며, 마지막 열의 이름을 파일 안에서 검색하면 구현 위치를 찾을 수 있습니다.
 
@@ -151,10 +151,13 @@ TitleMain.Start()
 ```
 
 ### LobbyScene
+
+로비 구성과 퍼즐 입장 조건은 [로비 사양서](LOBBY-DEFENSE.md#로비-화면과-탭)와 [인게임 사양서](INGAME-BATTLE.md#한-판의-진행)를 따른다.
+
 ```
 LobbyMain.OnClickPlay()
-  → 최신 호환 대전 기록 선택 (없으면 탭 매치 튜토리얼 준비)
-  → 라이프 1개 사용 → Main.MoveScene(LobbyScene, GameScene)
+  → LobbyMain.PrepareBattle(null)로 GameSpec과 상대 기록 준비
+  → PlayerLives.TrySpend 성공 시 Main.MoveScene(LobbyScene, GameScene)
 ```
 
 ### GameScene
@@ -172,7 +175,7 @@ PuzzleGameController.Start()
 PuzzleGameController.Update()
   → BoardState.Finish 감지
     → ReplayStorage.Save(replayData) — 모드/시간/완료 틱/점수 포함
-      → 결과 화면에서 선택 → 같은 시드·상대로 GameScene 재시작 또는 LobbyScene 이동
+      → 결과 버튼에서 Main.MoveScene 호출 (GameScene 재시작 또는 LobbyScene 이동)
 ```
 
 ## 새 매니저 구현 시 체크리스트

@@ -32,7 +32,7 @@
 |--------|------|
 | `StageMapToolState` | 현재 편집 상태(퍼즐 타입, `StageId`, `RuleAddress`, `StageData`, `Brush`) 보유. `PaintCell(x,y)`로 선택 셀에 브러시 적용, `GetCell(x,y)` 조회 |
 | `StageMapCellBrush` | 셀에 칠할 값(`cellType`, `blockId`, `panelId`, `generatorBlockIds`). `CopyFrom`으로 값 복사 |
-| `StageMapJsonRepository` | StageData JSON 로드/저장. `LoadOrCreate`(없으면 기본 8×8 생성, 최상단 행 Generator), `SaveToResources`(`Application.dataPath/Resources/Stage/{모드}/`에 저장 후 AssetDatabase.Refresh), `SaveToDownloaded`, `CreateDefaultStage`. 저장 시 셀을 (y, x) 순으로 정렬해 diff 안정화 |
+| `StageMapJsonRepository` | `LoadOrCreate`가 저장 파일을 읽고, 없으면 `CreateEmptyStage`로 빈 9×9 편집 맵을 만든다. `SaveToResources`는 Resources의 모드별 폴더, `SaveToDownloaded`는 다운로드 폴더에 저장한다. 저장 시 셀을 (y, x) 순으로 정렬한다. |
 | `StageMapValidator` | 저장 전 정합성 검증 → `StageMapValidationResult` |
 | `StageMapValidationResult` | `errors`/`warnings` 목록, `IsValid()`(오류 0개) |
 

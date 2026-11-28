@@ -2,32 +2,33 @@
 
 ## 콘텐츠와 C# 매핑
 
-[전체 작업 지도](MAP.md) · [문서 목록](README.md)
+[전체 작업 지도](../MAP.md) · [문서 목록](../README.md) · [게임 사양서](../../../docs/SPEC.md) · [구현 현황](../../../docs/IMPLEMENTATION.md)
 
 | 찾는 콘텐츠 | 담당 C# 파일 | 주요 메서드·타입·멤버 |
 |---|---|---|
-| 로비 상단 재화·프로필, 상점 카드 뽑기·개별 카드 인벤토리·20×10 전장 배치 모드 | [LobbyDefenseBoard.cs](../../02_Scripts/Lobby/LobbyDefenseBoard.cs) · [LobbyNavigation.cs](../../02_Scripts/Lobby/LobbyNavigation.cs) · [LobbyUnit.cs](../../02_Scripts/Lobby/LobbyUnit.cs) · [LobbyDefenseView.cs](../../02_Scripts/Lobby/LobbyDefenseView.cs) · [전장 캐릭터 연출](../../02_Scripts/Lobby/LobbyDefenseView.Combat.cs) | `BuildResourceBar`, `RefreshProfile`, `AnimateCombat`, `InitializeCatalog`, `DrawCard`, `RefreshCatalog`, `PlaceCard`, `StartNextAttempt`, `BeginPlacement`, `SelectCard`, `TryRestoreLayout` |
-| 미배치 카드 가로 목록·보유 카드 3열 스크롤·별 등급·카드 전체 클릭과 확대 팝업 | [LobbyNavigation.Inventory.cs](../../02_Scripts/Lobby/LobbyNavigation.Inventory.cs) · [LobbyCardPortrait.cs](../../02_Scripts/Lobby/LobbyCardPortrait.cs) | `RefreshPlacementCards`, `BuildInventoryList`, `BindOwnedArt`, `InspectCard`, `ApplyDetailZoom`, `PlaySpecial` |
-| 팝업/탭 스택·뒤로 가기·전체 닫기 | [DomainManager.cs](../Assets/02_Scripts/Manager/DomainManager.cs) | `OpenPopup`, `OpenTab`, `Back`, `CloseAll` |
-| 팝업/탭 공통 계약 | [IDomainNode.cs](../Assets/02_Scripts/Manager/IDomainNode.cs) | `IDomainNode` |
-| 팝업 생성·파괴·씬별 등록 | [PopupController.cs](../Assets/02_Scripts/Manager/PopupController.cs) | `CreatePopup`, `DestroyPopup` |
-| 팝업 열기/닫기 생명주기·애니메이션 | [PopupBase.cs](../Assets/02_Scripts/Manager/PopupBase.cs) | `Open`, `Close`, `OpenRoutine`, `CloseRoutine` |
-| 팝업 버튼 처리용 기반 클래스 | [PopupHandler.cs](../Assets/02_Scripts/Manager/PopupHandler.cs) | `ClosePopup`, `BackPopup` |
-| 탭 검색·활성화·비활성화 | [TabController.cs](../Assets/02_Scripts/Manager/TabController.cs) | `ActivateTab`, `DeactivateTab` |
-| 탭 생명주기·애니메이션 확장 | [TabBase.cs](../Assets/02_Scripts/Manager/TabBase.cs) | `Activate`, `Deactivate`, `ActivateAnimation`, `DeactivateAnimation` |
-| Inspector 버튼 콜백과 젤리 패널 표면 | [UIButton.cs](../Assets/02_Scripts/UI/UIButton.cs) | `OnClickEvent`, `LagoonUI.Surface` |
-| 스테이지·90초 대전 준비·슬롯 연출·게임 진입 | [PopupReady.cs](../Assets/02_Scripts/UI/Popup/PopupReady.cs) | `ConfigureBattle`, `OnClickStart`, `SpinAndStart`, `OnClickClose` |
-| 로비 튜토리얼·대전 진입 | [LobbyMain.cs](../Assets/02_Scripts/Lobby/LobbyMain.cs) | `OnClickPlay`, `PrepareBattle` |
-| 준비 팝업 라이프·오프라인 충전 | [PlayerLives.cs](../Assets/02_Scripts/Lobby/PlayerLives.cs) | `GetRemaining`, `TrySpend` |
-| Shared 공용 팝업 등록 | [SharedPopupController.cs](../Assets/02_Scripts/Manager/SharedPopupController.cs) | `ControllerName` |
-| 로비 팝업 등록·로비 직접 실행 시 매니저 대기 | [LobbyPopupController.cs](../Assets/02_Scripts/Lobby/LobbyPopupController.cs) | `ControllerName`, `RegisterWhenReady` |
-| 게임 팝업 등록 | [GamePopupController.cs](../Assets/02_Scripts/PuzzleCore/Controller/GamePopupController.cs) | `ControllerName` |
-| 로비 탭 컴포넌트 (TabBase 상속) | [LobbyTabController.cs](../Assets/02_Scripts/LobbyTabController.cs) | `LobbyTabController` |
-| 대전 전용 피벗 충전·활성 게이지 | [PivotGaugeView.cs](../Assets/02_Scripts/Battle/Pivot/PivotGaugeView.cs) | `PivotGaugeView`, `Refresh`, `Dispose` |
+| 로비 공통 상단 재화·프로필·탭 선택·상점 카드 뽑기·개별 카드 인벤토리·20×10 전장 배치 모드 | [LobbyDefenseBoard.cs](../../02_Scripts/Lobby/LobbyDefenseBoard.cs) · [LobbyNavigation.cs](../../02_Scripts/Lobby/LobbyNavigation.cs) · [LobbyUnit.cs](../../02_Scripts/Lobby/LobbyUnit.cs) · [LobbyDefenseView.cs](../../02_Scripts/Lobby/LobbyDefenseView.cs) · [전장 캐릭터 연출](../../02_Scripts/Lobby/LobbyDefenseView.Combat.cs) | `BuildResourceBar`, `LayoutResourceBar`, `RefreshResources`, `RefreshProfile`, `BuildPage`, `ShowSelectedTab`, `UpdateMotionIndicator`, `AnimateCombat`, `InitializeCatalog`, `DrawCard`, `RefreshCatalog`, `PlaceCard`, `StartNextAttempt`, `BeginPlacement`, `SelectCard`, `TryRestoreLayout` |
+| 인벤토리 3열·배치 가로 목록의 별·합산 능력치, 상세의 등급 구간과 기본·뽑기 보너스·합계 | [LobbyNavigation.Inventory.cs](../../02_Scripts/Lobby/LobbyNavigation.Inventory.cs) · [LobbyCardPortrait.cs](../../02_Scripts/Lobby/LobbyCardPortrait.cs) | `BuildInventoryList`, `RefreshPlacementCards`, `BindOwnedArt`, `InspectCard`, `BuildDetailStats`, `BindDetailState`, `ApplyDetailZoom`, `PlaySpecial` |
+| 팝업/탭 스택·뒤로 가기·전체 닫기 | [DomainManager.cs](../../02_Scripts/Manager/DomainManager.cs) | `OpenPopup`, `OpenTab`, `Back`, `CloseAll` |
+| 팝업/탭 공통 계약 | [IDomainNode.cs](../../02_Scripts/Manager/IDomainNode.cs) | `IDomainNode` |
+| 팝업 생성·파괴·씬별 등록 | [PopupController.cs](../../02_Scripts/Manager/PopupController.cs) | `CreatePopup`, `DestroyPopup` |
+| 팝업 열기/닫기 생명주기·애니메이션 | [PopupBase.cs](../../02_Scripts/Manager/PopupBase.cs) | `Open`, `Close`, `OpenRoutine`, `CloseRoutine` |
+| 팝업 버튼 처리용 기반 클래스 | [PopupHandler.cs](../../02_Scripts/Manager/PopupHandler.cs) | `ClosePopup`, `BackPopup` |
+| 탭 검색·활성화·비활성화 | [TabController.cs](../../02_Scripts/Manager/TabController.cs) | `ActivateTab`, `DeactivateTab` |
+| 탭 생명주기·애니메이션 확장 | [TabBase.cs](../../02_Scripts/Manager/TabBase.cs) | `Activate`, `Deactivate`, `ActivateAnimation`, `DeactivateAnimation` |
+| 공용 버튼 입력·젤리 패널·상태 배지 | [UIButton.cs](../../02_Scripts/UI/UIButton.cs) | `UIButton.OnClickEvent`, `LagoonUI.Surface`, `LagoonUI.Backplate` |
+| 대전 안내·타이머·점수·결과 카드 | [PuzzleGameController.cs](../../02_Scripts/PuzzleCore/Controller/PuzzleGameController.cs) | `BuildHudSurfaces` |
+| 스테이지·90초 대전 준비·슬롯 연출·게임 진입 | [PopupReady.cs](../../02_Scripts/UI/Popup/PopupReady.cs) | `ConfigureBattle`, `OnClickStart`, `SpinAndStart`, `OnClickClose` |
+| 로비 튜토리얼·대전 진입 | [LobbyMain.cs](../../02_Scripts/Lobby/LobbyMain.cs) | `OnClickPlay`, `PrepareBattle` |
+| 준비 팝업 라이프·오프라인 충전 | [PlayerLives.cs](../../02_Scripts/Lobby/PlayerLives.cs) | `GetRemaining`, `TrySpend` |
+| Shared 공용 팝업 등록 | [SharedPopupController.cs](../../02_Scripts/Manager/SharedPopupController.cs) | `ControllerName` |
+| 로비 팝업 등록·로비 직접 실행 시 매니저 대기 | [LobbyPopupController.cs](../../02_Scripts/Lobby/LobbyPopupController.cs) | `ControllerName`, `RegisterWhenReady` |
+| 게임 팝업 등록 | [GamePopupController.cs](../../02_Scripts/PuzzleCore/Controller/GamePopupController.cs) | `ControllerName` |
+| 로비 탭 컴포넌트 (TabBase 상속) | [LobbyTabController.cs](../../02_Scripts/Lobby/LobbyTabController.cs) | `LobbyTabController` |
+| 대전 전용 피벗 충전·활성 게이지 | [PivotGaugeView.cs](../../02_Scripts/Battle/Pivot/PivotGaugeView.cs) | `PivotGaugeView`, `Refresh`, `Dispose` |
 
-대전 타이머 아래에 피벗 게이지와 발동 문구를 표시한다. 피벗이 활성인 동안 보드 바깥의 금빛 테두리(링크는 엇갈린 육각 셀의 외곽선)가 은은하게 맥동하며, 종료하면 꺼진다. 조작 안내와 목표는 화면 왼쪽 위에 배치해 플레이 보드와 상대 보드의 자리를 비운다.
+대전 타이머 아래에 피벗 충전율과 발동 중 잔량을 0~100%로 표시한다. 피벗이 활성인 동안 보드 바깥의 금빛 테두리(링크는 엇갈린 육각 셀의 외곽선)가 은은하게 맥동하며, 종료하면 꺼진다. 조작 안내와 목표는 화면 왼쪽 위에 배치해 플레이 보드와 상대 보드의 자리를 비운다.
 
-대전 시작은 현재 콤보 판정 버전과 Rule JSON의 피벗 설정이 일치하는 완주 기록만 상대로 선택한다. 호환되는 상대가 없으면 첫 기록 도전으로 진입한다. 이전 규칙의 리플레이는 재생할 수 있지만 승패 비교에서는 제외한다.
+상대 기록의 선택·호환 조건과 재생 실패 시 판정은 [인게임 사양서](../../../docs/INGAME-BATTLE.md#현재-승패와-기록)를 따른다.
 
 상대 탐색 중 동일 Rule/Stage 데이터는 요청 내에서 재사용하며, 캐시된 후보를 선택하면 실제 씬 주입 데이터도 해당 후보로 맞춘다. 상대 상태 UI는 표시할 상태·남은 초·점수·피벗 수치가 바뀔 때만 문자열을 생성한다.
 
@@ -172,16 +173,16 @@ Inspector에서 설정하는 범용 버튼 컴포넌트.
 | SharedPopupController | `"Shared"` | SharedScene (공용 팝업: 네트워크 에러 등) |
 | LobbyPopupController | `"Lobby"` | LobbyScene |
 | GamePopupController | `"Game"` | GameScene |
-| LobbyTabController | — | Scripts 루트 (TabBase 상속) |
+| LobbyTabController | — | Lobby 폴더 (TabBase 상속) |
 
 ## 팝업 추가 방법 (체크리스트)
 
-1. `Assets/03_Prefab/UI/Popup/`에 프리팹을 만들고 같은 객체에 PopupBase와 PopupHandler 서브클래스를 붙인다. PopupBase의 `_dimBackground`, `_contentPanel`을 연결한다.
-2. 주소 `Popup/{팝업이름}`을 등록하고 UIButton의 `_root`와 `_callbackName`에 핸들러와 메서드명을 지정한다. `DomainManager.Instance.OpenPopup("팝업이름")`으로 연다.
+1. `Assets/Resources/Prefab/UI/Popup/`에 프리팹을 만들고 같은 객체에 PopupBase와 PopupHandler 서브클래스를 붙인다. PopupBase의 `_dimBackground`, `_contentPanel`을 연결한다.
+2. UIButton의 `_root`와 `_callbackName`에 핸들러와 메서드명을 지정한다. `DomainManager.Instance.OpenPopup("팝업이름")`으로 연다.
 
 ## 사이드 스테이지 팝업
 
-사이드 스테이지 팝업 흐름은 `UI_SIDE_STAGE.md` 참고.
+제안된 모드별 목록 화면과 팝업 구성은 [사이드 스테이지 UI](UI_SIDE_STAGE.md)에 정리했다.
 
 ## 탭 추가 방법 (체크리스트)
 
@@ -190,11 +191,9 @@ Inspector에서 설정하는 범용 버튼 컴포넌트.
 
 ## 준비 팝업의 플레이 진입
 
-릴의 세 칸 구성과 생성 프롬프트는 [슬롯 스타일](ART-STYLE.md#준비-팝업-슬롯), 배경 이미지와 글자색은 [준비 팝업 패널](ART-STYLE.md#준비-팝업-패널)을 참고한다.
+릴의 세 칸 구성과 생성 프롬프트는 [슬롯 스타일](../../../docs/ART-STYLE.md#준비-팝업-슬롯)에, 배경 이미지와 글자색은 [준비 팝업 패널](../../../docs/ART-STYLE.md#준비-팝업-패널)에 정리했다.
 
-- **플레이** 옆 방패로 배치 모드를 연다. 하단 가로 목록에서 미배치 카드를 누르면 금색 테두리가 켜진다. 배치 가능한 셀을 누르면 그 카드가 즉시 배치·저장되고 목록에서 빠진다. 다른 카드를 이어서 놓거나 **완료**로 돌아간다. 일반 로비에서는 배치한 캐릭터의 발사와 이동 중인 적의 피격이 숲 공터에 보인다. 완전 방어 후 스테이지명 옆 **다음 스테이지**로 진행한다. 그 아래 중앙의 **플레이** 버튼으로 퍼즐에 진입한다. 최신 호환 완주 기록이 있으면 같은 규칙·스테이지·시드로 상대 보드를 재생한다.
-- 라이프는 최초 5개이며 최대 5개까지 30분마다 1개씩 회복한다. 완충 예정 UTC 시각을 PlayerPrefs에 보관해 앱 종료 중에도 충전한다. 로비에서 튜토리얼 또는 대전 준비가 성공한 뒤 진입 시 1개를 소비한다. 잔량이 0이면 START를 비활성화하고 다음 충전까지 남은 시간을 표시한다.
-- 호환 기록이 없으면 탭 매치 조작 안내가 있는 90초 튜토리얼을 시작한다. 시간 종료 시 저장한 첫 기록을 다음 대전에서 사용한다.
-- 게임 결과 화면의 `다시 도전`은 같은 규칙·시드·상대로 새 판을 시작하고, `로비로`는 모드 선택으로 돌아간다.
-- 로비 버튼은 `LobbyScene`에서 `UIButton` 메시지로 `LobbyMain.OnClickPlay`를 호출한다.
-- 대전 점수 비교와 상대 상태 표시는 `GameScene.unity`에 연결된 TMP UI이며 상세는 [INGAME-VIEW-AND-BATTLE.md](INGAME-VIEW-AND-BATTLE.md#스테이지와-90초-대전)를 참고한다.
+- 로비 탭·프로필·재화·배치 조작은 [로비 사양서](../../../docs/LOBBY-DEFENSE.md)를, 인벤토리·배치 목록·상세 화면의 카드 정보는 [카드 사양서](../../../docs/LOBBY-CARDS.md#화면에-표시할-정보)를 따른다.
+- 상단 바의 `RefreshResources`는 라이프·방어 보드의 골드·계정의 무료 및 유료 잼 합계를 표시한다. 계정 정보를 기다리는 동안 잼은 대시로 표시한다. `PlayerLives`는 완충 예정 UTC 시각을 PlayerPrefs에 보관한다.
+- 로비의 플레이 버튼은 `UIButton`을 통해 `LobbyMain.OnClickPlay`를 호출한다. 준비 팝업을 열었을 때는 `PopupReady.RefreshLives`가 START 활성 여부와 충전 시간을 갱신하고 `SpinAndStart`가 추첨한 모드를 준비한다. [첫 판과 대전 진입](../../../docs/INGAME-BATTLE.md#한-판의-진행)
+- 대전 점수와 결과 버튼은 `GameScene`에 연결된다. `로비로` 버튼은 `LobbyScene`을 연다. [대전 HUD와 결과 표시](../../../docs/INGAME-VIEW-AND-BATTLE.md#스테이지와-90초-대전)

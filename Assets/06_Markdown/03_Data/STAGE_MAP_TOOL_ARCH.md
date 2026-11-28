@@ -13,7 +13,7 @@ ToolScene(에디터 전용)의 스테이지 맵 편집기 아키텍처와 구현
 
 ### 편집 모델 (선택 + 인스펙터)
 - 맵 미로드 시 **모든 칸이 빈 `+`**(최대 9×9). `+` 클릭 → 셀 생성(`Normal`). 생성된 셀 클릭 → 선택(하이라이트) → **인스펙터로 편집**(블럭/판넬/셀 상태변화/삭제→`+`).
-- **빈 칸 `+` ≡ `CellType.Close`**: 편집 중엔 `cells` 부재(존재=셀), 저장 시 9×9 전 좌표를 채우되 빈 칸은 `Close`로 내보낸다(인게임 로더 호환). 로드 시 `Close`/부재 → `+`.
+- 빈 칸은 편집할 때 `+`로 표시한다. 저장할 때는 배치한 셀의 범위로 맵을 자르고 그 안의 빈 칸을 `CellType.Close`로 채운다. 육각 맵의 가로 이동량은 짝수로 맞춰 열의 이웃 관계를 보존한다. [StageMapNormalizer](../../02_Scripts/StageMapTool/Core/StageMapNormalizer.cs)
 - **보드 모양**: `PuzzleType.Link`면 헥사(Even-Q Flat-Top), 그 외 사각. 짝수 열 반 칸 아래(인게임 `PuzzleBoardView` 규칙).
 
 ---

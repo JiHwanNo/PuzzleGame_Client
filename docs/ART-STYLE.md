@@ -2,16 +2,36 @@
 
 퍼즐 조각 원본은 [Block](../Assets/04_Resources/Ingame/Block), 보드 타일·게이지·팝업 등 다른 게임 이미지는 [Images](../Assets/04_Resources/Images)에 둔다.
 
+## 게임 아이콘 PNG 색인
+
+색인은 현재 게임에서 쓰는 원본 PNG를 화면별로 모은 그림이다. 아틀라스는 게임에서 자르는 칸을 기준으로 나눴고, 재화 바는 같은 행의 캡슐과 메달을 겹쳤다. 작업용 원본 20장은 압축을 풀면 프로젝트와 같은 `Assets/04_Resources/` 경로에서 찾을 수 있다. [원본 PNG 20장 ZIP](art/GameIconOriginals.zip)
+
+ZIP과 색인은 문서 정리 당시 작업본의 스냅샷이다. START 버튼, 팝업 닫기, 카드 상세 뒤로 가기, 카드 아이콘 아틀라스에는 기준 커밋 `f1d4c0e` 이후의 로컬 시안 적용분이 들어 있다.
+
+| 로비·카드 | 퍼즐·전투 UI |
+|---|---|
+| [![로비 하단 다섯 탭, 카드·배치, 재화, 습격대와 투사체](art/LobbyIconIndex.png)](art/LobbyIconIndex.png) | [![블럭 여섯 종과 타일, 준비 팝업과 피벗 게이지](art/BattleIconIndex.png)](art/BattleIconIndex.png) |
+
+| 그룹 | 원본 PNG |
+|---|---|
+| 하단 탭·상단 재화 | [다섯 탭](../Assets/04_Resources/Images/LobbyNavigation.png) · [라이프·골드·잼 캡슐과 메달](../Assets/04_Resources/Images/LobbyResourceBar.png) |
+| 카드·전장 | [은별·금별·돋보기·마비 트랩](../Assets/04_Resources/Images/LobbyCardIcons.png) · [상세 뒤로 가기](../Assets/04_Resources/Images/LobbyCardBack.png) · [배치](../Assets/04_Resources/Images/LobbyPlaceIcon.png) · [습격대·투사체](../Assets/04_Resources/Images/LobbyRaiders.png) |
+| 보드 블럭 | [빨강](../Assets/04_Resources/Ingame/Block/Block_100-1.png) · [파랑](../Assets/04_Resources/Ingame/Block/Block_100-2.png) · [주황](../Assets/04_Resources/Ingame/Block/Block_100-3.png) · [초록](../Assets/04_Resources/Ingame/Block/Block_100-4.png) · [보라](../Assets/04_Resources/Ingame/Block/Block_100-5.png) · [폭탄](../Assets/04_Resources/Ingame/Block/Block_200-1.png) |
+| 보드 타일·피벗 | [사각 타일](../Assets/04_Resources/Images/LagoonSquare.png) · [육각 타일](../Assets/04_Resources/Images/LagoonHex.png) · [별 장식 프레임](../Assets/04_Resources/Images/PivotGaugeFrame.png) · [채움](../Assets/04_Resources/Images/PivotGaugeFill.png) |
+| 공용 버튼·준비 팝업 | [기본 버튼](../Assets/04_Resources/Images/Btn_MainButton_Yellow.Png) · [START](../Assets/04_Resources/Images/Btn_MainButton_Sky.Png) · [닫기](../Assets/04_Resources/Images/Icon_PictoIcon_Close01.png) · [슬롯 릴](../Assets/04_Resources/Images/ReadyReel.png) |
+
+캐릭터의 자세와 크기를 비교할 때는 [새싹거북 방향·동작 미리보기](art/lobby-units/LobbyTurtle-preview.png), [블럭과 동물 크기 비교](art/lobby-units/Puzzle-unit-scale.png), [전체 유닛 원화](art/lobby-units/LobbyRoster.png)를 사용한다.
+
 ## 화면별 UI 기준
 
-타이틀·로비·게임·공용 팝업 Canvas의 기준 해상도는 세로 **800 × 1422**다. Canvas Scaler는 `Scale With Screen Size`이며 너비에 맞춘다. 아래 글자 크기는 해당 씬이나 프리팹의 TMP 설정값이다.
+타이틀·로비·게임·공용 팝업 Canvas의 기준 해상도는 세로 **800 × 1422**다. Canvas Scaler는 `Scale With Screen Size`이며 너비에 맞춘다. 아래 글자 크기는 해당 씬이나 프리팹의 TMP 설정값이다. 화면별 플레이 규칙의 원문은 [게임 사양서](SPEC.md)에서 확인한다.
 
 | 작업할 화면 | 색과 글자 위계 | 기준 리소스 |
 |---|---|---|
-| 타이틀 | 영문 CI ‘NEVER LAND’는 밝은 민트색 `#00FF80`, 크기 52의 `font_En`을 쓴다. | [TitleScene](../Assets/01_Scenes/TitleScene.unity) |
-| 로비 | 하단 탭은 청록 바탕과 크림색 글자, 선택한 탭은 민트 받침과 짙은 글자를 쓴다. 전장 아래에는 레몬색 플레이 버튼과 방패 배치 버튼을 나란히 놓고 선택한 카드는 금색 테두리로 표시한다. | [LobbyScene](../Assets/01_Scenes/LobbyScene.unity) · [다섯 탭 아이콘](../Assets/04_Resources/Images/LobbyNavigation.png) |
-| 준비 팝업 | 버터색 패널 위에 고동색 `#493128` 글자를 올린다. 제목 60, 모드 안내 30, 라이프 27 순으로 읽히며 START는 하늘색으로 구분한다. | [PopupReady](../Assets/Resources/Prefab/UI/Popup/PopupReady.prefab) · [한글 TMP 폰트](../Assets/Resources/Font/font_Ko.asset) |
-| 인게임 HUD·결과 | 점수와 타이머는 흰색 36, 리플레이 상태는 흰색 27이다. 대전 피벗은 타이머 아래에 같은 폰트로 크기 24의 라벨을 붙인다. | [GameScene](../Assets/01_Scenes/GameScene.unity) · [PivotGaugeView](../Assets/02_Scripts/Battle/Pivot/PivotGaugeView.cs) |
+| 타이틀·로딩 | 짙은 청록 바탕에 로비의 파란 성탑과 크림색에서 민트색으로 이어지는 72pt 영문 로고가 나타난다. 씬을 바꾸는 동안 같은 색 바탕에 로딩 문구를 띄운다. | [TitleScene](../Assets/01_Scenes/TitleScene.unity) · [LoadingScene](../Assets/01_Scenes/LoadingScene.unity) |
+| 로비 | 하단 탭은 청록 바탕과 크림색 글자, 선택한 탭은 민트 받침과 짙은 글자를 쓴다. 전장 아래에는 레몬색 플레이 버튼과 방패 배치 버튼을 나란히 놓고 상점·인벤토리·옵션에서는 연한 민트 바탕으로 전환한다. | [LobbyScene](../Assets/01_Scenes/LobbyScene.unity) · [다섯 탭 아이콘](../Assets/04_Resources/Images/LobbyNavigation.png) |
+| 준비 팝업 | 버터색 패널 안에서 진청록 제목(52), 안내(29), 민트 라이프 배지(26)를 읽는다. START는 하늘색, 닫기는 산호색이다. | [PopupReady](../Assets/Resources/Prefab/UI/Popup/PopupReady.prefab) · [한글 TMP 폰트](../Assets/Resources/Font/font_Ko.asset) |
+| 인게임 HUD·결과 | 청록 바탕에 남은 시간은 민트, 점수는 레몬 배지로 구분한다. 결과 카드도 민트색이며 재도전은 노랑, 로비 복귀는 하늘색이다. | [GameScene](../Assets/01_Scenes/GameScene.unity) · [피벗 게이지](../Assets/02_Scripts/Battle/Pivot/PivotGaugeView.cs) |
 | 로비 디펜스 | 배치 모드의 20×10 격자는 빈 셀을 잔디, 배치된 셀을 흙으로 그린다. 일반 전투는 연속된 숲 공터 위에 유닛과 흙 발판을 표시한다. 현재 경로는 청록색 `#1DA9B9`, 배치 미리보기는 금색 `#FFDC55`으로 구별한다. 적은 정찰 여우·병사 멧돼지·호위 오소리로 구분하며, 입구와 출구는 각각 연두색과 연보라색이다. | [로비 디펜스 기획](LOBBY-DEFENSE.md) |
 
 로비 하단 탭과 플레이·배치 버튼의 개편 기준으로 [라군 젤리 A안](art/LobbyUI-LagoonJelly.png)을 선택했다. 아이콘은 퍼즐 블럭처럼 모서리를 둥글게 잡고 왼쪽 위에 밝은 반사광을 둔다. 짙은 청록 탭 바 위에서 선택한 탭은 밝은 민트색으로 강조하고, 플레이 버튼에는 레몬색을 쓴다. 상단 재화 바는 젤리 캡슐 D안으로 확정했다. 짙은 청록 바탕에 크림색 숫자를 놓고, 하트·골드·잼 테두리를 각각 메달과 같은 분홍·금색·하늘색으로 표시한다. 바로 아래 왼쪽에 닉네임 첫 글자와 이름을 담은 프로필을 배치한다. [재화 바 아틀라스](../Assets/04_Resources/Images/LobbyResourceBar.png)
@@ -25,7 +45,7 @@ ImageGen으로 제작한 일반 전투 배경은 나무가 화면 가장자리�
 
 - **숲 배경** — Portrait 9:16 game background illustration, lush blue-green forest clearing for a mobile casual cartoon animal tower defense. Hand-painted 2D storybook game art, rounded oak and fern silhouettes framing the sides, deep teal shaded foreground leaves, layered mint and azure distant trees, shafts of soft morning light in an airy clearing. Near the lower middle a small sunlit grassy clearing for a hero character to stand. Calm low-detail center where gameplay UI will overlay. Edge framing and foliage richness, no busy detail in center. Edge to edge, no text, no lettering, no characters, no board or grid, no icons, no border, no watermark.
 - **잔디·흙** — A horizontal 2:1 atlas of exactly TWO equal square top-down ground material textures for a hand-painted casual animal game. The left half is only softly textured grassy turf in fresh medium sage / meadow green with a few very small blade clusters and variation; the right half is only rich light chestnut / warm ochre exposed garden soil with small faint grains and a few tiny speckles. Flat overhead view, subtle painterly shapes, deliberately understated, equal lighting, no shadows from large objects. Each texture fills its exact half edge to edge. Crisp straight vertical split exactly halfway. No frames, no grid, no rims, no characters, no writing or logos, no horizon, no isometric sides.
-- **배치 아이콘** — One isolated mobile game action icon meaning place a defender card on the field. A chunky blue and gold playing card with a small ivory shield crest, tilted slightly back as it slots upright into a single small isometric grass tile with warm soil sides. A bright mint-green circular plus sign badge attached at lower right. Cozy 2D hand-painted cartoon RPG inventory icon, strong dark teal silhouette outline, warm edge highlights, bold and readable at 40 pixels. Fill the square with the object, centered, no text, no letters, no other objects or square background.
+- **배치 아이콘** — 라군 젤리 원화의 배치 버튼을 정면으로 보이게 한다. 하늘색 둥근 사각형, 크림색 방패, 청록색 더하기 표식 순으로 겹치고 왼쪽 위에 흰 반사광을 둔다. 바깥은 투명하게 내보낸다.
 
 - **일반 전투 공터** — Vertical portrait 9:16 hand-painted casual 2D mobile tower-defense battlefield background. High overhead 3/4 bird’s-eye view of a large lush meadow completely enclosed by a blue-green storybook forest. Playable clearing occupies full middle 75% width-to-edge with calm softly mottled mossy meadow across 24% to 77% of image height. Along left and right of clearing, leave narrow openings in shrubs at halfway down the screen for characters to enter and leave. Dense richly layered teal round treetops at very top and in bottom corners, sunlit dappled turquoise green grass, a few tiny daisies and pebbles at edges, soft painterly casual game aesthetic. Composition reads as a continuous forest floor. Keep the midsection very open to display many tiny moving characters. No sky, horizon, straight lines, grid, buildings, roads, dirt tracks, figures, UI or text.
 - **습격대 세 종류** — A production 2D mobile RPG sprite atlas, horizontal wide layout 3:1, exactly THREE separate isolated full-body enemy creatures in a single row, centered at one-sixth, one-half, five-sixths. On transparent background. Each separated by generous transparent margin; do not overlap. All face screen RIGHT in a side three-quarter walking pose, with face and gear readable. A family of cute chibi mischievous forest raiders with large heads, two short feet and big eyes, clean deep brown outlines: left a russet red fox-like scout with red scarf, pointy nose and sly expression, middle a stocky ochre boar footsoldier with leather cap and round bronze buckler, right a big blue grey badger guard with blue steel helmet and broad shield. Friendly stylized round plush toy-like rendering, soft highlights, limited bold color masses, same scale and shared groundline. Whole figure and ears visible for all 3, no tile, no labels, no text, no scenery, no shadows extending beyond the feet. The characters must be readily distinguishable even at 40 pixels.
@@ -56,13 +76,13 @@ ImageGen으로 제작한 일반 전투 배경은 나무가 화면 가장자리�
 
 ### 인벤토리 보유 카드
 
-[공용 카드 프레임](../Assets/04_Resources/Images/LobbyInventoryCard.png)은 세로 3:4 비율이다. 금색 테두리 안쪽의 청록 숲 배경에는 남동쪽 캐릭터를 크게 올리고, 짙은 청록색 명판에는 이름과 보유 카드 한 장의 공격·방어·체력을 표시한다. 등급과 배치 상태도 플레이 중의 값으로 채운다.
+[공용 카드 프레임](../Assets/04_Resources/Images/LobbyInventoryCard.png)은 세로 3:4 비율이다. 민트색 젤리 테두리 안쪽 숲 배경에 캐릭터를 올리고, 청록색 명판에 이름과 합산 공격·방어·체력, 레몬색 보너스 합계를 표시한다. 왼쪽 위에는 별 아이콘과 숫자 등급을 나란히 둔다. 확대하면 카드 아래의 크림색 표에서 능력치별 기본값·뽑기 보너스·합계를 비교할 수 있다. 등급 배너에는 현재 별의 점수 구간과 사수의 사거리를 표시한다. 표시 항목과 등급 산정은 [카드 사양서](LOBBY-CARDS.md)를 따른다.
 
-인벤토리는 실제 보유 카드를 획득 순서대로 세 장씩 한 줄에 표시한다. 위아래로 스크롤하면 보이는 카드의 캐릭터가 가벼운 대기 동작을 반복한다. 왼쪽 위에는 등급에 따라 은별 1~3개 또는 금별 3개를, 목록 카드 오른쪽 위에는 돋보기를 올린다. [카드 아이콘 원화](../Assets/04_Resources/Images/LobbyCardIcons.png)
+인벤토리는 보유 카드를 획득 순서대로 한 줄에 세 장씩 표시한다. 스크롤하면 보이는 캐릭터가 대기 동작을 반복한다. 768 × 192 [카드 아이콘 원화](../Assets/04_Resources/Images/LobbyCardIcons.png)는 왼쪽부터 은별, 금별, 돋보기, 번개가 박힌 보라색 마비 트랩이다. 등급별 별은 카드 왼쪽 위, 돋보기는 오른쪽 위, 마비 트랩은 해당 카드의 초상 자리에 놓는다.
 
 카드 전체를 누르면 그 자리에서 중앙으로 커지고 뒤의 목록이 어두워진다. 확대가 끝나면 특수 동작을 한 번 재생하고 대기로 돌아온다. 오른쪽 위의 [빨간 뒤로 가기 화살표](../Assets/04_Resources/Images/LobbyCardBack.png)를 누르면 원래 자리로 축소된다. 화면 전환 애니메이션을 끄면 팝업이 즉시 열리고 닫힌다. **다시 재생**으로 동작을 반복할 수 있다. 토끼 사수는 원래 방향 시트의 특수 포즈를, 새싹거북과 신규 동물은 프리팹 동작을, 마비 트랩은 보라색 보석의 반짝임을 사용한다.
 
-[카드 앞면 PNG 21장](art/lobby-units/InventoryCardFronts.zip)에는 이름과 원화가 들어 있다. [별 등급을 표시한 보유 카드 갤러리](art/lobby-units/InventoryCardGrades.png)는 검증용 카드의 등급과 능력치를 함께 표시한 예시다.
+[카드 앞면 PNG 21장](art/lobby-units/InventoryCardFronts.zip)에는 이름과 원화가 들어 있다. 별 등급과 능력치를 표시할 때는 [카드 사양서의 화면별 표시 항목](LOBBY-CARDS.md#화면에-표시할-정보)을 따른다.
 
 ### 신규 캐릭터 프리팹과 방향 시트
 
@@ -89,8 +109,8 @@ Unity에서 프리팹을 Canvas 아래에 두고 Animator에서 `Walk_SE`나 `Sp
 
 | 요소 | 새 UI에 적용할 때 |
 |---|---|
-| 공용 버튼 | 노란 상판, 주황색 아래 면, 검은 외곽선이 눌리는 면의 높이를 보여준다. 라벨은 별도 TMP로 중앙에 놓는다. 기본 프리팹은 300 × 145, 글자 크기 50, 글자색 `#323232`다. 폭을 바꿀 때는 Sliced 설정을 유지한다. [Button 프리팹](../Assets/Resources/Prefab/UI/Module/Button.prefab) · [노란 버튼](../Assets/04_Resources/Images/Btn_MainButton_Yellow.Png) |
-| 준비 팝업 조작 | START는 같은 실루엣의 파란 버튼을 쓴다. 닫기 아이콘은 검은 테두리와 아래쪽 그림자가 있는 흰색 ×다. 교체할 때는 × 주변의 투명 여백까지 비교한다. [하늘색 버튼](../Assets/04_Resources/Images/Btn_MainButton_Sky.Png) · [닫기 아이콘](../Assets/04_Resources/Images/Icon_PictoIcon_Close01.png) |
+| 공용 버튼 | 레몬색 상판의 왼쪽 위에 흰 반사광을 두고, 아래를 진한 노랑으로 마무리한다. 기본 프리팹의 라벨은 30pt 고동색(#5B3816)이며 실제 화면에서 크기를 조정한다. [Button 프리팹](../Assets/Resources/Prefab/UI/Module/Button.prefab) · [노란 버튼](../Assets/04_Resources/Images/Btn_MainButton_Yellow.Png) |
+| 준비 팝업 조작 | START에는 하늘색 젤리 버튼을 쓰고, 닫기는 산호색 원 안에 흰색 ×를 표시한다. [하늘색 버튼](../Assets/04_Resources/Images/Btn_MainButton_Sky.Png) · [닫기 아이콘](../Assets/04_Resources/Images/Icon_PictoIcon_Close01.png) |
 | 슬라이더 원화 | 짙은 남색 홈, 밝은 파란 채움, 청록색 방패 아이콘이 한 세트다. 프레임과 채움은 양 끝의 테두리를 보존하며 가로로 늘리고, 아이콘은 비율을 유지한다. 대전 HUD의 피벗 게이지는 아래 별 장식 원화를 쓴다. [프레임](../Assets/04_Resources/Images/Slider05_Frame.png) · [채움](../Assets/04_Resources/Images/Slider05_Fill.png) · [아이콘](../Assets/04_Resources/Images/Slider05_Icon.png) |
 
 버튼 원화를 교체할 때는 Sprite Editor의 Border를 원본과 대조한다. 왼쪽·아래·오른쪽·위 순서로 노란 버튼은 `20 / 40 / 20 / 20`, 하늘색 버튼은 `27 / 0 / 27 / 0`이다. 임포트 값은 파일마다 다르므로 같은 역할의 원본을 기준으로 삼는다.
@@ -131,4 +151,4 @@ Unity에서 프리팹을 Canvas 아래에 두고 Animator에서 `Walk_SE`나 `Sp
 
 ## 준비 팝업 패널
 
-[레몬색 패널 원본](../Assets/04_Resources/Images/ReadyPanelYellow.png)은 중앙이 연한 버터색이고 가장자리가 둥근 젤리 테두리다. 왼쪽 위 반사광을 테두리에 두고 중앙을 비워 제목·릴·라이프가 올라갈 자리를 확보한다. 모서리 바깥은 투명하게 내보낸다. 팝업 프리팹은 단일 Sprite를 흰색 틴트로 표시하고, 본문에는 진한 갈색, START에는 하늘색 버튼을 사용한다.
+[레몬색 패널 원본](../Assets/04_Resources/Images/ReadyPanelYellow.png)은 중앙이 연한 버터색이고 가장자리가 둥근 젤리 테두리다. 왼쪽 위 반사광을 테두리에 두고 중앙을 비워 제목·릴·라이프가 올라갈 자리를 확보한다. 모서리 바깥은 투명하게 내보낸다. 팝업 프리팹은 단일 Sprite를 흰색 틴트로 표시하고, 진청록 본문과 민트색 라이프 배지, 하늘색 START 버튼을 올린다.
