@@ -13,7 +13,7 @@
 | 서버 URL·HTTP 초기화·GET/POST 진입점 | [NetworkManager.cs](../Assets/02_Scripts/Manager/NetworkManager.cs) | `Initialize`, `Get`, `Post` |
 | UnityWebRequest·JSON 직렬화·응답/오류 처리 | [HttpNetworkClient.cs](../Assets/02_Scripts/Manager/Network/HttpNetworkClient.cs) | `CoGet`, `CoPost`, `HandleResponse`, `BuildUrl` |
 | 유저 데이터 레이어 초기화·로드·초기화 해제 | [UserDataManager.cs](../Assets/02_Scripts/Manager/UserDataManager.cs) | `Initialize`, `EnsureIdentityLoaded`, `LoadIdentity`, `ClearAll` |
-| user/identity 요청·실패 시 더미 데이터 | [IdentityLayer.cs](../Assets/02_Scripts/Manager/UserData/IdentityLayer.cs) | `Request`, `CreateDummyData`, `Clear` |
+| user/identity 요청 합류·계정 변경·서버 실패 시 더미 데이터 | [IdentityLayer.cs](../Assets/02_Scripts/Manager/UserData/IdentityLayer.cs) | `Request`, `IsLoading`, `SetData`, `CreateDummyData`, `Clear` |
 
 공유 DTO의 소스는 이 저장소의 C# 파일에 없습니다. 클라이언트는 [PuzleBattleShared.dll](../Assets/Plugins/PuzleBattleShared.dll)을 참조하며, DTO 수정은 서버의 공유 프로젝트에서 진행합니다.
 
@@ -109,8 +109,9 @@ UserDataManager (MonoBehaviour 싱글톤, SharedScene)
 
 | 메서드 | 용도 |
 |--------|------|
-| `Initialize()` | 레이어 인스턴스 생성 |
-| `LoadIdentity(onComplete, onFailed, forceRefresh?)` | Identity 서버 로드 |
+| `Initialize()` | 레이어를 한 번 생성해 씬을 다시 열어도 진행 중인 요청을 유지 |
+| `EnsureIdentityLoaded()` | 로비에서 네트워크 매니저가 준비된 뒤 기본 정보를 한 번 요청 |
+| `LoadIdentity(onComplete, onFailed, forceRefresh?)` | 받은 기본 정보를 재사용하거나 갱신을 요청. 네트워크 매니저가 없으면 실패 콜백을 호출하며 다시 요청할 수 있다 |
 | `ClearAll()` | 전체 데이터 초기화 (로그아웃) |
 | `Identity` | IdentityLayer 프로퍼티 접근 |
 
@@ -119,7 +120,8 @@ UserDataManager (MonoBehaviour 싱글톤, SharedScene)
 - 응답 DTO: `UserData`
 - 서버 연결 실패 시 더미 데이터로 폴백 (uid=`"dummy_user"`, nickname=`"Guest"`)
 - `Data`: 로드된 `UserData` 인스턴스
-- `IsLoaded`: 서버 로드 완료 여부
+- `IsLoading`인 동안 들어온 요청은 같은 GET 응답을 기다린다. 네트워크 매니저가 있으면 첫 요청에서 HTTP 클라이언트를 초기화한다.
+- `IsLoaded`는 서버 응답 또는 더미 정보가 준비된 상태다. 로그인으로 새 계정을 적용하거나 로그아웃하면 이전 GET 응답은 무시한다. 로그아웃은 진행 중인 요청의 실패 콜백을 호출한다.
 
 ---
 

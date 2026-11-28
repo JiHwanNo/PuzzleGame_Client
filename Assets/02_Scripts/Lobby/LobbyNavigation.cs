@@ -288,6 +288,10 @@ internal sealed partial class LobbyNavigation : MonoBehaviour
                 _barLives = lives;
                 _lifeAmount.text = $"{lives}/{PlayerLives.Capacity}";
             }
+            if (user != null)
+            {
+                user.EnsureIdentityLoaded();
+            }
         }
 
         long? gems = null;

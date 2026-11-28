@@ -38,9 +38,28 @@ public class UserDataManager : MonoBehaviour
     /// </summary>
     public void Initialize()
     {
+        if (Identity != null)
+        {
+            return;
+        }
         Identity = new IdentityLayer();
         Auth = new AuthLayer();
         Debug.Log("[UserDataManager] 초기화 완료");
+    }
+
+    /// <summary>네트워크 매니저가 준비되면 현재 계정의 기본 정보를 비동기로 한 번 요청한다.</summary>
+    public void EnsureIdentityLoaded()
+    {
+        if (Identity != null && (Identity.IsLoaded || Identity.IsLoading))
+        {
+            return;
+        }
+        if (NetworkManager.Instance == null)
+        {
+            return;
+        }
+        Initialize();
+        LoadIdentity(null, null);
     }
 
     /// <summary>
