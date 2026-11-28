@@ -271,6 +271,8 @@ internal sealed class LobbyDefenseBoard
             {
                 if (card.Cell >= 0)
                 {
+                    // 이전 저장본의 남은 체력을 살리되 현재 카드의 최대 체력을 넘지 않게 한다.
+                    card.RemainingHealth = Math.Min(card.RemainingHealth, card.TotalHealth);
                     _lineup[card.Cell] = card;
                 }
             }
@@ -406,8 +408,7 @@ internal sealed class LobbyDefenseBoard
         }
         _lineup[cell] = card;
         card.Cell = cell;
-        int baseHealth = card.Unit.Role == Piece.Wall ? 36 : 12;
-        card.RemainingHealth = baseHealth + card.Health;
+        card.RemainingHealth = card.TotalHealth;
         card.ReadyAt = Seconds;
         _contacts[cell] = default;
         RosterVersion++;
@@ -566,11 +567,11 @@ internal sealed class LobbyDefenseBoard
                 monster.StrikeSecond = Seconds;
                 LobbyCard blocker = _lineup[next];
                 int impact = piece == Piece.Wall ? 2 : 4;
-                blocker.RemainingHealth -= Math.Max(1, impact + (int)monster.Kind - blocker.Defense);
+                blocker.RemainingHealth -= Math.Max(1, impact + (int)monster.Kind - blocker.TotalDefense);
                 if (piece == Piece.Wall)
                 {
                     RecordContact(next, monster, false);
-                    if (!monster.Ghost && Damage(monster, blocker.Attack))
+                    if (!monster.Ghost && Damage(monster, blocker.TotalAttack))
                     {
                         i--;
                     }
@@ -588,9 +589,10 @@ internal sealed class LobbyDefenseBoard
             if (!monster.Ghost && piece == Piece.Trap && IsCharged(next))
             {
                 LobbyCard trap = _lineup[next];
+                // 기절 연장과 재충전 단축은 각각 그 카드의 방어·체력 뽑기 보너스에 따른다.
                 monster.Stun = StunSeconds + trap.Defense / 5;
                 trap.ReadyAt = Seconds + RechargeSeconds - trap.Health / 5;
-                if (Damage(monster, trap.Attack))
+                if (Damage(monster, trap.TotalAttack))
                 {
                     i--;
                     continue;
@@ -617,6 +619,7 @@ internal sealed class LobbyDefenseBoard
     /// <summary><paramref name="unit"/>의 사거리에서 출구에 가까운 적을 공격하고 처치 보상을 지급한다.</summary>
     private void Attack(int unit)
     {
+        LobbyCard attacker = _lineup[unit];
         Monster target = null;
         int bestDistance = int.MaxValue;
         foreach (Monster monster in Save.Monsters)
@@ -630,7 +633,7 @@ internal sealed class LobbyDefenseBoard
             {
                 distance = int.MaxValue;
             }
-            if (Separation(unit, monster.Cell) <= Range && (target == null || distance < bestDistance))
+            if (Separation(unit, monster.Cell) <= attacker.Unit.AttackRange && (target == null || distance < bestDistance))
             {
                 target = monster;
                 bestDistance = distance;
@@ -640,7 +643,7 @@ internal sealed class LobbyDefenseBoard
         {
             return;
         }
-        bool defeated = Damage(target, 4 + _lineup[unit].Attack);
+        bool defeated = Damage(target, attacker.TotalAttack);
         RecordContact(unit, target, defeated);
     }
 

@@ -14,10 +14,9 @@ internal sealed partial class LobbyNavigation : MonoBehaviour
     private static readonly Color Ink = new Color32(13, 67, 79, 255);
     private static readonly Color Lagoon = new Color32(6, 105, 117, 255);
     private static readonly Color Mint = new Color32(159, 245, 222, 255);
+    private static readonly Color PageBackground = new Color32(218, 246, 238, 255);
     private static readonly Color Pearl = new Color32(253, 255, 240, 255);
     private static readonly Color Lemon = new Color32(255, 226, 91, 255);
-    private static readonly Color Surface = new Color32(35, 61, 73, 255);
-    private static readonly Color Gold = new Color32(255, 211, 132, 255);
     private readonly RectTransform[] _pages = new RectTransform[5];
     private readonly RectTransform[] _pageTops = new RectTransform[5];
     private readonly Image[] _marks = new Image[5];
@@ -37,11 +36,10 @@ internal sealed partial class LobbyNavigation : MonoBehaviour
     private Rect _resourceSafeArea;
     private Vector2Int _resourceScreenSize;
     private Vector2 _resourceCanvasSize;
-    private int _shownGold;
     private int _shownRosterVersion = -1;
     private TMP_Text _motionLabel;
+    private Image _motionIndicator;
     private Button _draw;
-    private TMP_Text _shopTitle;
     private TMP_FontAsset _font;
     private Texture2D _icons;
     private LobbyDefenseView _field;
@@ -53,13 +51,13 @@ internal sealed partial class LobbyNavigation : MonoBehaviour
     private float _elapsed;
     private bool _motion;
 
-    /// <summary>상점 도감 한 칸의 정지 초상, 이름과 역할을 표시한다.</summary>
+    /// <summary>상점 도감 한 칸에 종류별 초상과 이름, 기본 능력치와 역할을 표시한다.</summary>
     private sealed class UnitCard
     {
         public RectTransform Rect;
         public RawImage Portrait;
-        public GameObject Trap;
         public TMP_Text Name;
+        public TMP_Text BaseStats;
         public TMP_Text Value;
     }
 
@@ -84,7 +82,6 @@ internal sealed partial class LobbyNavigation : MonoBehaviour
         nav._field = field;
         nav._icons = AssetManager.Instance.LoadAsset<Texture2D>("LobbyNavigation");
         nav._cardFrame = AssetManager.Instance.LoadAsset<Texture2D>("LobbyInventoryCard");
-        nav._cardIcons = AssetManager.Instance.LoadAsset<Texture2D>("LobbyCardIcons");
         nav._motion = PlayerPrefs.GetInt(MotionKey, 1) == 1;
         nav.Build();
         field.PlacementChanged += nav.RefreshBottomBar;
@@ -181,7 +178,6 @@ internal sealed partial class LobbyNavigation : MonoBehaviour
         RectTransform profile = JellyPanel("UserProfile", _resourceBar, .006f, -.95f, .36f, -.09f, Ink);
         RectTransform portrait = JellyPanel("Monogram", profile, .025f, .12f, .215f, .88f, Mint);
         _profileInitial = Label(portrait, "·", .08f, .06f, .92f, .94f, 33);
-        _profileInitial.color = Ink;
         _profileInitial.richText = false;
         _profileInitial.fontStyle = FontStyles.Bold;
         _profileName = Label(profile, "플레이어", .25f, .10f, .96f, .90f, 28);
@@ -309,18 +305,19 @@ internal sealed partial class LobbyNavigation : MonoBehaviour
     /// <summary><paramref name="index"/> 페이지에 표제와 실제 배치·보유 정보 또는 옵션을 구성한다.</summary>
     private RectTransform BuildPage(int index)
     {
-        RectTransform page = Panel("Page" + index, _root, 0, .10f, 1, 1, Ink);
+        RectTransform page = Panel("Page" + index, _root, 0, .10f, 1, 1, PageBackground);
         page.gameObject.AddComponent<CanvasGroup>();
-        RectTransform top = Panel("TopBackground", page, 0, 1, 1, 1, Ink);
+        RectTransform top = Panel("TopBackground", page, 0, 1, 1, 1, PageBackground);
         top.pivot = new Vector2(.5f, 0);
         top.GetComponent<Image>().raycastTarget = false;
         _pageTops[index] = top;
-        bool catalog = index < MainPage;
-        float headerBottom = catalog ? .79f : .60f;
-        RectTransform banner = Panel("Header", page, 0, headerBottom, 1, 1, Surface);
-        Icon(banner, index, .65f, .51f);
-        Label(banner, Names[index], .08f, .06f, .92f, .33f, 56);
-        Panel("Rule", page, .08f, headerBottom - .004f, .92f, headerBottom, Gold);
+        RectTransform banner = JellyPanel("Header", page, .035f, .795f, .965f, .977f, Lagoon);
+        RectTransform emblem = Box("Emblem", banner, .055f, .09f, .34f, .91f);
+        Icon(emblem, index, .5f, .88f);
+        TMP_Text title = Label(banner, Names[index], .38f, .18f, .94f, .82f, 54);
+        title.color = Pearl;
+        title.fontStyle = FontStyles.Bold;
+        title.alignment = TextAlignmentOptions.Left;
         if (index == 0)
         {
             BuildShop(page);
@@ -331,15 +328,22 @@ internal sealed partial class LobbyNavigation : MonoBehaviour
         }
         else if (index == 3)
         {
-            Label(page, "준비 중", .1f, .30f, .9f, .48f, 36);
+            RectTransform notice = JellyPanel("Pending", page, .12f, .61f, .88f, .735f, Pearl);
+            Label(notice, "준비 중", .08f, .12f, .92f, .88f, 36);
         }
         else
         {
-            RectTransform row = Panel("Motion", page, .08f, .36f, .92f, .50f, Surface);
-            Label(row, "화면 전환 애니메이션", .02f, .1f, .68f, .9f, 29);
-            _motionLabel = Label(row, MotionText(), .69f, .1f, .98f, .9f, 28);
-            _motionLabel.color = Gold;
-            row.gameObject.AddComponent<Button>().onClick.AddListener(ToggleMotion);
+            RectTransform row = JellyPanel("Motion", page, .055f, .615f, .945f, .745f, Pearl);
+            TMP_Text setting = Label(row, "화면 전환 애니메이션", .055f, .15f, .675f, .85f, 30);
+            setting.alignment = TextAlignmentOptions.Left;
+            RectTransform indicator = JellyPanel("State", row, .695f, .23f, .955f, .77f, Mint);
+            _motionIndicator = indicator.GetComponent<Image>();
+            _motionLabel = Label(indicator, "", .07f, .06f, .93f, .94f, 28);
+            _motionLabel.fontStyle = FontStyles.Bold;
+            UpdateMotionIndicator();
+            Button button = row.gameObject.AddComponent<Button>();
+            button.targetGraphic = row.GetComponent<Image>();
+            button.onClick.AddListener(ToggleMotion);
         }
         return page;
     }
@@ -348,30 +352,26 @@ internal sealed partial class LobbyNavigation : MonoBehaviour
     private void BuildShop(RectTransform parent)
     {
         CatalogPage page = _shop;
-        _shopTitle = Label(parent, "", .04f, .715f, .51f, .775f, 26);
-        RectTransform draw = Panel("Draw", parent, .53f, .71f, .95f, .779f, Surface);
-        _draw = draw.gameObject.AddComponent<Button>();
-        _draw.targetGraphic = draw.GetComponent<Image>();
+        _draw = CardButton(parent, "Draw", $"카드 뽑기 · {LobbyDefenseBoard.DrawCost} 골드",
+            Rect.MinMaxRect(.235f, .71f, .765f, .779f), 26, Lemon);
         _draw.onClick.AddListener(DrawCard);
-        Label(draw, $"카드 뽑기 · {LobbyDefenseBoard.DrawCost} 골드", 0, 0, 1, 1, 24);
         for (int i = 0; i < CardsPerPage; i++)
         {
             float left = .045f + .31f * (i % 3);
             float bottom = .464f - .272f * (i / 3);
-            RectTransform rect = Panel("Unit" + i, parent, left, bottom, left + .289f, bottom + .234f, Surface);
+            RectTransform rect = JellyPanel("Unit" + i, parent, left, bottom, left + .289f, bottom + .234f, Pearl);
             UnitCard card = new UnitCard();
             card.Rect = rect;
             page.Cards[i] = card;
-            card.Portrait = Square(rect, .68f, .54f);
-            RawImage trapFrame = Square(rect, .68f, .28f);
-            trapFrame.enabled = false;
-            card.Trap = trapFrame.gameObject;
-            LobbyDefenseView.DrawTrap(Box("Gem", trapFrame.transform, 0, 0, 1, 1));
-            card.Name = Label(rect, "", .025f, .26f, .975f, .42f, 26);
-            card.Value = Label(rect, "", .025f, .015f, .975f, .25f, 22);
+            card.Portrait = Square(rect, .745f, .44f);
+            card.Name = Label(rect, "", .025f, .38f, .975f, .54f, 26);
+            card.Name.fontStyle = FontStyles.Bold;
+            card.BaseStats = Label(rect, "", .025f, .225f, .975f, .375f, 18);
+            card.BaseStats.fontSizeMin = 8;
+            RectTransform role = JellyPanel("Role", rect, .13f, .045f, .87f, .205f, Mint);
+            card.Value = Label(role, "", .035f, .08f, .965f, .92f, 22);
             card.Name.fontSizeMin = 8;
             card.Value.fontSizeMin = 8;
-            card.Value.color = Gold;
         }
         page.Previous = CatalogButton(parent, "이전", .08f, () => TurnPage(-1));
         page.Next = CatalogButton(parent, "다음", .69f, () => TurnPage(1));
@@ -381,11 +381,8 @@ internal sealed partial class LobbyNavigation : MonoBehaviour
     /// <summary><paramref name="parent"/>의 <paramref name="left"/> 위치에 <paramref name="caption"/>을 표시하고 <paramref name="click"/>을 연결한다.</summary>
     private Button CatalogButton(RectTransform parent, string caption, float left, UnityEngine.Events.UnityAction click)
     {
-        RectTransform rect = Panel(caption, parent, left, .065f, left + .23f, .15f, Surface);
-        Button button = rect.gameObject.AddComponent<Button>();
-        button.targetGraphic = rect.GetComponent<Image>();
+        Button button = CardButton(parent, caption, caption, new Rect(left, .065f, .23f, .085f), 26, Mint);
         button.onClick.AddListener(click);
-        Label(rect, caption, 0, 0, 1, 1, 26);
         return button;
     }
 
@@ -420,8 +417,12 @@ internal sealed partial class LobbyNavigation : MonoBehaviour
         Select(MainPage);
     }
 
-    /// <summary>현재 애니메이션 옵션의 표시 문구를 반환한다.</summary>
-    private string MotionText() => _motion ? "켜짐" : "꺼짐";
+    /// <summary>전환 효과의 사용 여부에 맞게 옵션 버튼의 글자와 바탕색을 갱신한다.</summary>
+    private void UpdateMotionIndicator()
+    {
+        _motionLabel.text = _motion ? "켜짐" : "꺼짐";
+        LagoonUI.Surface(_motionIndicator, _motion ? Mint : PageBackground);
+    }
 
     /// <summary>전환 효과 사용 여부를 바꾸고 다음 로비 진입에도 적용한다.</summary>
     private void ToggleMotion()
@@ -429,7 +430,7 @@ internal sealed partial class LobbyNavigation : MonoBehaviour
         _motion = !_motion;
         PlayerPrefs.SetInt(MotionKey, _motion ? 1 : 0);
         PlayerPrefs.Save();
-        _motionLabel.text = MotionText();
+        UpdateMotionIndicator();
     }
 
     /// <summary><paramref name="index"/>를 마지막 요청으로 기억하고 선택 표시를 갱신한다.</summary>
@@ -489,7 +490,6 @@ internal sealed partial class LobbyNavigation : MonoBehaviour
     private void RefreshCatalog(int tab)
     {
         _shownRosterVersion = _field.Board.RosterVersion;
-        _shownGold = _field.Board.Gold;
         if (tab == 1)
         {
             RefreshInventoryList(true);
@@ -498,8 +498,6 @@ internal sealed partial class LobbyNavigation : MonoBehaviour
         CatalogPage page = _shop;
         int count = LobbyUnit.Catalog.Count;
         int lastPage = (count - 1) / CardsPerPage;
-        _shopTitle.text = $"보유 {_shownGold} 골드";
-        _draw.interactable = _shownGold >= LobbyDefenseBoard.DrawCost;
         page.Previous.interactable = page.Index > 0;
         page.Next.interactable = page.Index < lastPage;
         page.PageNumber.text = $"{page.Index + 1} / {lastPage + 1}";
@@ -515,16 +513,16 @@ internal sealed partial class LobbyNavigation : MonoBehaviour
             }
             LobbyUnit unit = LobbyUnit.Catalog[index];
             card.Name.text = unit.Name;
+            card.BaseStats.text = $"기본  공 {unit.BaseAttack} · 방 {unit.BaseDefense} · 체 {unit.BaseHealth}";
             card.Value.text = "길막";
             if (unit.Role == LobbyDefenseBoard.Piece.Archer)
             {
-                card.Value.text = "사수";
+                card.Value.text = $"사수 · 사거리 {unit.AttackRange}칸";
             }
             else if (unit.Role == LobbyDefenseBoard.Piece.Trap)
             {
                 card.Value.text = "트랩";
             }
-            card.Trap.SetActive(unit == LobbyUnit.Trap);
             _field.SetPortrait(card.Portrait, unit);
         }
     }
@@ -541,8 +539,7 @@ internal sealed partial class LobbyNavigation : MonoBehaviour
         RefreshResources();
         if (_current == _target)
         {
-            bool goldChanged = _current == 0 && _shownGold != _field.Board.Gold;
-            if (_current < MainPage && (goldChanged || _shownRosterVersion != _field.Board.RosterVersion))
+            if (_current < MainPage && _shownRosterVersion != _field.Board.RosterVersion)
             {
                 RefreshCatalog(_current);
             }
@@ -623,6 +620,7 @@ internal sealed partial class LobbyNavigation : MonoBehaviour
     {
         TMP_Text label = Box("Label", parent, left, bottom, right, top).gameObject.AddComponent<TextMeshProUGUI>();
         label.font = _font;
+        label.color = Ink;
         label.text = value;
         label.enableAutoSizing = true;
         label.fontSizeMin = 12;

@@ -202,8 +202,8 @@ internal sealed partial class LobbyDefenseView
             actor.Root = Element("Raider", _actorsRoot, 0, 0, size, size);
             actor.Body = MakeIcon(actor.Root, size);
             actor.Body.texture = _raiders;
-            actor.Bar = Panel("Health", actor.Root, 0, 0, 30, 4, new Color32(64, 34, 33, 255)).rectTransform;
-            actor.Fill = Panel("Remaining", actor.Bar, 0, 0, 1, 4, new Color32(255, 113, 84, 255)).rectTransform;
+            actor.Bar = Panel("Health", actor.Root, 0, 0, 30, 4, DeepTeal).rectTransform;
+            actor.Fill = Panel("Remaining", actor.Bar, 0, 0, 1, 4, new Color32(255, 125, 105, 255)).rectTransform;
             actor.Fill.anchorMin = actor.Fill.anchorMax = new Vector2(0f, 0.5f);
             actor.Fill.pivot = new Vector2(0f, 0.5f);
             _raiderActors.Add(actor);

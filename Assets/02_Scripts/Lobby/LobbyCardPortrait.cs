@@ -9,6 +9,7 @@ internal sealed class LobbyCardPortrait : MonoBehaviour
     private const float SpecialDuration = 0.72f;
     private static readonly int _idleState = Animator.StringToHash("Base Layer.Idle_SE");
     private static readonly int _specialState = Animator.StringToHash("Base Layer.Special_SE");
+    private static readonly Color _gemShade = new Color32(211, 181, 237, 255);
 
     private LobbyUnit _unit;
     private RectTransform _actor;
@@ -17,8 +18,7 @@ internal sealed class LobbyCardPortrait : MonoBehaviour
     private RectTransform _sprite;
     private RawImage _rabbit;
     private Rect _idleRegion;
-    private Image _gem;
-    private Color _gemColor;
+    private RawImage _gem;
     private float _breathTime;
     private float _specialLeft;
 
@@ -80,18 +80,10 @@ internal sealed class LobbyCardPortrait : MonoBehaviour
         ApplyPendingState();
     }
 
-    /// <summary><paramref name="field"/>에서 초상을 받아 토끼의 시트 또는 전장과 같은 보석을 만든다.</summary>
+    /// <summary><paramref name="field"/>의 초상 원화로 토끼 시트와 마비 트랩의 젤리 보석을 표시한다.</summary>
     private void CreateSprite(LobbyDefenseView field)
     {
         _actor = CreateSquare("Portrait", transform, SpriteSize);
-        if (_unit == LobbyUnit.Trap)
-        {
-            _sprite = CreateSquare("Gem", _actor, 45f);
-            LobbyDefenseView.DrawTrap(_sprite);
-            _gem = _sprite.GetComponent<Image>();
-            _gemColor = _gem.color;
-            return;
-        }
         _sprite = CreateSquare("Art", _actor, SpriteSize);
         RawImage icon = _sprite.gameObject.AddComponent<RawImage>();
         icon.raycastTarget = false;
@@ -100,6 +92,11 @@ internal sealed class LobbyCardPortrait : MonoBehaviour
         {
             _rabbit = icon;
             _idleRegion = icon.uvRect;
+        }
+        else if (_unit == LobbyUnit.Trap)
+        {
+            _gem = icon;
+            _gem.color = _gemShade;
         }
     }
 
@@ -204,7 +201,7 @@ internal sealed class LobbyCardPortrait : MonoBehaviour
         _sprite.localScale = new Vector3(1f - breath * 0.012f + pulse * 0.07f, 1f + breath * 0.018f + pulse * 0.07f, 1f);
         if (_gem != null)
         {
-            _gem.color = Color.Lerp(_gemColor, Color.white, (breath + 1f) * 0.09f + pulse * 0.55f);
+            _gem.color = Color.Lerp(_gemShade, Color.white, (breath + 1f) * 0.09f + pulse * 0.72f);
         }
     }
 }

@@ -25,7 +25,6 @@ public class LobbyMain : MonoBehaviour
         }
         LobbyDefenseView field = LobbyDefenseView.Create(_statusText, CameraController.MainCamera, _defenseStages);
         LobbyNavigation.Create(_statusText, field);
-        _statusText.text = "플레이 시 라이프 1개 사용";
     }
 
     /// <summary>호환 기록을 찾아 튜토리얼 또는 상대 대전을 준비하고 게임 씬으로 이동한다.</summary>

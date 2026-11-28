@@ -66,6 +66,7 @@ internal sealed partial class LobbyDefenseView : MaskableGraphic, IPointerClickH
     private Canvas _world;
     private Transform _mainTab;
     internal LobbyDefenseBoard Board => _session;
+    internal Texture2D CardIcons { get; private set; }
 
     /// <summary>같은 프리팹으로 만든 전장 배우와 카드에 표시할 원본 초상을 보관한다.</summary>
     private sealed class UnitArt
@@ -160,6 +161,7 @@ internal sealed partial class LobbyDefenseView : MaskableGraphic, IPointerClickH
         view._play = view._mainTab.Find("PlayButton").gameObject;
         view._terrain = AssetManager.Instance.LoadAsset<Texture2D>("LobbyTerrain");
         view._archerSheet = AssetManager.Instance.LoadAsset<Texture2D>("LobbyArcher8Way");
+        view.CardIcons = AssetManager.Instance.LoadAsset<Texture2D>("LobbyCardIcons");
         view._canvasRect = (RectTransform)status.canvas.rootCanvas.transform;
         view._backdrop = Element("LobbyBackground", field.transform, 0, 0, 1, 1);
         view._backdrop.SetAsFirstSibling();
@@ -338,7 +340,7 @@ internal sealed partial class LobbyDefenseView : MaskableGraphic, IPointerClickH
         Refresh();
     }
 
-    /// <summary>메인과 상점의 <paramref name="icon"/>에 <paramref name="unit"/>의 남동쪽 원화를 표시한다.</summary>
+    /// <summary><paramref name="icon"/>에 <paramref name="unit"/>의 남동쪽 캐릭터 초상 또는 마비 트랩 보석을 표시한다.</summary>
     internal void SetPortrait(RawImage icon, LobbyUnit unit)
     {
         icon.texture = null;
@@ -346,6 +348,11 @@ internal sealed partial class LobbyDefenseView : MaskableGraphic, IPointerClickH
         {
             icon.texture = _archerSheet;
             icon.uvRect = PoseRegion(1, false);
+        }
+        else if (unit == LobbyUnit.Trap)
+        {
+            icon.texture = CardIcons;
+            icon.uvRect = CardIconRegion(3);
         }
         else if (unit.PrefabPath != null)
         {
@@ -388,18 +395,8 @@ internal sealed partial class LobbyDefenseView : MaskableGraphic, IPointerClickH
         return art;
     }
 
-    /// <summary><paramref name="rect"/>에 마비 트랩의 보라색 보석과 노란 중심을 그린다.</summary>
-    internal static void DrawTrap(RectTransform rect)
-    {
-        rect.localRotation = Quaternion.Euler(0, 0, 45);
-        Image gem = rect.gameObject.AddComponent<Image>();
-        gem.color = new Color32(187, 137, 245, 255);
-        gem.raycastTarget = false;
-        RectTransform core = Element("Core", rect, 0, 0, 16, 16);
-        Image center = core.gameObject.AddComponent<Image>();
-        center.color = Honey;
-        center.raycastTarget = false;
-    }
+    /// <summary>은별·금별·돋보기·마비 트랩 보석 순서로 들어 있는 카드 아틀라스에서 <paramref name="index"/> 칸의 영역을 반환한다.</summary>
+    internal static Rect CardIconRegion(int index) => new Rect(index * 0.25f, 0f, 0.25f, 1f);
 
     /// <summary><paramref name="unit"/>을 전장의 색 표식 대신 캐릭터로 그릴 수 있는지 확인한다.</summary>
     private bool HasUnitArt(LobbyUnit unit)
@@ -874,13 +871,18 @@ internal sealed partial class LobbyDefenseView : MaskableGraphic, IPointerClickH
             DrawBattleGround(mesh);
             return;
         }
-        LobbyDefenseBoard.Piece selectedPiece = _moving >= 0 ? _session.PieceAt(_moving) : SelectedRole;
+        LobbyCard previewCard = _moving >= 0 ? _session.CardAt(_moving) : _selectedCard;
+        int range = 0;
+        if (previewCard != null && previewCard.Unit.Role == LobbyDefenseBoard.Piece.Archer)
+        {
+            range = previewCard.Unit.AttackRange;
+        }
         for (int cell = 0; cell < LobbyDefenseBoard.Width * LobbyDefenseBoard.Height; cell++)
         {
             Color tint = Color.white;
-            if (_selected >= 0 && selectedPiece == LobbyDefenseBoard.Piece.Archer && LobbyDefenseBoard.Separation(cell, _selected) <= LobbyDefenseBoard.Range)
+            if (_selected >= 0 && range > 0 && LobbyDefenseBoard.Separation(cell, _selected) <= range)
             {
-                tint = new Color32(178, 238, 233, 255);
+                tint = new Color32(174, 243, 236, 255);
             }
             Tile(mesh, cell, 0.036f, tint, GroundUV(cell, _session.HasUnit(cell)));
         }

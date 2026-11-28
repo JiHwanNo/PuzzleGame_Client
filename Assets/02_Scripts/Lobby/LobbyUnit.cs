@@ -9,6 +9,10 @@ internal sealed class LobbyUnit
     internal readonly string Name;
     internal readonly LobbyDefenseBoard.Piece Role;
     internal readonly string PrefabPath;
+    internal readonly int BaseAttack;
+    internal readonly int BaseDefense;
+    internal readonly int BaseHealth;
+    internal readonly int AttackRange;
     internal string Key
     {
         get
@@ -21,9 +25,11 @@ internal sealed class LobbyUnit
         }
     }
 
-    internal static readonly LobbyUnit Rabbit = new LobbyUnit("토끼 사수", LobbyDefenseBoard.Piece.Archer, null);
-    internal static readonly LobbyUnit Turtle = new LobbyUnit("새싹거북", LobbyDefenseBoard.Piece.Wall, "Prefab/LobbyTurtle");
-    internal static readonly LobbyUnit Trap = new LobbyUnit("마비 트랩", LobbyDefenseBoard.Piece.Trap, null);
+    internal static readonly LobbyUnit Rabbit = new LobbyUnit("토끼 사수", LobbyDefenseBoard.Piece.Archer, null,
+        baseAttack: 10, baseDefense: 5, baseHealth: 5, attackRange: 3);
+    internal static readonly LobbyUnit Turtle = new LobbyUnit("새싹거북", LobbyDefenseBoard.Piece.Wall, "Prefab/LobbyTurtle",
+        baseHealth: 36, attackRange: 1);
+    internal static readonly LobbyUnit Trap = new LobbyUnit("마비 트랩", LobbyDefenseBoard.Piece.Trap, null, baseHealth: 12);
     private static readonly IReadOnlyList<LobbyUnit> _basicCatalog = Array.AsReadOnly(new LobbyUnit[] { Rabbit, Turtle, Trap });
 
     internal static LobbyUnit Ghost { get; private set; }
@@ -45,12 +51,18 @@ internal sealed class LobbyUnit
         public string role = string.Empty;
     }
 
-    /// <summary><paramref name="name"/>과 <paramref name="role"/> 및 <paramref name="prefabPath"/>를 한 캐릭터로 등록한다.</summary>
-    private LobbyUnit(string name, LobbyDefenseBoard.Piece role, string prefabPath)
+    /// <summary><paramref name="name"/>·<paramref name="role"/>·<paramref name="prefabPath"/>에 종류별 기본 능력치
+    /// <paramref name="baseAttack"/>·<paramref name="baseDefense"/>·<paramref name="baseHealth"/>와 칸 단위 <paramref name="attackRange"/>를 연결한다.</summary>
+    private LobbyUnit(string name, LobbyDefenseBoard.Piece role, string prefabPath,
+        int baseAttack = 0, int baseDefense = 0, int baseHealth = 0, int attackRange = 0)
     {
         Name = name;
         Role = role;
         PrefabPath = prefabPath;
+        BaseAttack = baseAttack;
+        BaseDefense = baseDefense;
+        BaseHealth = baseHealth;
+        AttackRange = attackRange;
     }
 
     /// <summary>새 플레이를 시작할 때 데이터로 추가한 정의만 비우고 기본 세 유닛을 준비한다.</summary>
@@ -122,11 +134,12 @@ internal sealed class LobbyUnit
             switch (row.role)
             {
                 case "Archer":
-                    units.Add(new LobbyUnit(row.name, LobbyDefenseBoard.Piece.Archer, path));
+                    units.Add(new LobbyUnit(row.name, LobbyDefenseBoard.Piece.Archer, path,
+                        baseAttack: 4, baseHealth: 12, attackRange: LobbyDefenseBoard.Range));
                     hasArcher = true;
                     break;
                 case "Wall":
-                    units.Add(new LobbyUnit(row.name, LobbyDefenseBoard.Piece.Wall, path));
+                    units.Add(new LobbyUnit(row.name, LobbyDefenseBoard.Piece.Wall, path, baseHealth: 36, attackRange: 1));
                     hasWall = true;
                     break;
                 case "Ghost":
@@ -158,6 +171,7 @@ internal sealed class LobbyCard
     // 과거 저장본의 종류 번호도 읽고, 이후에는 카탈로그 순서와 무관한 키를 보관한다.
     public int Kind;
     public string UnitKey;
+    // 뽑을 때 얻은 세 보너스만 저장한다. 종류의 기본값은 불러온 카드 정의에서 더한다.
     public int Attack;
     public int Defense;
     public int Health;
@@ -189,10 +203,16 @@ internal sealed class LobbyCard
     }
 
     internal LobbyUnit Unit => LobbyUnit.Catalog[Kind];
-    internal string Stats => $"공 {Attack} · 방 {Defense} · 체 {Health}";
+    internal int TotalAttack => Unit.BaseAttack + Attack;
+    internal int TotalDefense => Unit.BaseDefense + Defense;
+    internal int TotalHealth => Unit.BaseHealth + Health;
+    internal int BonusTotal => Attack + Defense + Health;
+    internal string Stats => $"공 {TotalAttack} · 방 {TotalDefense} · 체 {TotalHealth}";
     private static readonly string[] GradeNames = { "1성", "2성", "3성", "금별 3성" };
-    private int GradeIndex => Math.Max(0, Math.Min(3, (Attack + Defense + Health) / 10));
+    private static readonly string[] GradeBands = { "0~9점", "10~19점", "20~29점", "30점" };
+    private int GradeIndex => Math.Max(0, Math.Min(3, BonusTotal / 10));
     internal int StarCount => Math.Min(3, GradeIndex + 1);
     internal bool HasGoldStars => GradeIndex == 3;
     internal string Grade => GradeNames[GradeIndex];
+    internal string GradeBand => GradeBands[GradeIndex];
 }

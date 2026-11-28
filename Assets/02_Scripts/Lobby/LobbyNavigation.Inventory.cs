@@ -18,7 +18,6 @@ internal sealed partial class LobbyNavigation
     private bool _revealNewestCard;
     private const float DetailZoomSeconds = .28f;
     private Texture2D _cardFrame;
-    private Texture2D _cardIcons;
     private TMP_Text _inventoryTitle;
     private GameObject _detailPanel;
     private InventoryArt _detailArt;
@@ -30,6 +29,11 @@ internal sealed partial class LobbyNavigation
     private RectTransform _detailBounds;
     private Image _detailShade;
     private CanvasGroup _detailControls;
+    private TMP_Text _detailGrade;
+    private TMP_Text _detailGradeBand;
+    private DetailStatRow _attackRow;
+    private DetailStatRow _defenseRow;
+    private DetailStatRow _healthRow;
     private float _detailProgress;
     private bool _detailClosing;
     private bool _placeOnClose;
@@ -224,9 +228,27 @@ internal sealed partial class LobbyNavigation
     {
         public LobbyCardPortrait Portrait;
         public readonly RawImage[] Stars = new RawImage[3];
+        public TMP_Text Grade;
         public TMP_Text Name;
         public TMP_Text Stats;
+        public TMP_Text Bonus;
         public TMP_Text Action;
+    }
+
+    /// <summary>상세 표의 능력치 한 줄에 종류 기본값, 카드의 뽑기 보너스, 합산한 전투 값을 표시한다.</summary>
+    private sealed class DetailStatRow
+    {
+        public TMP_Text Base;
+        public TMP_Text Bonus;
+        public TMP_Text Total;
+
+        /// <summary><paramref name="baseValue"/>, <paramref name="bonus"/>, <paramref name="total"/>을 각 열에 표시한다.</summary>
+        public void Bind(int baseValue, int bonus, int total)
+        {
+            Base.text = baseValue.ToString();
+            Bonus.text = $"+{bonus}";
+            Total.text = total.ToString();
+        }
     }
 
     /// <summary>스크롤할 때 보이는 카드 한 장에 재사용하는 그림과 상세 보기 입력을 보관한다.</summary>
@@ -242,7 +264,9 @@ internal sealed partial class LobbyNavigation
     /// <summary><paramref name="page"/> 안에 보유 카드 수와 손가락·휠로 움직이는 세로 목록을 만든다.</summary>
     private void BuildInventoryList(RectTransform page)
     {
-        _inventoryTitle = Label(page, "보유 카드", .04f, .715f, .96f, .775f, 29);
+        _inventoryTitle = Label(page, "보유 카드", .068f, .715f, .96f, .775f, 29);
+        _inventoryTitle.alignment = TextAlignmentOptions.Left;
+        _inventoryTitle.fontStyle = FontStyles.Bold;
         RectTransform scrollArea = Box("InventoryScroll", page, .035f, .018f, .98f, .705f);
         _inventoryScroll = scrollArea.gameObject.AddComponent<ScrollRect>();
         _inventoryViewport = Panel("Viewport", scrollArea, 0, 0, .962f, 1, Color.clear);
@@ -255,8 +279,8 @@ internal sealed partial class LobbyNavigation
         _inventoryScroll.vertical = true;
         _inventoryScroll.movementType = ScrollRect.MovementType.Clamped;
         _inventoryScroll.scrollSensitivity = 42f;
-        RectTransform rail = Panel("Scrollbar", scrollArea, .973f, 0, 1, 1, Surface);
-        RectTransform handle = Panel("Handle", rail, 0, 0, 1, 1, new Color32(105, 162, 167, 255));
+        RectTransform rail = JellyPanel("Scrollbar", scrollArea, .973f, 0, 1, 1, Mint);
+        RectTransform handle = JellyPanel("Handle", rail, 0, 0, 1, 1, Lagoon);
         Scrollbar scrollbar = rail.gameObject.AddComponent<Scrollbar>();
         scrollbar.handleRect = handle;
         scrollbar.targetGraphic = handle.GetComponent<Image>();
@@ -384,9 +408,9 @@ internal sealed partial class LobbyNavigation
         frame.raycastTarget = false;
         if (_cardFrame == null)
         {
-            frame.color = Surface;
+            frame.color = Lagoon;
         }
-        RectTransform window = Box("PortraitWindow", face, .09f, .39f, .91f, .90f);
+        RectTransform window = Box("PortraitWindow", face, .09f, .39f, .91f, .835f);
         RectTransform square = Box("Character", window, 0, 0, 1, 1);
         AspectRatioFitter fit = square.gameObject.AddComponent<AspectRatioFitter>();
         fit.aspectRatio = 1f;
@@ -394,16 +418,34 @@ internal sealed partial class LobbyNavigation
 
         InventoryArt art = new InventoryArt();
         art.Portrait = square.gameObject.AddComponent<LobbyCardPortrait>();
-        RectTransform grade = Box("Grade", face, .052f, .844f, .427f, .938f);
+        RectTransform grade = JellyPanel("Grade", face, .055f, .845f, .715f, .949f, Lagoon);
+        grade.GetComponent<Image>().raycastTarget = false;
+        RectTransform stars = Box("Stars", grade, .04f, .13f, .47f, .87f);
         for (int i = 0; i < art.Stars.Length; i++)
         {
-            RectTransform star = Box("Star" + (i + 1), grade, i / 3f, 0, (i + 1) / 3f, 1);
+            RectTransform star = Box("Star" + (i + 1), stars, i / 3f, 0, (i + 1) / 3f, 1);
             art.Stars[i] = CardIcon(star, 0);
         }
+        art.Grade = Label(grade, "", .48f, .075f, .96f, .93f, large ? 34 : 21);
+        art.Grade.fontStyle = FontStyles.Bold;
+        art.Grade.fontSizeMin = 9;
+        art.Grade.textWrappingMode = TextWrappingModes.NoWrap;
         art.Name = Label(face, "", .075f, .246f, .925f, .354f, large ? 60 : 30);
         art.Name.fontStyle = FontStyles.Bold;
-        art.Stats = Label(face, "", .06f, .14f, .94f, .238f, large ? 42 : 22);
-        art.Action = Label(face, "", .08f, .045f, .92f, .132f, large ? 36 : 20);
+        art.Name.color = Pearl;
+        art.Name.textWrappingMode = TextWrappingModes.NoWrap;
+        art.Stats = Label(face, "", .06f, .14f, .94f, .242f, large ? 40 : 23);
+        art.Stats.color = PageBackground;
+        art.Stats.fontSizeMin = 10;
+        art.Stats.textWrappingMode = TextWrappingModes.NoWrap;
+        art.Bonus = Label(face, "", .075f, .051f, .61f, .144f, large ? 32 : 18);
+        art.Bonus.color = Lemon;
+        art.Bonus.fontSizeMin = 9;
+        art.Bonus.textWrappingMode = TextWrappingModes.NoWrap;
+        art.Action = Label(face, "", .61f, .051f, .927f, .144f, large ? 30 : 17);
+        art.Action.color = Mint;
+        art.Action.fontSizeMin = 9;
+        art.Action.textWrappingMode = TextWrappingModes.NoWrap;
         return art;
     }
 
@@ -412,39 +454,38 @@ internal sealed partial class LobbyNavigation
     {
         art.Portrait.Bind(owned.Unit, _field);
         art.Name.text = owned.Unit.Name;
-        art.Stats.text = owned.Stats;
+        art.Stats.text = $"공{owned.TotalAttack}   방{owned.TotalDefense}   체{owned.TotalHealth}";
+        art.Bonus.text = $"보너스 +{owned.BonusTotal}";
+        art.Grade.text = owned.Grade;
+        art.Grade.color = owned.HasGoldStars ? Lemon : Pearl;
         int starCount = owned.StarCount;
-        Rect starRegion = IconRegion(owned.HasGoldStars ? 1 : 0);
+        Rect starRegion = LobbyDefenseView.CardIconRegion(owned.HasGoldStars ? 1 : 0);
         for (int i = 0; i < art.Stars.Length; i++)
         {
             art.Stars[i].uvRect = starRegion;
             art.Stars[i].gameObject.SetActive(i < starCount);
         }
         art.Action.text = owned.Cell < 0 ? "미배치" : "배치 중";
-        art.Action.color = owned.Cell < 0 ? Gold : new Color32(160, 206, 200, 255);
     }
 
     /// <summary><paramref name="rect"/>에 아틀라스의 <paramref name="index"/>번째 아이콘을 표시하고 입력은 카드에 전달한다.</summary>
     private RawImage CardIcon(RectTransform rect, int index)
     {
         RawImage icon = rect.gameObject.AddComponent<RawImage>();
-        icon.texture = _cardIcons;
-        icon.uvRect = IconRegion(index);
+        icon.texture = _field.CardIcons;
+        icon.uvRect = LobbyDefenseView.CardIconRegion(index);
         icon.raycastTarget = false;
-        icon.enabled = _cardIcons != null;
+        icon.enabled = icon.texture != null;
         return icon;
     }
-
-    /// <summary>은별·금별·돋보기가 나란한 아틀라스의 <paramref name="index"/>번째 영역을 반환한다.</summary>
-    private static Rect IconRegion(int index) => new Rect(index / 3f, 0, 1f / 3f, 1);
 
     /// <summary><paramref name="parent"/>의 <paramref name="area"/>에 <paramref name="name"/> 버튼을 만들고 <paramref name="caption"/>을 <paramref name="size"/> 크기로 <paramref name="color"/> 바탕에 표시한다.</summary>
     private Button CardButton(Transform parent, string name, string caption, Rect area, int size, Color color)
     {
-        RectTransform rect = Panel(name, parent, area.xMin, area.yMin, area.xMax, area.yMax, color);
+        RectTransform rect = JellyPanel(name, parent, area.xMin, area.yMin, area.xMax, area.yMax, color);
         Button button = rect.gameObject.AddComponent<Button>();
         button.targetGraphic = rect.GetComponent<Image>();
-        Label(rect, caption, .04f, .04f, .96f, .96f, size);
+        Label(rect, caption, .06f, .08f, .94f, .92f, size).fontStyle = FontStyles.Bold;
         return button;
     }
 
@@ -454,10 +495,11 @@ internal sealed partial class LobbyNavigation
         RectTransform overlay = Panel("CardDetail", _root, 0, 0, 1, 1, Color.clear);
         _detailPanel = overlay.gameObject;
         _detailShade = overlay.GetComponent<Image>();
-        _detailBounds = Box("DetailCard", overlay, .13f, .18f, .87f, .87f);
+        _detailBounds = Box("DetailCard", overlay, .10f, .46f, .90f, .93f);
         _detailArt = BuildOwnedArt(FitCard("Face", _detailBounds), true);
         RectTransform controls = Box("Controls", overlay, 0, 0, 1, 1);
         _detailControls = controls.gameObject.AddComponent<CanvasGroup>();
+        BuildDetailStats(controls);
         RectTransform closeArea = Panel("Close", controls, .83f, .865f, .96f, .968f, Color.clear);
         Image closeIcon = Box("Icon", closeArea, .23f, .18f, .77f, .82f).gameObject.AddComponent<Image>();
         closeIcon.sprite = AssetManager.Instance.LoadAsset<Sprite>("LobbyCardBack");
@@ -466,11 +508,47 @@ internal sealed partial class LobbyNavigation
         _detailClose = closeArea.gameObject.AddComponent<Button>();
         _detailClose.targetGraphic = closeIcon;
         _detailClose.onClick.AddListener(() => CloseCardDetail(false));
-        Button replay = CardButton(controls, "Replay", "다시 재생", new Rect(.13f, .065f, .34f, .085f), 31, Surface);
+        Button replay = CardButton(controls, "Replay", "다시 재생", new Rect(.13f, .065f, .34f, .085f), 31, Mint);
         replay.onClick.AddListener(_detailArt.Portrait.PlaySpecial);
-        _detailPlace = CardButton(controls, "Place", "배치하기", new Rect(.51f, .065f, .36f, .085f), 31, new Color32(31, 111, 129, 255));
+        _detailPlace = CardButton(controls, "Place", "배치하기", new Rect(.51f, .065f, .36f, .085f), 31, Lemon);
         _detailPlace.onClick.AddListener(() => CloseCardDetail(true));
         _detailPanel.SetActive(false);
+    }
+
+    /// <summary><paramref name="controls"/>에 등급과 보너스 합계를 안내하고 그 아래 세 능력치의 산출 표를 구성한다.</summary>
+    private void BuildDetailStats(RectTransform controls)
+    {
+        RectTransform panel = JellyPanel("CardStats", controls, .07f, .163f, .93f, .447f, Pearl);
+        RectTransform ribbon = JellyPanel("GradeSummary", panel, .024f, .679f, .976f, .975f, Lagoon);
+        _detailGrade = Label(ribbon, "", .044f, .45f, .955f, .92f, 34);
+        _detailGrade.alignment = TextAlignmentOptions.Left;
+        _detailGrade.fontStyle = FontStyles.Bold;
+        _detailGrade.color = Pearl;
+        _detailGradeBand = Label(ribbon, "", .044f, .07f, .955f, .45f, 24);
+        _detailGradeBand.alignment = TextAlignmentOptions.Left;
+        _detailGradeBand.color = Mint;
+        JellyPanel("Totals", panel, .755f, .045f, .958f, .652f, Mint);
+        Label(panel, "능력치", .043f, .526f, .31f, .654f, 23);
+        Label(panel, "기본", .31f, .526f, .47f, .654f, 23);
+        Label(panel, "뽑기 보너스", .47f, .526f, .75f, .654f, 23);
+        Label(panel, "합계", .755f, .526f, .958f, .654f, 23).fontStyle = FontStyles.Bold;
+        _attackRow = BuildStatRow(panel, "공격력", .37f);
+        _defenseRow = BuildStatRow(panel, "방어력", .211f);
+        _healthRow = BuildStatRow(panel, "체력", .052f);
+    }
+
+    /// <summary><paramref name="panel"/> 안에서 <paramref name="bottom"/> 높이에 <paramref name="name"/> 행을 만들고 값의 표시 위치를 반환한다.</summary>
+    private DetailStatRow BuildStatRow(RectTransform panel, string name, float bottom)
+    {
+        RectTransform row = Box(name, panel, 0f, bottom, 1f, bottom + .15f);
+        Label(row, name, .043f, 0f, .31f, 1f, 28);
+        DetailStatRow values = new DetailStatRow();
+        values.Base = Label(row, "", .31f, 0f, .47f, 1f, 28);
+        values.Bonus = Label(row, "", .47f, 0f, .75f, 1f, 28);
+        values.Bonus.color = Lagoon;
+        values.Total = Label(row, "", .755f, 0f, .958f, 1f, 30);
+        values.Total.fontStyle = FontStyles.Bold;
+        return values;
     }
 
     /// <summary>목록의 <paramref name="slot"/>을 누른 자리에서 같은 보유 카드의 상세 팝업을 확대한다.</summary>
@@ -548,15 +626,25 @@ internal sealed partial class LobbyNavigation
         float scale = endWidth > 0f ? sourceWidth / endWidth : 1f;
         _detailBounds.anchoredPosition = Vector2.Lerp(sourceCenter - endCenter, Vector2.zero, amount);
         _detailBounds.localScale = Vector3.one * Mathf.Lerp(scale, 1f, amount);
-        _detailShade.color = new Color(.035f, .075f, .105f, .78f * amount);
+        _detailShade.color = new Color(.02f, .16f, .19f, .82f * amount);
         _detailControls.alpha = Mathf.InverseLerp(.46f, 1f, amount);
     }
 
-    /// <summary>상세 화면이 가리키는 보유 카드의 현재 배치 상태를 반영한다.</summary>
+    /// <summary>상세 화면에 선택 카드의 등급 구간, 보너스 합계, 기본·보너스·최종 능력치와 배치 상태를 표시한다.</summary>
     private void BindDetailState()
     {
         _detailCell = _detailCard.Cell;
         BindOwnedArt(_detailArt, _detailCard);
+        LobbyUnit unit = _detailCard.Unit;
+        _detailGrade.text = $"{_detailCard.Grade}   ·   보너스 합계 +{_detailCard.BonusTotal}";
+        _detailGradeBand.text = $"등급 기준 {_detailCard.GradeBand}";
+        if (unit.Role == LobbyDefenseBoard.Piece.Archer)
+        {
+            _detailGradeBand.text += $"   ·   사거리 {unit.AttackRange}칸";
+        }
+        _attackRow.Bind(unit.BaseAttack, _detailCard.Attack, _detailCard.TotalAttack);
+        _defenseRow.Bind(unit.BaseDefense, _detailCard.Defense, _detailCard.TotalDefense);
+        _healthRow.Bind(unit.BaseHealth, _detailCard.Health, _detailCard.TotalHealth);
         _detailPlace.interactable = _detailCell < 0;
     }
 
